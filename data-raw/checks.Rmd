@@ -1,0 +1,67 @@
+# Kontroller
+
+## Identifierare
+
+Kontroll av identifierare - befintlighet och format
+- Submitted with WoS
+- Submitted with DOI
+- Incorrect ScopusID format
+- Incorrect KTH-ID format
+
+Multipletter och dubletter för identifierare
+- KTHID duplicates
+- KTH organization without KTHID
+- Incorrect DOI, ISBN, ISSN, ORCID, WoS identifier format
+- Duplicates
+
+Organisationsenhetsidentifierare
+- Old organization
+
+
+## Andra kontroller
+
+Uttag görs från (https://kth.diva-portal.org/dice/csvAll2?query=-publicationTypeCode:studentThesis&start=0&rows=1000000&sort=author_sort%20asc)
+
+- Artikelposter utan tidskriftstitel
+  * Tar fram alla artikelposter som saknar titel på tidskrift.
+- Submitted med DOI-nummer
+  * Tar fram poster som har statusen submitted men som också har DOI-nummer.
+  * Har de DOI-nummer är det troligt att publikationen är publicerad.
+- Forskare med Org-ID men utan KTH-ID
+  * Tar fram författare (en rad per författare) som har affiliering till KTH men inte något KTH-ID.
+  * För äldre poster är det dock svårt att i efterhand lägga till KTH-ID.
+- Konferenspublikationer utan årtal
+  * Tar fram alla konferenspublikationer som saknar årtal.
+- Publikationer med UT-nummer men inte ”published”
+  * Tar fram poster som har statusen submitted men som också har UT-nummer.
+  * Har de UT-nummer är det troligt att publikationen är publicerad.
+- Tidskrifter utan ISSN
+  * Tar fram alla tidskriftsposter som saknar ISSN-nummer.
+- Kapitel i bok utan boktitel
+  * Tar fram alla poster för kapitel i bok som saknar titel på boken.
+- Korrekt WoS-nummer
+  * Tar fram alla poster vars UT-nummer har ett inkorrekt format (börjar inte på 000 eller A1 eller har fel antal nummer).
+- Finns i Incites men ej i DiVA
+  * Kontrollerar om KTH-publikationer saknas i DiVA. Kontrollen har bytts ut mot SAS-skript se ”Kontroll av KTH-affilierade poster i Bibmet som inte finns i DiVA nedan”.
+- Korrekt ISSN
+  * Tar fram alla poster med ett ISSN-nummer som inte följer strukturen 1234-1234.
+- Korrekt DOI-nummer
+  * Tar fram alla DOI-nummer som inte börjar med 10.
+- Gammal organisation efter 2004
+  * Tar fram alla poster som har en affiliering till tidigare organisationsstruktur efter publiceringsår 2004. Fasta organisations-idn används. Om nya idn läggs till i DiVA så kommer dessa inte att kontrolleras om skriptet inte uppdateras med dessa.
+- Ny organisation innan 2005
+  * Tar fram alla poster som har en affiliering till ny organisationsstruktur innan 2005. Fasta organisations-idn används. Om nya idn läggs till i DiVA så kommer dessa inte att kontrolleras om skriptet inte uppdateras med dessa.
+- EpubAheadofPrint/Inpress/accepted/QP
+  * Tar fram alla poster som har statusen EpubAheadof Print, Inpress, Accepted eller märkningen QP i anteckningsfältet. Dessa kan sedan kontrolleras ifall de har publicerats, vilket de bör ha blivit. Rutin behövs fortfarande för detta arbete.
+- Submitted/QS/NQC/Manuskript
+  * Tar fram alla poster som har statusen Submitted, är av dokumenttypen Manuskript eller märkningen QS eller NQC i anteckningsfältet. Dessa kan sedan kontrolleras ifall de har publicerats vilket de kanske har blivit. Rutin behövs fortfarande för detta arbete.
+- Dubblettkontroll
+  * Kontrollerar dubbletter. Bred sökning används för att få fram alla misstänkta dubbletter. Poster som inte är dubbletter men som skriptet har listat kan läggas i fliken Stopplista_dubbletter. I första kolumnen läggs ett serienummer som är det samma för paret och följer konsekutivt på föregående nummer och i andra kolumnen PID. Skriptet hoppar nästa gång över detta par.
+- KTH-ID (korrekt och dubbletter)
+  * Tar fram lista på KTH-id som inte har rätt antal tecken eller inte börjar på u1. KTH-id som förekommer mer än en gång i en post tas också fram, då skapas två rader i arket. Sortera därför resultatet primärt på PID och sekundärt på KTH-id (i Excel sorterar man först på KTH-id och sedan PID för att få primär sortering på PID) så att dessa kan behandlas samtidigt.
+- Finns i WoS men ej i DiVA
+  * En lista tas fram för poster som via DOI-nummer kan hittas i WoS trots att de i DiVA saknar ISI.
+  * Poster som är affilierade till KTH i Bibmet men som inte finns i DiVA.
+- Matchning av DiVA mot Scopus
+  * Lista på matchade poster skickas till Uppsala för uppmärkning av Scopus-id för respektive PID.
+  * Poster som inte matchas måste importeras till DiVA manuellt.

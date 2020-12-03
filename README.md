@@ -43,7 +43,7 @@ checks
 See the file at “`R/checks.R`” for some of the checks. Edit and add
 checks there.
 
-Checks using Python can be used too, through reticulate, for example.
+Checks using Python can be used too, through `reticulate`, for example.
 
 ## Running the API locally
 

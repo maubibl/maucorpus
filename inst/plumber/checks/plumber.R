@@ -234,3 +234,22 @@ function() {
 function() {
   checks$uncertain_published
 }
+
+#* Total number of pubauth issues
+#* @get /v1/issues/pubauth/rows
+#* @response 400 Invalid input.
+#* @param passphrase the passphrase for accessing this data
+#* @tag Issues
+function(passphrase) {
+  nrow(kth_issues_pubauth(pass = passphrase))
+}
+
+#* A specific pubauth issue
+#* @get /v1/issues/pubauth/row/<id:integer>
+#* @response 400 Invalid input.
+#* @param passphrase the passphrase for accessing this data
+#* @param id the row number
+#* @tag Issues
+function(passphrase, id) {
+  kth_issues_pubauth(pass = passphrase) %>% dplyr::slice(as.integer(id))
+}

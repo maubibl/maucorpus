@@ -31,4 +31,6 @@ Imports:
     rappdirs,
     readr,
     xml2,
-    progress
+    progress,
+    rcrypt,
+    ndjson

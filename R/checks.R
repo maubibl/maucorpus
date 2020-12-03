@@ -191,3 +191,49 @@ kth_diva_checks <- function() {
 }
 
 #checks <- kth_diva_checks()
+
+#' Issues with publication and author affiliations
+
+#' @param pass passphrase required for accessing the data, Default: Sys.getenv("DIVA_PASS")
+#' @return json object
+#' @examples
+#' \dontrun{
+#'  kth_issues_pubauth()
+#' }
+#' @seealso
+#'  \code{\link[rappdirs]{app_dir}}
+#'  \code{\link[rcrypt]{decrypt}}
+#'  \code{\link[readr]{read_file}}
+#' @export
+#' @importFrom rappdirs app_dir
+#' @importFrom rcrypt decrypt
+#' @importFrom readr read_lines
+#' @importFrom ndjson stream_in
+kth_issues_pubauth <- function(pass = Sys.getenv("DIVA_PASS")) {
+
+  stopifnot(nzchar(pass))
+
+  diva_tmp <- function(file) {
+    fp <- file.path(rappdirs::app_dir("diva")$config(), file)
+    if (!dir.exists(dirname(fp)))
+      dir.create(dirname(fp), recursive = TRUE)
+    fp
+  }
+
+  if (!file.exists(diva_tmp("ap.json"))) {
+    rcrypt::decrypt(
+      system.file(package = "diva", "extdata", "ap.rcrypt"),
+      diva_tmp("ap.json"),
+      passphrase = pass
+    )
+  }
+
+  if (!file.exists(diva_tmp("ap.json")))
+    return(character(0))
+
+  res <-
+    ndjson::stream_in(diva_tmp("ap.json"), cls = "tbl") #%>%
+
+  return(res)
+}
+

@@ -60,5 +60,7 @@ pkgdown::build_site()
 
 # test building of vignettes without any downloaded data present
 build_vignettes()
-
+library(usethis)
 use_github_action("check-standard")
+use_package("rcrypt")
+use_package("ndjson")

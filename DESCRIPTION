@@ -33,4 +33,5 @@ Imports:
     xml2,
     progress,
     rcrypt,
-    ndjson
+    ndjson,
+    jqr

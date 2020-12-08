@@ -251,5 +251,16 @@ function(passphrase) {
 #* @param id the row number
 #* @tag Issues
 function(passphrase, id) {
-  kth_issues_pubauth(pass = passphrase) %>% dplyr::slice(as.integer(id))
+  kth_issues_pubauth(pass = passphrase) %>%
+    dplyr::slice(as.integer(id))
+}
+
+#* A specific pubauth issue
+#* @get /v1/issues/pubauth/jq/<query:string>
+#* @response 400 Invalid input.
+#* @param passphrase the passphrase for accessing this data
+#* @param query a jq query such as select(.kthid | test("^⚠"))
+#* @tag Issues
+function(passphrase, query) {
+  kth_issues_pubauth(pass = passphrase, jq = URLdecode(query))
 }

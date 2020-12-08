@@ -194,7 +194,9 @@ kth_diva_checks <- function() {
 
 #' Issues with publication and author affiliations
 
-#' @param pass passphrase required for accessing the data, Default: Sys.getenv("DIVA_PASS")
+#' @param pass passphrase required for accessing the data,
+#'   Default: Sys.getenv("DIVA_PASS")
+#' @param jq query for [filtering the data](https://docs.ropensci.org/jqr/)
 #' @return json object
 #' @examples
 #' \dontrun{
@@ -209,7 +211,8 @@ kth_diva_checks <- function() {
 #' @importFrom rcrypt decrypt
 #' @importFrom readr read_lines
 #' @importFrom ndjson stream_in
-kth_issues_pubauth <- function(pass = Sys.getenv("DIVA_PASS")) {
+#' @importFrom jqr jq
+kth_issues_pubauth <- function(pass = Sys.getenv("DIVA_PASS"), jq = NULL) {
 
   stopifnot(nzchar(pass))
 
@@ -231,9 +234,43 @@ kth_issues_pubauth <- function(pass = Sys.getenv("DIVA_PASS")) {
   if (!file.exists(diva_tmp("ap.json")))
     return(character(0))
 
+  # if no jq query is specified, return all data in flat format
+  if (is.null(jq))
+    return(ndjson::stream_in(diva_tmp("ap.json"), cls = "tbl"))
+
+
+
+  cb <- function(x, pos) {
+    jqr::jq(x, jq) %>% #, flags = jqr::jq_flags(ascii = TRUE)) %>%
+      textConnection() %>%
+      jsonlite::stream_in(simplifyDataFrame = FALSE, verbose = FALSE)# %>%
+      #jsonlite::toJSON(pretty = TRUE) %>%
+      #as.character()
+  }
+
   res <-
-    ndjson::stream_in(diva_tmp("ap.json"), cls = "tbl") #%>%
+    readr::read_lines_chunked(diva_tmp("ap.json"),
+      callback = ListCallback$new(cb), chunk_size = 9e4)
+    #readLines(diva_tmp("ap.json"), encoding = "utf-8") %>%
+    #gsub(., pattern = "⚑", replacement = "F", fixed = TRUE) %>%
+    #gsub(., pattern = "⚠⚠", replacement = "WTF", fixed = TRUE) %>%
+    #jqr::jq(jq) %>% #, flags = jqr::jq_flags(ascii = TRUE)) %>%
+    #textConnection() %>%
+    #jsonlite::stream_in(simplifyDataFrame = FALSE, verbose = FALSE) %>%
+    #jsonlite::toJSON()
 
   return(res)
 }
+
+#jsonlite::stream_in(textConnection(readLines(diva_tmp("ap.json")))) %>%
+#as_tibble() %>% toJSON()select(kthid) %>% unique() %>% filter(grepl("^⚠", kthid))
+
+# readLines("data-raw/dontshare/test5.json", encoding = "utf-8") %>%
+# #  gsub(., pattern = "⚑", replacement = "F", fixed = TRUE) %>%
+# #  gsub(., pattern = "⚠⚠", replacement = "WTF", fixed = TRUE) %>%
+#   jqr::jq("[.kthid, .orcid, .kth, .note] | @csv", flags = jqr::jq_flags(stream = TRUE)) %>%
+#   #textConnection() %>%
+#   read_csv(quote = "\"")
+#   jsonlite::stream_in(simplifyDataFrame = FALSE ,verbose = FALSE) %>%
+#   jsonlite::toJSON()
 

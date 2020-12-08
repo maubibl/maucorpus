@@ -4,10 +4,13 @@
 \alias{kth_issues_pubauth}
 \title{Issues with publication and author affiliations}
 \usage{
-kth_issues_pubauth(pass = Sys.getenv("DIVA_PASS"))
+kth_issues_pubauth(pass = Sys.getenv("DIVA_PASS"), jq = NULL)
 }
 \arguments{
-\item{pass}{passphrase required for accessing the data, Default: Sys.getenv("DIVA_PASS")}
+\item{pass}{passphrase required for accessing the data,
+Default: Sys.getenv("DIVA_PASS")}
+
+\item{jq}{query for \href{https://docs.ropensci.org/jqr/}{filtering the data}}
 }
 \value{
 json object

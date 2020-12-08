@@ -255,7 +255,7 @@ function(passphrase, id) {
     dplyr::slice(as.integer(id))
 }
 
-#* A specific pubauth issue
+#* A set of pubauth issues given by a jq query
 #* @get /v1/issues/pubauth/jq/<query:string>
 #* @response 400 Invalid input.
 #* @param passphrase the passphrase for accessing this data

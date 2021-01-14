@@ -235,32 +235,42 @@ function() {
   checks$uncertain_published
 }
 
+#* Curated DiVA corpus with S2 identifiers
+#* @get /v1/curated/pubs/jq/<query:string>
+#* @response 400 Invalid input.
+#* @param query a jq query such as 'select(.S2_publication_ID == "f00ec4c737ca6722a4629eb5bcc25787c2173df5")'
+#* @tag Curated
+function(query) {
+  kth_diva_curated(jq = URLdecode(query))
+}
+
 #* Total number of pubauth issues
-#* @get /v1/issues/pubauth/rows
+#* @get /v1/curated/pubauthissues/rows
 #* @response 400 Invalid input.
 #* @param passphrase the passphrase for accessing this data
-#* @tag Issues
+#* @tag Curated
 function(passphrase) {
   nrow(kth_issues_pubauth(pass = passphrase))
 }
 
 #* A specific pubauth issue
-#* @get /v1/issues/pubauth/row/<id:integer>
+#* @get /v1/curated/pubauthissues/row/<id:integer>
 #* @response 400 Invalid input.
 #* @param passphrase the passphrase for accessing this data
 #* @param id the row number
-#* @tag Issues
+#* @tag Curated
 function(passphrase, id) {
   kth_issues_pubauth(pass = passphrase) %>%
     dplyr::slice(as.integer(id))
 }
 
 #* A set of pubauth issues given by a jq query
-#* @get /v1/issues/pubauth/jq/<query:string>
+#* @get /v1/curated/pubauthissues/jq/<query:string>
 #* @response 400 Invalid input.
 #* @param passphrase the passphrase for accessing this data
 #* @param query a jq query such as select(.kthid | test("^⚠"))
-#* @tag Issues
+#* @tag Curated
 function(passphrase, query) {
   kth_issues_pubauth(pass = passphrase, jq = URLdecode(query))
 }
+

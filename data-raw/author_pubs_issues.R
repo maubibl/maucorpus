@@ -7,12 +7,14 @@ library(rcrypt)
 # under "inst/extdata"
 
 ap <-
-    file.path(here(), "data-raw", "dontshare", "pubs-2012-2019_augmented_further.JSON")
+    file.path(here(), "data-raw", "dontshare", "pubs-2012-2019_augmented_further_further_S2-20210108.JSON")
+
+file.exists(ap)
 
 ndjson::validate(ap)
 
 phrase <-
-  openssl::sha256(file("data-raw/dontshare/pubs-2012-2019_augmented_further.JSON")) %>%
+  openssl::sha256(file("data-raw/dontshare/pubs-2012-2019_augmented_further_further_S2-20210108.JSON")) %>%
   as.character()
 
 Sys.setenv("DIVA_PASS" = phrase)
@@ -30,3 +32,4 @@ if (file.exists(edfile)) {
 
 rcrypt::encrypt(ap, edfile, passphrase = phrase)
 
+unlink(file.path(rappdirs::app_dir("diva")$config(), "ap.json"))

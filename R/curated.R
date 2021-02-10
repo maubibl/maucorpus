@@ -13,6 +13,7 @@
 #' @importFrom readr read_lines
 #' @importFrom ndjson stream_in
 #' @importFrom jqr jq
+#' @importFrom R.utils bzip2 bunzip2
 kth_diva_curated <- function(jq = NULL) {
 
   diva_tmp <- function(file) {
@@ -58,6 +59,7 @@ kth_diva_curated <- function(jq = NULL) {
 #' @examples
 #' \dontrun{
 #'  kth_issues_pubauth()
+#'  issues <- kth_issues_pubauth(jq = 'select(.kthid | test("^⚠"))')
 #' }
 #' @seealso
 #'  \code{\link[rappdirs]{app_dir}}
@@ -131,3 +133,14 @@ kth_issues_pubauth <- function(pass = Sys.getenv("DIVA_PASS"), jq = NULL) {
 #   jsonlite::stream_in(simplifyDataFrame = FALSE ,verbose = FALSE) %>%
 #   jsonlite::toJSON()
 
+# authors_curated <-
+#   setNames(authors_curated, gsub("$", "_", names(authors_curated), fixed = TRUE))
+#
+# authors_curated %>%
+#   select_if(is.character) %>%
+#   mutate(across(.fns = function(x) na_if(x, "")))
+#
+# authors_curated %>%
+#   select_if(function(x) !is.character(x))
+#
+# pull(aliases) %>% purrr::map_df(bind_rows)

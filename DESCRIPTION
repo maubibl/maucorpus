@@ -34,4 +34,7 @@ Imports:
     progress,
     rcrypt,
     ndjson,
-    jqr
+    jqr,
+    R.utils,
+    tidyselect
+

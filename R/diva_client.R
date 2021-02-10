@@ -56,7 +56,7 @@ kth_diva_pubs <- function(orgid = "177", year_beg = "2012", year_end = "2019", u
   on.exit(unlink(smash_file))
 
   url <- httr::build_url(smash_url)
-  cu <- curl::curl_download(url, destfile = smash_file)
+  cu <- curl::curl_download(url, destfile = smash_file, quiet = FALSE)
   # download.file(url_smash, destfile = smash_file)
   # res <- curl_fetch_memory(build_url(smash_url))
 

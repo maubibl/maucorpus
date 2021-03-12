@@ -29,8 +29,10 @@ NULL
 #  cat(paste(collapse = ", ", sprintf("\"%s\"", unlist(strsplit(undef_global_vars, " ")))))
 
 #' @title Research Subject Areas from https://uka.se
-#' @description See \url{https://www.uka.se/statistik--analys/information-om-statistiken/amneslistor-och-huvudomraden/2017-02-14-forskningsamnen.html}
-#' @format A data frame with 297 rows and 4 variables:
+#' @description Research Subject Areas have codes, descriptions and are arranged
+#' in three levels, 6 at level 1, 42 at level 2, 260 at level 3 (5 digit codes)
+#' See \url{https://www.uka.se/statistik--analys/information-om-statistiken/amneslistor-och-huvudomraden/2017-02-14-forskningsamnen.html}
+#' @format A data frame with 308 rows and 4 variables:
 #' \describe{
 #'   \item{\code{id}}{integer subject area code}
 #'   \item{\code{level}}{double a level, granularity for code (1..3)}

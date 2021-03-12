@@ -48,31 +48,38 @@ research_areas_uka <- function() {
     # sort by tree order
     arrange(-desc(scb_code))
 
-  topicmap %>%
-    left_join(topics, by = "scb_code") %>%
-    select(scb_id = scb_coden, l1, l2, l3, level, scb_swe,
-           desc_swe, desc_eng, old_code, old_desc) %>%
-    mutate(desc_eng = gsub("[(].*?[)]$", "", desc_eng))
+  topics #%>%
+    #left_join(topicmap, by = "scb_code") %>%
+    #select(scb_id = scb_code, l1, l2, l3, level, scb_swe,
+    #       desc_swe, desc_eng, old_code, old_desc) %>%
+    #mutate(desc_eng = gsub("[(].*?[)]$", "", desc_eng))
 }
 
 ra <- research_areas_uka()
 
 research_areas <-
   ra %>%
-  distinct(scb_id, scb_swe, desc_eng, level) %>%
+  select(scb_code, desc_swe, desc_eng, level) %>%
+  #filter(!is.na(scb_id)) %>%
+  #filter(is.na(desc_swe))
   rename(
-    id = scb_id,
-    swe = scb_swe,
+    id = scb_code,
+    swe = desc_swe,
     eng = desc_eng
   )
 
+ra %>% filter(l2 == 107)
+research_areas %>% filter(id == 107)
+research_areas %>% filter(level == 1) %>% nrow() == 6
+research_areas %>% filter(level == 2) %>% nrow() == 42
+research_areas %>% filter(level == 3) %>% nrow() == 260
 
 sinew::makeOxygen(research_areas)
-usethis::use_data(research_areas)
+usethis::use_data(research_areas, overwrite = TRUE)
 
 #' @title Research Subject Areas from https://uka.se
 #' @description See \url{https://www.uka.se/statistik--analys/information-om-statistiken/amneslistor-och-huvudomraden/2017-02-14-forskningsamnen.html}
-#' @format A data frame with 297 rows and 4 variables:
+#' @format A data frame with 308 rows and 4 variables:
 #' \describe{
 #'   \item{\code{id}}{integer subject area code}
 #'   \item{\code{level}}{double a level, granularity for code (1..3)}

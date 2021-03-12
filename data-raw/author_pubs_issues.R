@@ -21,8 +21,8 @@ phrase <-
   as.character()
 
 #file.edit("~/.Renviron")
-
-Sys.setenv("DIVA_PASS" = phrase)
+readRenviron("~/.Renviron")
+#Sys.setenv("DIVA_PASS" = phrase)
 
 # store the file in the extdata directory
 

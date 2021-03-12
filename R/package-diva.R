@@ -27,3 +27,15 @@ NULL
 
 #print_global_vars <- function(undef_global_vars)
 #  cat(paste(collapse = ", ", sprintf("\"%s\"", unlist(strsplit(undef_global_vars, " ")))))
+
+#' @title Research Subject Areas from https://uka.se
+#' @description See \url{https://www.uka.se/statistik--analys/information-om-statistiken/amneslistor-och-huvudomraden/2017-02-14-forskningsamnen.html}
+#' @format A data frame with 297 rows and 4 variables:
+#' \describe{
+#'   \item{\code{id}}{integer subject area code}
+#'   \item{\code{level}}{double a level, granularity for code (1..3)}
+#'   \item{\code{swe}}{character description in Swedish}
+#'   \item{\code{eng}}{character description in English}
+#'}
+#' @details Data from \url{https://www.uka.se/download/18.7391c377159bc0155b81ef8/1487841861615/forskningsamnen-standard-2011.xlsx}
+"research_areas"

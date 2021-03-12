@@ -4,8 +4,8 @@
 #' covering KTH publications between 2012 and 2019.
 #'
 #' @param orgid the DiVA organisation id, by default "177" for KTH
-#' @param year_beg the beginning of the period, by default "2012"
-#' @param year_end the end of the period, by default "2019"
+#' @param year_beg the beginning of the period, by default "2013"
+#' @param year_end the end of the period, by default "2020"
 #' @param use_cache logical flag to indicate if cached data should be used, default: TRUE
 #' @return data frame with results
 #' @export
@@ -14,7 +14,7 @@
 #' @importFrom curl curl_download
 #' @importFrom rappdirs app_dir
 #' @import readr
-kth_diva_pubs <- function(orgid = "177", year_beg = "2012", year_end = "2019", use_cache = TRUE) {
+kth_diva_pubs <- function(orgid = "177", year_beg = "2013", year_end = "2020", use_cache = TRUE) {
   diva_tmp <- function(file) file.path(rappdirs::app_dir("diva")$config(), file)
   tmp <- diva_tmp("kth_diva_pubs.rds")
   if (!dir.exists(dirname(tmp))) dir.create(dirname(tmp), recursive = TRUE)
@@ -211,8 +211,8 @@ parse_diva_names <- function(pubs = kth_diva_pubs()) {
 #' This function returns parsed author information from DiVA data
 #'
 #' @param orgid the DiVA organisation id, by default "177" for KTH
-#' @param year_beg the beginning of the period, by default "2012"
-#' @param year_end the end of the period, by default "2019"
+#' @param year_beg the beginning of the period, by default "2013"
+#' @param year_end the end of the period, by default "2020"
 #' @param use_cache logical flag to indicate if cached data should be used,
 #' default: TRUE
 #' @param refresh_cache logical flag to indicate if data cache should be
@@ -220,7 +220,7 @@ parse_diva_names <- function(pubs = kth_diva_pubs()) {
 #' @return data frame with results
 #' @export
 #' @importFrom readr write_rds read_rds
-kth_diva_authors <- function(orgid = "177", year_beg = "2012", year_end = "2019",
+kth_diva_authors <- function(orgid = "177", year_beg = "2013", year_end = "2020",
                              use_cache = TRUE, refresh_cache = FALSE) {
   diva_tmp <- function(file) file.path(rappdirs::app_dir("diva")$config(), file)
   tmp <- diva_tmp("kth_diva_authors.rds")

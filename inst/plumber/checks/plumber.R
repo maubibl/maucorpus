@@ -235,6 +235,16 @@ function() {
   checks$uncertain_published
 }
 
+#* A report in HTML for the checks
+#* @get /v1/check/report
+#* @response 400 Invalid input.
+#* @tag Check
+function(res) {
+  include_rmd(file = system.file(package = "diva",
+    "inst", "rmarkdown", "checks-report.Rmd"),
+    res = res)
+}
+
 #* Curated DiVA corpus with S2 identifiers
 #* @get /v1/curated/pubs/jq/<query:string>
 #* @response 400 Invalid input.

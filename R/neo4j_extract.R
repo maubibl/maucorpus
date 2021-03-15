@@ -181,7 +181,7 @@ neo4j_bulk_extract <- function(outdir) {
     kth_diva_authors() %>%
     filter(!is.na(kthid)) %>%
     mutate(mid = paste0("m", 1:nrow(.))) %>%
-    select(mid, kthid, name, orcid, orgids, extorg, pids, n_pid) %>%
+    select("mid", kthid, name, orcid, orgids, extorg, pids, n_pid) %>%
     #mutate(aid = paste0("a", 1:nrow(kth_diva_authors()))) %>%
     mutate(label = "Author") %>%
     mutate(pids = gsub("\\s+", ";", pids))
@@ -189,7 +189,7 @@ neo4j_bulk_extract <- function(outdir) {
   header <-
     neo4j_header_nodes(authors,
        id_field = "mid",
-       label = "label",
+       label_field = "label",
        array_fields = "pids"
     )
 

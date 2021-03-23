@@ -1,5 +1,7 @@
 # read data from minio
 library(aws.s3)
+library(dplyr)
+library(readr)
 
 # set up credentials for accessing minio using S3 protocol
 # these environment variables need to be set
@@ -8,8 +10,8 @@ library(aws.s3)
 #AWS_S3_ENDPOINT=lib.kth.se:9000
 #AWS_DEFAULT_REGION=bibliometrics
 
-file.edit("~/.Renviron")
-readRenviron("~/.Renviron")
+#file.edit("~/.Renviron")
+#readRenviron("~/.Renviron")
 
 # these are available buckets/datasets
 bucket_list_df(use_https = FALSE)
@@ -45,6 +47,12 @@ d1 %>% count(scb_topic, research_area) %>% View()
 
 probs <- problems(readr::read_csv(t1, col_names = FALSE))
 
+# list of staff which has a employment code for a title which is marked
+# as "Educational or Research" by Statistics Sweden
+researchers <-
+  hr %>%
+  left_join(ss_employment_title, by = c("emp_code" = "id")) %>%
+  filter(is_uf_ta == "UF")
 
 ############
 

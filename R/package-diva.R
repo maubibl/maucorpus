@@ -41,3 +41,15 @@ NULL
 #'}
 #' @details Data from \url{https://www.uka.se/download/18.7391c377159bc0155b81ef8/1487841861615/forskningsamnen-standard-2011.xlsx}
 "research_areas"
+
+#' @title Employment Titles from Statistics Sweden
+#' @description Employment Titles have codes and descriptions
+#' @format A data frame with 7626 rows and 4 variables:
+#' \describe{
+#'   \item{\code{id}}{character code for employment title}
+#'   \item{\code{desc_swe}}{character description in Swedish}
+#'   \item{\code{cat_desc}}{character staff category}
+#'   \item{\code{is_uf_ta}}{character UF denotes educational or research title, TA denotes technical or administrative}
+#'}
+#' @details See \url{https://www.h6.scb.se/anstallningsbenamning/}
+"ss_employment_title"

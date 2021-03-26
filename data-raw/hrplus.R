@@ -21,7 +21,7 @@ get_bucket_df("hrplus", use_https = FALSE)
 
 my_file <-
   get_bucket_df("hrplus", use_https = FALSE) %>%
-  arrange(LastModified) %>%
+  arrange(desc(LastModified)) %>%
   head(1) %>% pull(Key)
 
 # get the data in the file
@@ -29,23 +29,88 @@ f1 <- get_object(my_file, "hrplus", use_https = FALSE)
 
 # read the file
 #hr <- readr::read_csv(f1, quote = "\"")
+
+
+# fcn to parse and read data from hr file
+hr_read_csv <- function(file) {
+
+  cs <- cols(.default = col_character(),
+             `FÖDELSEÅR` = col_integer(),
+             DATUM_NUV_BEF = col_integer(),
+             BEF_TOM = col_integer(),
+             SYSS_GRAD = col_character()
+  )
+
+
+
+  #stopifnot(file.exists(file))
+
+  # parse and remap colnames; use lowersnakecase field names
+  hr <- readr::read_csv(file = file, col_types = cs, quote = "\"") %>%
+    rename(
+      kthid = KTHID,
+      yob = `FÖDELSEÅR`,
+      unit_abbr = ORG_NR,
+      unit_name = ORG_NAMN,
+      firstname = `FÖRNAMN`,
+      lastname = EFTERNAMN,
+      gender = `MAN/KVINNA`,
+      emp_code = TJ_BEN_KOD,
+      emp_desc = TJ_BE_TEXT,
+      emp_nr = BEF_NR,
+      emp_beg = BEF_FROM,
+      emp_end = BEF_TOM,
+      emp_lastmod = DATUM_NUV_BEF,
+      emp_degree = SYSS_GRAD,
+      scb_topic = `ÄMNESKOD`
+    )
+
+  # data types parsing
+  hr %>%
+    mutate(emp_beg = lubridate::ymd(as.character(emp_beg))) %>%
+    mutate(emp_lastmod = lubridate::ymd(as.character(emp_lastmod))) %>%
+    mutate(emp_end = lubridate::ymd(as.character(emp_end))) %>%
+    mutate(emp_degree = parse_double(emp_degree, locale = locale(decimal_mark = ",")))
+
+}
+
+
+# load latest hr-data
 hr <- hr_read_csv(f1)
 
-# resolve "ÄMNESKOD" (using UKÄ data)
+# no gender given? are all genders M or K?
+hr %>% filter(!gender %in% c("M", "K")) %>% View()
+hr %>% filter(yob == 1900) %>% View()
+# yob has large span, for example 1900 -> check ages
+# emp_lastmod has 200 NAs -> why are these missing?
+summary(hr)
+
+check_research_area <- function(data) {
+
+  ra <-
+    research_areas %>%
+    mutate(id = as.character(id)) %>%
+    rename(research_area = eng, scb_topic = id) %>%
+    select(scb_topic, research_area)
+
+  topics <- data %>%
+    left_join(ra) %>%
+    filter(is.na(research_area), !is.na(scb_topic)) %>%
+    count(scb_topic) %>%
+    arrange(desc(n))
+
+  message("Topics for research area not recognized at Statistics Sweden:")
+
+  print(topics)
+
+}
+
+
 # what does ÄMNESKOD 999 mean? What does 10 or 100 mean?
 # these codes do not seem to exist in UKÄ?
+check_research_area(hr)
 
-ra <-
-  research_areas %>%
-  mutate(id = as.character(id)) %>%
-  rename(research_area = eng, scb_topic = id) %>%
-  select(scb_topic, research_area)
-
-d1 <- hr %>% left_join(ra)
-
-d1 %>% count(scb_topic, research_area) %>% View()
-
-probs <- problems(readr::read_csv(t1, col_names = FALSE))
+hr %>% filter(grepl("athanasios", tolower(firstname)))
 
 # list of staff which has a employment code for a title which is marked
 # as "Educational or Research" by Statistics Sweden
@@ -54,7 +119,115 @@ researchers <-
   left_join(ss_employment_title, by = c("emp_code" = "id")) %>%
   filter(is_uf_ta == "UF")
 
+View(researchers)
+
+# inspect employee descriptions
+hr %>% count(emp_desc) %>% arrange(desc(n))
+
+hr %>% filter(grepl("ARVODIST", emp_desc))
+
+# presence of "industridoktorand"?
+hr %>% distinct(kthid, emp_desc) %>% count(emp_desc) %>%
+  arrange(desc(n)) %>%
+  filter(grepl("INDUSTRI", emp_desc))
+
+# note: more than 115 years old
+hr %>%
+  mutate(age = lubridate::year(Sys.Date()) - yob) %>%
+  filter(age >= 115) %>%
+  mutate(note = "Oldtimer, age > 115 years")
+
+# missing employee code
+hr %>%
+  filter(is.na(as.integer(emp_code))) %>%
+  select(kthid, emp_code, firstname, lastname)
+
+# records of researchers who have ended employment (?)
+hr %>%
+  filter(emp_beg <= Sys.Date(), emp_end <= Sys.Date(), emp_lastmod <= Sys.Date()) %>%
+  select(kthid, emp_beg, emp_end, emp_lastmod) %>%
+  group_by(kthid) %>%
+  count(kthid) %>%
+  arrange(desc(n))
+
+hr %>%
+  filter(kthid == "u1n04lwv") %>%
+  arrange(desc(emp_beg, emp_end, emp_lastmod)) %>%
+  mutate(age = lubridate::year(Sys.Date()) - yob) %>%
+  select(kthid, unit_abbr, emp_code, emp_desc, emp_nr, emp_beg, emp_end, emp_lastmod, age)
+
+#TODO:
+#a) nuvarande anställning dvs "Är personen i nuläget anställd? Har personen publikationer som ska hänföras till KTH i dagsläget?"
+#b) anställningsperiod dvs "När började anställningen på KTH? När avslutades den, ifall den är avslutad"
+#c) anställningskategori dvs "Rör det sig om en industridoktorand, gästforskare, stipendiat, adjungerad professor?"
+
+##########
+### These issues with the data format have now been fixed!
+
+# problems(hr) # approx 21 problems ie 0.1 % of records appear ambiguous (due to CSV formatting issues)
+#
+# problems(hr) %>%
+#   count(expected, actual)
+#
+# header <- readLines(rawConnection(f1))[1] %>% strsplit(split = ",") %>% unlist()
+#
+# # skip header
+# lines <- readLines(rawConnection(f1))[-1]
+# # three fields (last missing) after the three date fields
+# lines[(problems(hr)$row)] %>% head()
+# # two fields (last missing) after the three date fields
+# lines[-(problems(hr)$row)] %>% head()
+#
+# hr %>% slice(problems(hr)$row) %>% View()
+
+
+
+
 ############
+
+library(tibble)
+library(dplyr)
+library(purrr)
+library(stringr)
+
+library(magick)
+
+hr_mapping <- image_read("data-raw/hr-explanation.jpg")
+
+library(tesseract)
+#tesseract_download(lang = "eng")
+
+p1 <-
+  image_ocr(hr_mapping, language = "swe", ) %>%
+  str_split("\n") %>% unlist %>%
+
+cat(p1)
+
+hr_meta <- readr::read_delim(delim = "|", file =
+"Namn|Tabell|Fält
+Kth-id (U1nr)|kthid|kth004
+Födelseår|p_person|p_p11000 fyra första tecken
+Orgenhet nr|p_befreg|p_k41502
+Orgenhet namn|allm010|allm014
+Namn, för och efternamn|p-person|P_p10101 och p_p10102
+Kön|p_person|P_p41801
+Tjänstebenämningskod|p_befreg|P_k40400
+Benämning|p_befreg|P_k12200
+Bef.nr|p_befreg|P_kxxx93
+Bef from|p_befreg|P_k12000
+Datum nuv bef|p_befreg|P_k12300
+Bef tom|p_befreg|P_k12100
+Syss.grad|p_befreg|P_k13200
+Ämneskod|p_befreg|P_k55001"
+)
+
+hr_meta
+
+#############
+
+
+
+
 
 library(vroom)
 library(lubridate)
@@ -75,39 +248,7 @@ ts2 <- ts[order(ts)]
 latest <- sprintf("%s/%s_abu.csv", src(), format(max(ts2), "%Y%m%d"))
 previous <- sprintf("%s/%s_abu.csv", src(), format(rev(ts2)[2], "%Y%m%d"))
 
-# fcn to parse and read data from hr file
-hr_read_csv <- function(file) {
 
-  cs <- cols(.default = col_character(),
-             `FÖDELSEÅR` = col_integer(),
-             DATUM_NUV_BEF = col_integer(),
-             BEF_TOM = col_integer(),
-             SYSS_GRAD = col_integer()
-  )
-
-  #stopifnot(file.exists(file))
-
-  # parse and remap colnames; use lowersnakecase field names
-  readr::read_csv(file = file, col_types = cs, quote = "\"") %>%
-    rename(
-      kthid = KTHID,
-      yob = `FÖDELSEÅR`,
-      unit_abbr = ORG_NR,
-      unit_name = ORG_NAMN,
-      firstname = `FÖRNAMN`,
-      lastname = EFTERNAMN,
-      gender = `MAN/KVINNA`,
-      emp_code = TJ_BEN_KOD,
-      emp_desc = TJ_BE_TEXT,
-      emp_nr = BEF_NR,
-      emp_beg = BEF_FROM,
-      emp_end = BEF_TOM,
-      emp_lastmod = DATUM_NUV_BEF,
-      emp_degree = SYSS_GRAD,
-      scb_topic = `ÄMNESKOD`
-    )
-
-}
 
 # fcn to diff arbitrary dataset to another one
 hr_diff <- function(f1, f2) {
@@ -157,55 +298,4 @@ d1 <-
   diffz %>% head(10) %>% tail(1) %>% pull(d1) %>%
   hr_read_csv()
 
-# inspect employee descriptions
-d1 %>% count(emp_desc) %>% arrange(desc(n))
-
-d1 %>% filter(grepl("ARVODIST", emp_desc))
-latest %>% hr_read_csv %>% filter(grepl("ARVODIST", emp_desc))
-
-# presence of "industridoktorand"?
-latest %>% hr_read_csv %>% count(emp_desc) %>%
-  arrange(desc(n)) %>% filter(grepl("INDUSTRI", emp_desc))
-
-# more than 115 years old
-d1 %>%
-  mutate(age = year(Sys.Date()) - yob) %>%
-  filter(age >= 115) %>%
-  mutate(note = "Oldtimer, age > 115 years")
-
-
-d1 %>%
-  filter(is.na(as.integer(emp_code))) %>%
-  select(kthid, emp_code, firstname, lastname)
-
-d1 %>% mutate(
-  ebeg = ymd(emp_beg),
-  eend = ymd(emp_end),
-  emod = ymd(emp_lastmod)
-) %>%
-  filter(ebeg <= Sys.Date(), eend <= Sys.Date(), emod <= Sys.Date()) %>%
-  select(kthid, ebeg, eend, emod) %>%
-  group_by(kthid) %>%
-  count(kthid) %>%
-  arrange(desc(n))
-
-d1 %>% mutate(
-  ebeg = ymd(emp_beg),
-  eend = ymd(emp_end),
-  emod = ymd(emp_lastmod)
-) %>%
-  filter(ebeg <= Sys.Date(), eend <= Sys.Date(), emod <= Sys.Date()) %>%
-  filter(kthid == "u1n04lwv") %>%
-  arrange(desc(ebeg, eend, emod)) %>%
-  mutate(age = year(Sys.Date()) - yob) %>%
-  select(unit_abbr, emp_code, emp_desc, emp_nr, ebeg, eend, emod, age)
-
-#a) nuvarande anställning dvs "Är personen i nuläget anställd? Har personen publikationer som ska hänföras till KTH i dagsläget?"
-#b) anställningsperiod dvs "När började anställningen på KTH? När avslutades den, ifall den är avslutad"
-#c) anställningskategori dvs "Rör det sig om en industridoktorand, gästforskare, stipendiat, adjungerad professor?"
-
-hr_read_csv(latest) %>%
-  filter(gender != "M" & gender != "K") %>%
-  pull(kthid) %>%
-  head(1)
 

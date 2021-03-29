@@ -1,82 +1,37 @@
-# read data from minio
-library(aws.s3)
-library(dplyr)
-library(readr)
-
-# set up credentials for accessing minio using S3 protocol
-# these environment variables need to be set
-#AWS_ACCESS_KEY_ID=supersecret
-#AWS_SECRET_ACCESS_KEY=supersecret
-#AWS_S3_ENDPOINT=lib.kth.se:9000
-#AWS_DEFAULT_REGION=bibliometrics
-
-#file.edit("~/.Renviron")
-#readRenviron("~/.Renviron")
-
-# these are available buckets/datasets
-bucket_list_df(use_https = FALSE)
-
-# these are the files in the hrplus bucket
-get_bucket_df("hrplus", use_https = FALSE)
-
-my_file <-
-  get_bucket_df("hrplus", use_https = FALSE) %>%
-  arrange(desc(LastModified)) %>%
-  head(1) %>% pull(Key)
-
-# get the data in the file
-f1 <- get_object(my_file, "hrplus", use_https = FALSE)
-
-# read the file
-#hr <- readr::read_csv(f1, quote = "\"")
-
-
-# fcn to parse and read data from hr file
-hr_read_csv <- function(file) {
-
-  cs <- cols(.default = col_character(),
-             `FÖDELSEÅR` = col_integer(),
-             DATUM_NUV_BEF = col_integer(),
-             BEF_TOM = col_integer(),
-             SYSS_GRAD = col_character()
+#' Mappings used for HR data
+#'
+#' This meta data describes mapping for the HR data used when making the extract
+#' @importFrom readr read_delim locale
+#' @importFrom
+#' @export
+#' Mappings used for HR data
+#'
+#' This meta data describes mapping for the HR data used when making the extract
+#' @importFrom readr read_delim
+#' @export
+hr_mapping <-
+  readr::read_delim(delim = "|", file =
+"name|table|field
+Kth-id (U1nr)|kthid|kth004
+Födelseår|p_person|p_p11000 fyra första tecken
+Orgenhet nr|p_befreg|p_k41502
+Orgenhet namn|allm010|allm014
+Namn, för och efternamn|p-person|P_p10101 och p_p10102
+Kön|p_person|P_p41801
+Tjänstebenämningskod|p_befreg|P_k40400
+Benämning|p_befreg|P_k12200
+Bef.nr|p_befreg|P_kxxx93
+Bef from|p_befreg|P_k12000
+Datum nuv bef|p_befreg|P_k12300
+Bef tom|p_befreg|P_k12100
+Syss.grad|p_befreg|P_k13200
+Ämneskod|p_befreg|P_k55001"
   )
 
+use_data(hr_mapping)
 
 
-  #stopifnot(file.exists(file))
-
-  # parse and remap colnames; use lowersnakecase field names
-  hr <- readr::read_csv(file = file, col_types = cs, quote = "\"") %>%
-    rename(
-      kthid = KTHID,
-      yob = `FÖDELSEÅR`,
-      unit_abbr = ORG_NR,
-      unit_name = ORG_NAMN,
-      firstname = `FÖRNAMN`,
-      lastname = EFTERNAMN,
-      gender = `MAN/KVINNA`,
-      emp_code = TJ_BEN_KOD,
-      emp_desc = TJ_BE_TEXT,
-      emp_nr = BEF_NR,
-      emp_beg = BEF_FROM,
-      emp_end = BEF_TOM,
-      emp_lastmod = DATUM_NUV_BEF,
-      emp_degree = SYSS_GRAD,
-      scb_topic = `ÄMNESKOD`
-    )
-
-  # data types parsing
-  hr %>%
-    mutate(emp_beg = lubridate::ymd(as.character(emp_beg))) %>%
-    mutate(emp_lastmod = lubridate::ymd(as.character(emp_lastmod))) %>%
-    mutate(emp_end = lubridate::ymd(as.character(emp_end))) %>%
-    mutate(emp_degree = parse_double(emp_degree, locale = locale(decimal_mark = ",")))
-
-}
-
-
-# load latest hr-data
-hr <- hr_read_csv(f1)
+hr <- hr_latest()
 
 # no gender given? are all genders M or K?
 hr %>% filter(!gender %in% c("M", "K")) %>% View()
@@ -156,6 +111,10 @@ hr %>%
   mutate(age = lubridate::year(Sys.Date()) - yob) %>%
   select(kthid, unit_abbr, emp_code, emp_desc, emp_nr, emp_beg, emp_end, emp_lastmod, age)
 
+esquisse::esquisser(data = hr, viewer = "browser")
+
+# https://getpocket.com/explore/item/the-history-of-the-pivot-table-the-spreadsheet-s-most-powerful-tool?utm_source=pocket-newtab
+
 #TODO:
 #a) nuvarande anställning dvs "Är personen i nuläget anställd? Har personen publikationer som ska hänföras till KTH i dagsläget?"
 #b) anställningsperiod dvs "När började anställningen på KTH? När avslutades den, ifall den är avslutad"
@@ -203,25 +162,7 @@ p1 <-
 
 cat(p1)
 
-hr_meta <- readr::read_delim(delim = "|", file =
-"Namn|Tabell|Fält
-Kth-id (U1nr)|kthid|kth004
-Födelseår|p_person|p_p11000 fyra första tecken
-Orgenhet nr|p_befreg|p_k41502
-Orgenhet namn|allm010|allm014
-Namn, för och efternamn|p-person|P_p10101 och p_p10102
-Kön|p_person|P_p41801
-Tjänstebenämningskod|p_befreg|P_k40400
-Benämning|p_befreg|P_k12200
-Bef.nr|p_befreg|P_kxxx93
-Bef from|p_befreg|P_k12000
-Datum nuv bef|p_befreg|P_k12300
-Bef tom|p_befreg|P_k12100
-Syss.grad|p_befreg|P_k13200
-Ämneskod|p_befreg|P_k55001"
-)
 
-hr_meta
 
 #############
 

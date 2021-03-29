@@ -20,7 +20,8 @@ utils::globalVariables(
     "is_external", "is_remappable_extorg", "kthid", "n2", "n_commas",
     "n_pid", "name", "orcid", "orcid.x", "orcid.y", "orgids", "pids", "pubs",
     "DOI", "ISI", "JournalEISSN", "JournalISSN", "Notes", "PublicationDate",
-    "PublicationType", "Status", "Title", "has_notes", "is_QSorNQC", "is_not_published"
+    "PublicationType", "Status", "Title", "has_notes", "is_QSorNQC", "is_not_published",
+    "emp_beg", "emp_degree", "emp_end", "emp_lastmod", "LastModified"
   )
 )
 NULL
@@ -53,3 +54,14 @@ NULL
 #'}
 #' @details See \url{https://www.h6.scb.se/anstallningsbenamning/}
 "ss_employment_title"
+
+#' @title HR mapping
+#' @description Field mappings used in HR data extract
+#' @format A data frame with 14 rows and 3 variables:
+#' \describe{
+#'   \item{\code{name}}{character Name of column}
+#'   \item{\code{table}}{character Source table}
+#'   \item{\code{field}}{character Source field}
+#'}
+#' @details DETAILS
+"hr_mapping"

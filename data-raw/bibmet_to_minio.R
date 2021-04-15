@@ -35,9 +35,10 @@ rasw <- con_bibmet %>% tbl("v_BestResAddrSwe") %>% collect()
 q <- "SELECT ra.*
 FROM (SELECT DISTINCT ISI AS UT FROM BIBMET.dbo.Diva WHERE ISI IS NOT NULL) diva_isi
 INNER JOIN BIBMET.dbo.Document doc ON (doc.UT = diva_isi.UT)
-INNER JOIN BIBMET.dbo.v_BestResAddr ra ON (ra.Doc_id = doc.Doc_id)"
+INNER JOIN BIBMET.dbo.v_BestResAddr ra ON (ra.UT = doc.UT)"
 
 rakth <- dbGetQuery(con_bibmet, q)
+
 
 dbDisconnect(con_bibmet)
 

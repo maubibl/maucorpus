@@ -1,6 +1,8 @@
 library(shiny)
 library(esquisse)
 library(lubridate)
+library(dplyr)
+library(diva)
 
 # https://getpocket.com/explore/item/the-history-of-the-pivot-table-the-spreadsheet-s-most-powerful-tool?utm_source=pocket-newtab
 

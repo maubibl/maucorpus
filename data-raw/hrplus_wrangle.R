@@ -33,6 +33,9 @@ use_data(hr_mapping)
 
 hr <- hr_latest()
 
+# is latest modification data reasonable?
+hr_latest() %>% collect %>% summarize(elm = max(emp_lastmod, na.rm = TRUE))
+
 # no gender given? are all genders M or K?
 hr %>% filter(!gender %in% c("M", "K")) %>% View()
 hr %>% filter(yob == 1900) %>% View()

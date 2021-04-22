@@ -2,7 +2,7 @@
 % Please edit documentation in R/neo4j_extract.R
 \name{neo4j_header_nodes}
 \alias{neo4j_header_nodes}
-\title{Assemble a header for loading data into neo4j}
+\title{Assemble a header for loading node data into neo4j}
 \usage{
 neo4j_header_nodes(
   data,
@@ -30,7 +30,7 @@ neo4j_header_nodes(
 a string with header info that can be used by neo4j imports
 }
 \description{
-Assemble a header for loading data into neo4j
+Assemble a header for loading node data into neo4j
 }
 \examples{
 \dontrun{

@@ -15,7 +15,7 @@ Checks {.tabset}
 ### Title Multiplettes
 
 ```{r}
-library(diva)
+library(kthcorpus)
 checks <- kth_diva_checks()
 DT::datatable(checks$article_title_multiplettes)
 ```

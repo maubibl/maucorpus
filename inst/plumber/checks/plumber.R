@@ -1,4 +1,4 @@
-library(diva)
+library(kthcorpus)
 library(plumber)
 library(dplyr)
 library(purrr)

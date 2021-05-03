@@ -16,8 +16,8 @@ Before using this function, set up credentials for accessing minio using S3
 For example use environment variables like these:
 #AWS_ACCESS_KEY_ID=supersecret
 #AWS_SECRET_ACCESS_KEY=supersecret
-#AWS_S3_ENDPOINT=lib.kth.se:9000
-#AWS_DEFAULT_REGION=bibliometrics
+#AWS_S3_ENDPOINT=lib.kth.se
+#AWS_DEFAULT_REGION=data
 This can be achieved by adding these lines to the ~/.Renviron file.
 #file.edit("~/.Renviron")
 #readRenviron("~/.Renviron")

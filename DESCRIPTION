@@ -1,18 +1,19 @@
-Package: diva
-Title: Swedish Research Publications Data
-Version: 0.0.0.9000
+Package: kthcorpus
+Title: Swedish Research Publications Data From KTH
+Version: 0.1.0
 Authors@R: 
     person(given = "Markus",
            family = "Skyttner",
            role = c("cre", "aut"),
            email = "markussk@kth.se")
-Description: DiVA - an acronym for "Digitala Vetenskapliga Arkivet" -
+Description: DiVA is an acronym for "Digitala Vetenskapliga Arkivet" -
     is a Swedish research publication database with national and institutional 
-    portals available. This R package downloads and makes data available 
-    to use from R.
+    portals available. It contains data about publications and authors affiliated
+    with KTH - Royal Institute of Technology. This R package downloads and 
+    makes this data available for use from R.
 License: MIT + file LICENSE
-URL: https://github.com/KTH-Library/diva
-BugReports: https://github.com/KTH-Library/diva/issues
+URL: https://github.com/KTH-Library/kthcorpus
+BugReports: https://github.com/KTH-Library/kthcorpus/issues
 Suggests: 
     testthat
 Encoding: UTF-8

@@ -1,4 +1,4 @@
 library(testthat)
-library(diva)
+library(kthcorpus)
 
 test_check("institutions")

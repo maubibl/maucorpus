@@ -6,8 +6,8 @@
 #' For example use environment variables like these:
 #'   #AWS_ACCESS_KEY_ID=supersecret
 #'   #AWS_SECRET_ACCESS_KEY=supersecret
-#'   #AWS_S3_ENDPOINT=lib.kth.se:9000
-#'   #AWS_DEFAULT_REGION=bibliometrics
+#'   #AWS_S3_ENDPOINT=lib.kth.se
+#'   #AWS_DEFAULT_REGION=data
 #' This can be achieved by adding these lines to the ~/.Renviron file.
 #'   #file.edit("~/.Renviron")
 #'   #readRenviron("~/.Renviron")
@@ -21,7 +21,7 @@ hr_ls <- function(bucket = "hrplus") {
   #bucket_list_df(use_https = FALSE)
 
   # these are the files in the hrplus bucket
-  aws.s3::get_bucket_df(bucket, use_https = FALSE) %>%
+  aws.s3::get_bucket_df(bucket, use_https = TRUE) %>%
     arrange(desc(LastModified))
 }
 

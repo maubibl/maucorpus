@@ -79,3 +79,10 @@ DT::datatable(checks$invalid_orgid)
 ```{r}
 DT::datatable(checks$uncertain_published)
 ```
+
+### SwePub checks
+
+```{r}
+DT::datatable(escape = FALSE, swepub_checks())
+```
+

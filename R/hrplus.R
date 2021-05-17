@@ -48,20 +48,21 @@ hr_read_csv <- function(file) {
 
   cs <- cols(
     .default = col_character(),
-    `FÖDELSEÅR` = col_integer(),
+    "F\u00d6DELSE\u00c5R" = col_integer(),
     DATUM_NUV_BEF = col_integer(),
     BEF_TOM = col_integer(),
     SYSS_GRAD = col_character()
   )
 
   # parse and remap colnames; use lowersnakecase field names
+  # to fix R pkg warn: esc <- function(x) cat(stringi::stri_escape_unicode(x))
   hr <- readr::read_csv(file = file, col_types = cs, quote = "\"") %>%
     rename(
       kthid = "KTHID",
-      yob = "FÖDELSEÅR",
+      yob = "F\u00d6DELSE\u00c5R",
       unit_abbr = "ORG_NR",
       unit_name = "ORG_NAMN",
-      firstname = "FÖRNAMN",
+      firstname = "F\u00d6RNAMN",
       lastname = "EFTERNAMN",
       gender = "MAN/KVINNA",
       emp_code = "TJ_BEN_KOD",
@@ -71,7 +72,7 @@ hr_read_csv <- function(file) {
       emp_end = "BEF_TOM",
       emp_lastmod = "DATUM_NUV_BEF",
       emp_degree = "SYSS_GRAD",
-      scb_topic = "ÄMNESKOD"
+      scb_topic = "\u00c4MNESKOD"
     )
 
   # data types parsing

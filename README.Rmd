@@ -1,16 +1,25 @@
+---
+output: github_document
+---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
 
 # kthcorpus
 
 <!-- badges: start -->
-
-[![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
 
-The goal of `kthcorpus` is to provide some tools that can be used when
-working with DiVA data.
+The goal of `kthcorpus` is to provide some tools that can be used when working with DiVA data. 
 
 ## Installation
 
@@ -22,7 +31,7 @@ devtools::install_github("KTH-Library/kthcorpus", dependencies = TRUE)
 
 This is a basic example which shows you how to use some of these tools:
 
-``` r
+```{r example, eval=FALSE}
 library(kthcorpus)
 
 # download and cache KTH DiVA data
@@ -40,10 +49,9 @@ checks
 
 # Development
 
-Press “Ctrl-Shift-L” to load function, which can then be run, for
-example:
+Press "Ctrl-Shift-L" to load function, which can then be run, for example:
 
-``` r
+```{r, eval = FALSE}
 check_invalid_DOI()
 # A tibble: 1 x 2
 #  DOI                         PID
@@ -51,10 +59,9 @@ check_invalid_DOI()
 #1 0.1109/ICC.2019.8761470 1498747
 ```
 
-The cache with downloaded data for publications and author data can be
-cleared:
+The cache with downloaded data for publications and author data can be cleared:
 
-``` r
+```{r, eval = FALSE}
 unlink(
   file.path(rappdirs::app_dir("kthcorpus")$config(), 
     c("kth_diva_pubs.rds", "kth_diva_authors.rds")
@@ -64,12 +71,11 @@ unlink(
 
 ## Adding checks
 
-See the file at “`R/checks.R`” for some of the checks. Edit and add
-checks there.
+See the file at "`R/checks.R`" for some of the checks. Edit and add checks there.
 
 Checks using Python can be used too, through `reticulate`, for example.
 
 ## Running the API locally
 
-To run the API locally, just open the file (located in
-`inst/plumber/checks/plumber.R`) and press play.
+To run the API locally, just open the file (located in `inst/plumber/checks/plumber.R`) and press play.
+

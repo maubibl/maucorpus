@@ -1,0 +1,81 @@
+---
+title: "Checks for KTH Publications"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Checks {.tabset}
+-----------------------------------------------------------------------
+
+### Title Multiplettes
+
+```{r}
+library(kthcorpus)
+checks <- kth_diva_checks()
+DT::datatable(checks$article_title_multiplettes)
+```
+
+### Submission status
+
+```{r}
+DT::datatable(checks$submission_status_invalid)
+```
+
+### Missing kthid
+
+```{r}
+DT::datatable(checks$missing_kthid)
+```
+
+### Missing conference publication dates
+
+```{r}
+DT::datatable(checks$missing_confpubdate)
+```
+
+### Missing journal ids
+
+```{r}
+DT::datatable(checks$missing_journal_ids)
+```
+
+### Odd book chapters
+
+```{r}
+DT::datatable(checks$odd_book_chapters)
+```
+
+### Invalid ISI
+
+```{r}
+DT::datatable(checks$invalid_ISI)
+```
+
+### Invalid DOI
+
+```{r}
+DT::datatable(checks$invalid_DOI)
+```
+
+### Invalid ISSN
+
+```{r}
+DT::datatable(checks$invalid_ISSN)
+```
+
+### Invalid org unit id
+
+```{r}
+DT::datatable(checks$invalid_orgid)
+```
+
+### Uncertain publication status
+
+```{r}
+DT::datatable(checks$uncertain_published)
+```

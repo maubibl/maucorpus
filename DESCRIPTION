@@ -11,7 +11,7 @@ Description: DiVA is an acronym for "Digitala Vetenskapliga Arkivet" -
     portals available. It contains data about publications and authors affiliated
     with KTH - Royal Institute of Technology. This R package downloads and 
     makes this data available for use from R.
-License: AGPL (>= 3)
+License: AGPL (>= 3) + file LICENSE
 URL: https://github.com/KTH-Library/kthcorpus
 BugReports: https://github.com/KTH-Library/kthcorpus/issues
 Suggests: 

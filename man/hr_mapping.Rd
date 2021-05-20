@@ -5,8 +5,10 @@
 \alias{hr_mapping}
 \title{HR mapping}
 \format{
-A data frame with 14 rows and 3 variables:
+A data frame with 14 rows and 5 variables:
 \describe{
+\item{\code{colname}}{character lowersnakecase column name}
+\item{\code{export}}{character export table non-ascii name}
 \item{\code{name}}{character Name of column}
 \item{\code{table}}{character Source table}
 \item{\code{field}}{character Source field}

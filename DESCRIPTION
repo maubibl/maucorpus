@@ -7,7 +7,7 @@ Authors@R:
            role = c("cre", "aut"),
            email = "markussk@kth.se")
 Description: DiVA is an acronym for "Digitala Vetenskapliga Arkivet" -
-    is a Swedish research publication database with national and institutional 
+    a Swedish research publication database with national and institutional 
     portals available. It contains data about publications and authors affiliated
     with KTH - Royal Institute of Technology. This R package downloads and 
     makes this data available for use from R.

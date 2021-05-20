@@ -40,46 +40,34 @@ hr_latest <- function(bucket = "hrplus") {
 
 #' Parse and read the HR data in CSV format
 #' @param file path to file
-#' @importFrom readr read_csv cols parse_double locale
-#' @importFrom dplyr rename mutate
+#' @importFrom readr read_csv cols parse_double locale parse_integer
+#' @importFrom dplyr rename_with mutate contains
 #' @import lubridate
 #' @export
 hr_read_csv <- function(file) {
 
-  cs <- cols(
-    .default = col_character(),
-    "F\u00d6DELSE\u00c5R" = col_integer(),
-    DATUM_NUV_BEF = col_integer(),
-    BEF_TOM = col_integer(),
-    SYSS_GRAD = col_character()
-  )
+  cs <- cols(.default = col_character())
 
   # parse and remap colnames; use lowersnakecase field names
   # to fix R pkg warn: esc <- function(x) cat(stringi::stri_escape_unicode(x))
-  hr <- readr::read_csv(file = file, col_types = cs, quote = "\"") %>%
-    rename(
-      kthid = "KTHID",
-      yob = "F\u00d6DELSE\u00c5R",
-      unit_abbr = "ORG_NR",
-      unit_name = "ORG_NAMN",
-      firstname = "F\u00d6RNAMN",
-      lastname = "EFTERNAMN",
-      gender = "MAN/KVINNA",
-      emp_code = "TJ_BEN_KOD",
-      emp_desc = "TJ_BE_TEXT",
-      emp_nr = "BEF_NR",
-      emp_beg = "BEF_FROM",
-      emp_end = "BEF_TOM",
-      emp_lastmod = "DATUM_NUV_BEF",
-      emp_degree = "SYSS_GRAD",
-      scb_topic = "\u00c4MNESKOD"
-    )
+
+  hr_map <- function(x) {
+    m <- kthcorpus::hr_mapping
+    idx <- which(m$export %in% x)
+    m$colname[idx]
+  }
+
+  hr <- read_csv(file = file, col_types = cs, quote = "\"") %>%
+    rename_with(hr_map)
 
   # data types parsing
+
+  intcols <- c("yob", "emp_nr")
+  dtecols <- c("emp_beg", "emp_lastmod", "emp_end")
+
   hr %>%
-    mutate(emp_beg = lubridate::ymd(as.character(emp_beg))) %>%
-    mutate(emp_lastmod = lubridate::ymd(as.character(emp_lastmod))) %>%
-    mutate(emp_end = lubridate::ymd(as.character(emp_end))) %>%
-    mutate(emp_degree = parse_double(emp_degree, locale = locale(decimal_mark = ",")))
+    mutate(across(.cols = contains(dtecols), .fns = ymd)) %>%
+    mutate(emp_degree = parse_double(emp_degree, locale = locale(decimal_mark = ","))) %>%
+    mutate(across(.cols = contains(intcols), .fns = parse_integer))
 
 }

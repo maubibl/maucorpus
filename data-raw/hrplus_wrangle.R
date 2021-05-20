@@ -10,25 +10,26 @@
 #' @importFrom readr read_delim
 #' @export
 hr_mapping <-
-  readr::read_delim(delim = "|", file =
-"name|table|field
-Kth-id (U1nr)|kthid|kth004
-Födelseår|p_person|p_p11000 fyra första tecken
-Orgenhet nr|p_befreg|p_k41502
-Orgenhet namn|allm010|allm014
-Namn, för och efternamn|p-person|P_p10101 och p_p10102
-Kön|p_person|P_p41801
-Tjänstebenämningskod|p_befreg|P_k40400
-Benämning|p_befreg|P_k12200
-Bef.nr|p_befreg|P_kxxx93
-Bef from|p_befreg|P_k12000
-Datum nuv bef|p_befreg|P_k12300
-Bef tom|p_befreg|P_k12100
-Syss.grad|p_befreg|P_k13200
-Ämneskod|p_befreg|P_k55001"
+  readr::read_delim(delim = "|", locale = locale(encoding = "UTF-8"), file =
+"colname|export|name|table|field
+kthid|KTHID|Kth-id (U1nr)|kthid|kth004
+yob|FÖDELSEÅR|Födelseår|p_person|p_p11000 fyra första tecken
+unit_abbr|ORG_NR|Orgenhet nr|p_befreg|p_k41502
+unit_name|ORG_NAMN|Orgenhet namn|allm010|allm014
+firstname|FÖRNAMN|Förnamn|p-person|p_p10101
+lastname|EFTERNAMN|Efternamn|p-person|p_p10102
+gender|MAN/KVINNA|Kön|p_person|P_p41801
+emp_code|TJ_BEN_KOD|Tjänstebenämningskod|p_befreg|P_k40400
+emp_desc|TJ_BE_TEXT|Benämning|p_befreg|P_k12200
+emp_nr|BEF_NR|Bef.nr|p_befreg|P_kxxx93
+emp_beg|BEF_FROM|Bef from|p_befreg|P_k12000
+emp_end|BEF_TOM|Bef tom|p_befreg|P_k12100
+emp_lastmod|DATUM_NUV_BEF|Datum nuv bef|p_befreg|P_k12300
+emp_degree|SYSS_GRAD|Syss.grad|p_befreg|P_k13200
+scb_topic|ÄMNESKOD|Ämneskod|p_befreg|P_k55001"
   )
 
-use_data(hr_mapping)
+use_data(hr_mapping, overwrite = TRUE)
 
 
 hr <- hr_latest()

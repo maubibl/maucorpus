@@ -26,8 +26,12 @@ emp_beg|BEF_FROM|Bef from|p_befreg|P_k12000
 emp_end|BEF_TOM|Bef tom|p_befreg|P_k12100
 emp_lastmod|DATUM_NUV_BEF|Datum nuv bef|p_befreg|P_k12300
 emp_degree|SYSS_GRAD|Syss.grad|p_befreg|P_k13200
-scb_topic|ÄMNESKOD|Ämneskod|p_befreg|P_k55001"
-  )
+scb_topic|ÄMNESKOD|Ämneskod|p_befreg|P_k55001
+is_public|VISAS_HEMSIDA|Visas publikt på KTH-webben||
+emp_title_swe|FUNKTION_SV|Forskarens egen angivna funktionsbeskrivning||
+emp_title_eng|FUNKTION_ENG|Forskarens egen angivna funktionsbeskrivning||
+"
+)
 
 use_data(hr_mapping, overwrite = TRUE)
 
@@ -118,6 +122,63 @@ hr %>%
 esquisse::esquisser(data = hr, viewer = "browser")
 
 # https://getpocket.com/explore/item/the-history-of-the-pivot-table-the-spreadsheet-s-most-powerful-tool?utm_source=pocket-newtab
+
+
+# namn, casing
+
+proper_case <- function(x)
+  stringi::stri_trim_both(x) %>%
+  stringi::stri_trans_general("Title")
+
+researchers_pc <-
+  hr_latest() %>%
+  mutate(across(c("firstname", "lastname"), proper_case)) %>%
+  mutate(fullname = paste0(lastname, " ", firstname)) %>%
+  distinct(fullname)
+
+# special cases? could be cleaned
+
+# 18 deceased
+researchers_pc %>%
+  filter(grepl("Dödsbo", fullname))
+
+# 7 "Af"
+researchers_pc %>%
+  filter(grepl("Af ", fullname))
+
+# 40 "Von"
+researchers_pc %>%
+  filter(grepl("Von ", fullname))
+
+# 1 "Von Der"
+researchers_pc %>%
+  filter(grepl("Von Der ", fullname))
+
+# 119 "De "
+researchers_pc %>%
+  filter(grepl("De ", fullname))
+
+# 8 with double spaces
+researchers_pc %>%
+  filter(grepl("\\s{2,}", fullname, perl = TRUE))
+
+# 16 with . or , in the name
+researchers_pc %>%
+  filter(grepl("\\.|,", fullname)) %>%
+  View()
+
+# 3176 with non-ascii characters
+researchers_pc %>%
+  filter(grepl("[[:cntrl:]]", stringi::stri_enc_toascii(fullname))) %>%
+  View()
+
+researchers_pc %>%
+  pull(fullname) %>%
+  humaniformat::parse_names() %>%
+  as_tibble() %>%
+  count(middle_name) %>%
+  arrange(desc(n)) %>%
+  View()
 
 #TODO:
 #a) nuvarande anställning dvs "Är personen i nuläget anställd? Har personen publikationer som ska hänföras till KTH i dagsläget?"

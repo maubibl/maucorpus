@@ -52,13 +52,13 @@ hr_read_csv <- function(file) {
   # to fix R pkg warn: esc <- function(x) cat(stringi::stri_escape_unicode(x))
 
   hr_map <- function(x) {
-    m <- kthcorpus::hr_mapping
-    idx <- which(m$export %in% x)
-    m$colname[idx]
+    tibble(export = x) %>%
+      inner_join(kthcorpus::hr_mapping, by = "export") %>%
+      pull("colname")
   }
 
   hr <- read_csv(file = file, col_types = cs, quote = "\"") %>%
-    rename_with(hr_map)
+    rename_with(hr_map, .cols = colnames(.))
 
   # data types parsing
 

@@ -2,8 +2,8 @@
 
 export(classify_swepub)
 export(classify_umu_ub)
-export(hr_latest)
 export(hr_ls)
+export(hr_plus)
 export(hr_read_csv)
 export(issues_swepub)
 export(kth_diva_aliases)

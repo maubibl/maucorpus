@@ -36,14 +36,15 @@ emp_title_eng|FUNKTION_ENG|Forskarens egen angivna funktionsbeskrivning||
 use_data(hr_mapping, overwrite = TRUE)
 
 
-hr <- hr_latest()
+hr <- hr_plus()
 
 # is latest modification data reasonable?
-hr_latest() %>% collect %>% summarize(elm = max(emp_lastmod, na.rm = TRUE))
+hr %>% collect %>% summarize(elm = max(emp_lastmod, na.rm = TRUE))
 
 # no gender given? are all genders M or K?
 hr %>% filter(!gender %in% c("M", "K")) %>% View()
 hr %>% filter(yob == 1900) %>% View()
+
 # yob has large span, for example 1900 -> check ages
 # emp_lastmod has 200 NAs -> why are these missing?
 summary(hr)
@@ -131,7 +132,7 @@ proper_case <- function(x)
   stringi::stri_trans_general("Title")
 
 researchers_pc <-
-  hr_latest() %>%
+  hr %>%
   mutate(across(c("firstname", "lastname"), proper_case)) %>%
   mutate(fullname = paste0(lastname, " ", firstname)) %>%
   distinct(fullname)

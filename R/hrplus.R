@@ -25,17 +25,43 @@ hr_ls <- function(bucket = "hrplus") {
     arrange(desc(LastModified))
 }
 
-#' List contents of minio S3 bucket
+read_minio <- function(bucket = "hrplus", file, offset) {
+
+  my_files <- hr_ls() %>% pull("Key")
+  my_file <- my_files %>% head(1)
+
+  if (!missing(file)) {
+    stopifnot(file %in% my_files)
+    my_file <- file
+  }
+
+  my_offset <- 0
+
+  if (!missing(offset)) {
+    stopifnot(as.integer(my_offset) == my_offset)
+    ts <- gsub("_abu.csv", "", my_file)
+    f2 <- format(
+      lubridate::parse_date_time(ts, "%Y%m%d") - lubridate::days(offset),
+      "%Y%m%d_abu.csv")
+    stopifnot(f2 %in% my_files)
+    my_file <- f2
+  }
+
+
+  f1 <- get_object(my_file, bucket, use_https = FALSE)
+
+}
+
+#' Parse content from HR-plus data export
 #' @param bucket name of bucket to list
+#' @param file optional character string for file name in bucket
+#' @param offset optional offset in days (when retrieving older files)
 #' @importFrom `aws.s3` get_object
 #' @importFrom utils head
 #' @export
-hr_latest <- function(bucket = "hrplus") {
-
-  my_file <- hr_ls() %>% head(1) %>% pull("Key")
-  f1 <- get_object(my_file, bucket, use_https = FALSE)
+hr_plus <- function(bucket = "hrplus", file, offset) {
+  f1 <- read_minio(bucket, file, offset)
   hr_read_csv(f1)
-
 }
 
 #' Parse and read the HR data in CSV format

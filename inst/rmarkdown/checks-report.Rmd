@@ -17,6 +17,7 @@ Checks {.tabset}
 ```{r}
 library(kthcorpus)
 checks <- kth_diva_checks()
+
 DT::datatable(checks$article_title_multiplettes)
 ```
 
@@ -84,5 +85,18 @@ DT::datatable(checks$uncertain_published)
 
 ```{r}
 DT::datatable(escape = FALSE, swepub_checks())
+```
+
+
+### About
+
+This report was generated on `r Sys.time()` and contains results from running checks on KTH Publications downloaded from DiVA.
+
+The data sources used for the check have the following timestamps:
+
+```{r}
+
+knitr::kable(diva_meta())
+
 ```
 

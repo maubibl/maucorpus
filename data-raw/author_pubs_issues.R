@@ -37,4 +37,4 @@ if (file.exists(edfile)) {
 
 rcrypt::encrypt(ap, edfile, passphrase = phrase)
 
-unlink(file.path(rappdirs::app_dir("diva")$config(), "ap.json"))
+unlink(file.path(rappdirs::app_dir("kthcorpus")$config(), "ap.json"))

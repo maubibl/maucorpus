@@ -15,7 +15,7 @@
 #' @importFrom rappdirs app_dir
 #' @import readr
 kth_diva_pubs <- function(orgid = "177", year_beg = "2013", year_end = "2020", use_cache = TRUE) {
-  diva_tmp <- function(file) file.path(rappdirs::app_dir("diva")$config(), file)
+  diva_tmp <- function(file) file.path(rappdirs::app_dir("kthcorpus")$config(), file)
   tmp <- diva_tmp("kth_diva_pubs.rds")
   if (!dir.exists(dirname(tmp))) dir.create(dirname(tmp), recursive = TRUE)
   if (file.exists(tmp)) {
@@ -222,7 +222,7 @@ parse_diva_names <- function(pubs = kth_diva_pubs()) {
 #' @importFrom readr write_rds read_rds
 kth_diva_authors <- function(orgid = "177", year_beg = "2013", year_end = "2020",
                              use_cache = TRUE, refresh_cache = FALSE) {
-  diva_tmp <- function(file) file.path(rappdirs::app_dir("diva")$config(), file)
+  diva_tmp <- function(file) file.path(rappdirs::app_dir("kthcorpus")$config(), file)
   tmp <- diva_tmp("kth_diva_authors.rds")
   if (!dir.exists(dirname(tmp))) dir.create(dirname(tmp), recursive = TRUE)
   if (file.exists(tmp) && !refresh_cache) {
@@ -282,3 +282,52 @@ kth_diva_aliases <- function(authors = kth_diva_authors()) {
     collect()
 }
 
+diva_backup <- function(file) {
+
+  ffr <- diva_tmp(file)
+  fto <- diva_tmp(insert_ts(file))
+
+  message("Backing up ", ffr, " to ", fto)
+  file.rename(ffr, fto)
+
+}
+
+#' Refresh locally cached data files (and backup older data)
+#' @return data frame with metadata including timestamp and age (in hours)
+#' @export
+diva_refresh <- function() {
+  refreshed <- all(
+    diva_backup("kth_diva_authors.rds"),
+    diva_backup("kth_diva_pubs.rds")
+  )
+  if (!refreshed)
+    warning("Not all files refreshed...")
+  return (refreshed)
+}
+
+diva_tmp <- function(file)
+  file.path(rappdirs::app_dir("kthcorpus")$config(), file)
+
+insert_ts <- function(file) {
+  file.path(paste0(tools::file_path_sans_ext(file), "_",
+                   format(Sys.time(), "%y%m%d%H%M"), ".",
+                   tools::file_ext(file))
+  )
+}
+
+#' Metadata for cached data files
+#' @return data frame with metadata including timestamp and age (in hours)
+#' @export
+diva_meta <- function() {
+
+  sources <- c(
+    "kth_diva_authors.rds",
+    "kth_diva_pubs.rds"
+  )
+
+  timez <- file.mtime(diva_tmp(sources))
+
+  age <- difftime(Sys.time(), timez, units = "h")
+
+  data.frame(source = sources, ts = timez, age = age)
+}

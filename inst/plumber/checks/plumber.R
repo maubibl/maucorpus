@@ -240,8 +240,8 @@ function() {
 #* @response 400 Invalid input.
 #* @tag Check
 function(res) {
-  include_rmd(file = system.file(package = "diva",
-    "inst", "rmarkdown", "checks-report.Rmd"),
+  include_rmd(file = system.file(package = "kthcorpus",
+    "rmarkdown", "checks-report.Rmd", mustWork = TRUE),
     res = res)
 }
 

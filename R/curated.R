@@ -17,7 +17,7 @@
 kth_diva_curated <- function(jq = NULL) {
 
   diva_tmp <- function(file) {
-    fp <- file.path(rappdirs::app_dir("diva")$config(), file)
+    fp <- file.path(rappdirs::app_dir("kthcorpus")$config(), file)
     if (!dir.exists(dirname(fp)))
       dir.create(dirname(fp), recursive = TRUE)
     fp
@@ -25,7 +25,7 @@ kth_diva_curated <- function(jq = NULL) {
 
   if (!file.exists(diva_tmp("diva.json"))) {
     R.utils::bunzip2(
-      filename = system.file(package = "diva", "extdata", "diva.json.bzip2"),
+      filename = system.file(package = "kthcorpus", "extdata", "diva.json.bzip2"),
       destname = diva_tmp("diva.json")
     )
   }
@@ -76,7 +76,7 @@ kth_issues_pubauth <- function(pass = Sys.getenv("DIVA_PASS"), jq = NULL) {
   stopifnot(nzchar(pass))
 
   diva_tmp <- function(file) {
-    fp <- file.path(rappdirs::app_dir("diva")$config(), file)
+    fp <- file.path(rappdirs::app_dir("kthcorpus")$config(), file)
     if (!dir.exists(dirname(fp)))
       dir.create(dirname(fp), recursive = TRUE)
     fp
@@ -84,7 +84,7 @@ kth_issues_pubauth <- function(pass = Sys.getenv("DIVA_PASS"), jq = NULL) {
 
   if (!file.exists(diva_tmp("ap.json"))) {
     rcrypt::decrypt(
-      system.file(package = "diva", "extdata", "ap.rcrypt"),
+      system.file(package = "kthcorpus", "extdata", "ap.rcrypt"),
       diva_tmp("ap.json"),
       passphrase = pass
     )

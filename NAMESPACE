@@ -2,6 +2,8 @@
 
 export(classify_swepub)
 export(classify_umu_ub)
+export(diva_meta)
+export(diva_refresh)
 export(hr_ls)
 export(hr_plus)
 export(hr_read_csv)

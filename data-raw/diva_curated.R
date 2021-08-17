@@ -26,4 +26,4 @@ if (file.exists(edfile)) {
 
 R.utils::bzip2(filename = diva, destname = edfile, remove = FALSE)
 
-unlink(file.path(rappdirs::app_dir("diva")$config(), "diva.json"))
+unlink(file.path(rappdirs::app_dir("kthcorpus")$config(), "diva.json"))

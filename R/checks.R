@@ -61,7 +61,7 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
     filter(n > 1)
 
   article_title_multiplettes %>%
-    left_join(pubs %>% select(Title, PID), by = "Title") %>%
+    left_join(pubs %>% filter(grepl("^Artikel", PublicationType)) %>% select(Title, PID), by = "Title") %>%
     group_by(Title, n) %>%
     summarize(pids = paste0(collapse = " ", PID)) %>%
     arrange(desc(n)) %>%

@@ -7,6 +7,7 @@
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+[![R-CMD-check](https://github.com/KTH-Library/kthcorpus/workflows/R-CMD-check/badge.svg)](https://github.com/KTH-Library/kthcorpus/actions)
 <!-- badges: end -->
 
 The goal of `kthcorpus` is to provide some tools that can be used when

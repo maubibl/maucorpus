@@ -1,15 +1,17 @@
 library(reticulate)
 
 #py_install("requests")
+#py_install("ftfy")
 
 py_bibutils <- function() {
 
-  repo <- "https://raw.githubusercontent.com/KTH-Library/bibutils/main/"
+  repo <- "https://raw.githubusercontent.com/KTH-Library/bibliutils/main/"
   con1 <- url(sprintf("%s/bibapi.py", repo))
   on.exit(close(con1))
-  writeLines(readLines(con1), "/tmp/bibapi.py")
+  writeLines(readLines(con1), "/tmp/bibapi_v2.py")
 
-  bibapi <- reticulate::import_from_path("bibapi", path = "/tmp")
+  bibapi <- reticulate::import_from_path("bibapi_v2", path = "/tmp")
+  #reticulate::import("ftfy")
   #biblib <- reticulate::source_python(sprintf("%s/bibformat.py", repo))
 
   con2 <- url(sprintf("%s/bibformat.py", repo))

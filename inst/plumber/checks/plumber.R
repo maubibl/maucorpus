@@ -235,15 +235,68 @@ function() {
   checks$uncertain_published
 }
 
+f <- rmarkdown::render(
+  system.file(package = "kthcorpus",
+    "rmarkdown", "checks-report.Rmd", mustWork = TRUE),
+  quiet = TRUE)
+
 #* A report in HTML for the checks
 #* @get /v1/check/report
 #* @response 400 Invalid input.
 #* @tag Check
 function(res) {
-  include_rmd(file = system.file(package = "kthcorpus",
-    "rmarkdown", "checks-report.Rmd", mustWork = TRUE),
-    res = res)
+  include_html(file = f, res = res)
 }
+
+needs_refresh <- function(timeout_hours = 23) {
+
+  timez <- kthcorpus:::diva_meta()$age
+  all(timez > timeout_hours)
+
+}
+
+needs_render <- function() {
+  t_render <- file.mtime(f)
+  age <- as.double(difftime(Sys.time(), t_render, units = "h"))
+
+  t_update <- kthcorpus:::diva_meta()$age
+
+  all(age > t_update) || all(is.na(t_update))
+
+}
+
+#* Trigger new rendering of report
+#* @get /v1/trigger/render
+#* @response 400 Invalid input.
+#* @tag Triggers
+function(res) {
+
+  if (!needs_render())
+    return(FALSE)
+
+  f <<- rmarkdown::render(
+    system.file(package = "kthcorpus",
+                "rmarkdown", "checks-report.Rmd", mustWork = TRUE),
+    quiet = TRUE)
+
+  return(file.exists(f))
+}
+
+
+
+#* Trigger refreshing of data
+#* @get /v1/trigger/update
+#* @response 400 Invalid input.
+#* @tag Triggers
+function(res) {
+
+  if (!needs_refresh())
+    return(FALSE)
+
+  diva_refresh()
+
+}
+
 
 #* Curated DiVA corpus with S2 identifiers
 #* @get /v1/curated/pubs/jq/<query:string>

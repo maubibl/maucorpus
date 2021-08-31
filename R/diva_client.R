@@ -327,7 +327,7 @@ diva_meta <- function() {
 
   timez <- file.mtime(diva_tmp(sources))
 
-  age <- difftime(Sys.time(), timez, units = "h")
+  age <- as.double(difftime(Sys.time(), timez, units = "h"))
 
   data.frame(source = sources, ts = timez, age = age)
 }

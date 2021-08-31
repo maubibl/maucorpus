@@ -3,7 +3,7 @@ library(reticulate)
 #py_install("requests")
 #py_install("ftfy")
 
-py_bibutils <- function() {
+py_bibliutils <- function() {
 
   repo <- "https://raw.githubusercontent.com/KTH-Library/bibliutils/main/"
   con1 <- url(sprintf("%s/bibapi.py", repo))
@@ -23,6 +23,6 @@ py_bibutils <- function() {
 
 }
 
-pyb <- py_bibutils()
+pyb <- py_bibliutils()
 
 pyb$bibformat$fix_kthid("u2345678xxx", idtype = "unit")

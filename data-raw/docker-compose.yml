@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+
+  meilisearch:
+    image: getmeili/meilisearch
+    command: ./meilisearch --master-key=masterKey --no-analytics=true
+    ports:
+      - 7700:7700
+
+  ide:
+    image: ghcr.io/kth-library/kontarion
+    restart: always
+    environment:
+      - ROOT=TRUE
+      - PASSWORD=password12
+#    command: R -e "remotes::install_github('kth-library/kthcorpus')" && /init
+    command: /init
+    ports:
+      - 8787:8787

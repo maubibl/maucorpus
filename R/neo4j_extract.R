@@ -178,7 +178,7 @@ neo4j_header_relations <- function(data, relation_type_field,
 neo4j_bulk_extract <- function(outdir) {
 
   if (missing(outdir))
-    outdir <- "~/repos/neo4kth"
+    outdir <- "~/repos/neo4kth/import"
 
   stopifnot(dir.exists(outdir))
 
@@ -198,10 +198,10 @@ neo4j_bulk_extract <- function(outdir) {
 
   message("neo4j header: ", header)
 
-  outheader <- file.path(outdir, "import", "pubs-header.csv")
+  outheader <- file.path(outdir, "pubs-header.csv")
   write_lines(header, outheader)
 
-  outfile <- file.path(outdir, "import", "pubs.csv")
+  outfile <- file.path(outdir, "pubs.csv")
   write_csv(pubs, outfile, col_names = FALSE, na = "")
 
   #outfiles <- paste(sep = ",", outheader, outfile)
@@ -225,10 +225,10 @@ neo4j_bulk_extract <- function(outdir) {
        array_fields = "pids"
     )
 
-  outheader <- file.path(outdir, "import", "authors-header.csv")
+  outheader <- file.path(outdir, "authors-header.csv")
   write_lines(header, outheader)
 
-  outfile <- file.path(outdir, "import", "authors.csv")
+  outfile <- file.path(outdir, "authors.csv")
   write_csv(authors, outfile, col_names = FALSE, na = "")
 
   # relations
@@ -245,13 +245,13 @@ neo4j_bulk_extract <- function(outdir) {
       ignore_fields = "extorg", array_fields = "pids"
     )
 
-  outheader <- file.path(outdir, "import", "rels-header.csv")
+  outheader <- file.path(outdir, "rels-header.csv")
   write_lines(header, outheader)
 
-  outfile <- file.path(outdir, "import", "rels.csv")
+  outfile <- file.path(outdir, "rels.csv")
   write_csv(rels, outfile, col_names = FALSE, na = "")
 
-  message("Done. Files are in ", file.path(outdir, "import"))
+  message("Done. Files are in ", file.path(outdir))
 }
 
 # MATCH (p:pubs)-[r]->(a:authors {PID: "1500455"}) RETURN r,p,a limit 10

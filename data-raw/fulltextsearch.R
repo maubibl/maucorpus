@@ -20,8 +20,11 @@ mypubs <- kth_diva_pubs() %>% select(-Name)
 myauthors <- kth_diva_authors()
 mytmp <- tempdir()
 
+hrplus <- hr_plus()
+
 write_json(mypubs, file.path(mytmp, "pubs.json"))
 write_json(myauthors, file.path(mytmp, "authors.json"))
+write_json(hrplus, file.path(mytmp, "hrplus.json"))
 
 meili_createindex <- function(index, idfield = NULL) {
 
@@ -59,13 +62,22 @@ meili_status <- function(index, jobid) {
 # we create an index, send it json data and check the status until is "processed"
 
 meili_createindex("pubs", "PID")
-jobid <- meili_ingest("pubs2", file.path(mytmp, "pubs.json"))$updateId
+jobid <- meili_ingest("pubs", file.path(mytmp, "pubs.json"))$updateId
 meili_status("pubs", jobid)$status
 
 meili_createindex("authors")
 jobid <- meili_ingest("authors", file.path(mytmp, "authors.json"))$updateId
 meili_status("authors", jobid)$status
 
+meili_createindex("hrplus")
+jobid <- meili_ingest("hrplus", file.path(mytmp, "hrplus.json"))$updateId
+meili_status("hrplus", jobid)$status
+
+
+while (meili_status("hrplus", jobid)$status != "processed") {
+  Sys.sleep(1)
+  cat(".")
+}
 
 # check the web ui for the search index
 browseURL("http://localhost:7700") # use masterKey
@@ -100,6 +112,16 @@ meili_search <- function(
 
 }
 
-s1 <- meili_search("authors", "Wahl")
+meili_search("authors", "Xuezhi")$hits %>% map_df(dplyr::as_tibble)
+meili_search("hrplus", "Xuezhi")$hits %>% map_df(dplyr::as_tibble)
+meili_search("pubs", "Wahl")$hits %>% map_df(dplyr::as_tibble)
 
-s2 <- meili_search("pubs", "Wahl")
+# TODO....
+
+# automate lookups for all names with missing kth identifiers?
+checks <- kth_diva_checks()
+mia <- checks$missing_kthid
+mynames <- head(chartr(".,", "  ", unique(mia$name)))
+
+# lookup also on semantic scholar?
+

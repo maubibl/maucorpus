@@ -17,7 +17,7 @@ myDT <- function(data) {
     escape = FALSE,
     rownames = FALSE,
     options = list(
-      dom = 'tB',
+      dom = 'pt',
       scrollX = "90vh", scrollY = "80vh")
     )
 }

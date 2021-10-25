@@ -73,7 +73,6 @@ options(future.globals.onReference = "error")
 
 # Options seen ti be: a) do parallelization and vectorization on py side or b) on R side
 
-message("Using multicore plan")
 
 # option B
 fix_kthid2 <- function(x, type = c("any", "person", "unit")) {
@@ -93,7 +92,23 @@ fix_kthid2 <- function(x, type = c("any", "person", "unit")) {
 
 # now parallelization and vectorization works with furrr
 # (tested with Rscript reticulate_kthb.R)
-plan(multicore)
+
+library(tictoc)
+
+message("Using multicore plan")
+
+tic()
+plan(multicore, workers = 10)
 rep(myids, 5e3) %>%
   furrr::future_map_chr(function(x) fix_kthid2(x, type = "any")) %>%
   head()
+toc()
+
+message("Using sequental plan")
+
+tic()
+plan(sequential)
+rep(myids, 5e3) %>%
+  furrr::future_map_chr(function(x) fix_kthid2(x, type = "any")) %>%
+  head()
+toc()

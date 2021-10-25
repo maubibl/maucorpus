@@ -34,11 +34,12 @@ library(here)
 #
 # saveRDS(users, "inst/plumber/curator/userdb.rda")
 
-hr_plus_extra <- function() {
+hrp <- hr_plus()
 
-  hr <- hr_plus()
+hrp_extra <- function() {
 
-  hr <- hr %>%
+  hr <-
+    hrp %>%
     left_join(ss_employment_title, by = c("emp_code" = "id")) %>%
     mutate(is_uf_ta = is_uf_ta == "UF")
 
@@ -49,20 +50,31 @@ hr_plus_extra <- function() {
       "scb_topic_level" = "level"
     )
 
-  # hr %>%
-  #   filter(emp_beg <= lubridate::today(), emp_end > lubridate::today()) %>%
-  #   group_by(kthid) %>%
-  #   summarize(
-  #     across(c("emp_lastmod", "emp_end", "emp_beg"), max)
-  #   ) %>%
-  #   arrange(desc(emp_lastmod, emp_end, emp_beg)) %>%
-  #   inner_join(hr) %>%
-  #   # some rows have duplicates ...
-  #   # filter(kthid == "u1fzcxlt") %>%
-  #   #select(-c(starts_with("emp"), is_public, scb_topic)) %>%
-  #   unique()
-
 }
+
+hrp_current <-
+  hrp_extra() %>%
+  filter(emp_beg <= lubridate::today(), emp_end > lubridate::today()) %>%
+  group_by(kthid) %>%
+  summarize(
+    across(c("emp_lastmod", "emp_end", "emp_beg"), max)
+  ) %>%
+  arrange(desc(emp_lastmod, emp_end, emp_beg)) %>%
+  inner_join(hrp) %>%
+  unique()
+
+# is latest modification data reasonable?
+hrp_summary <-
+  hrp_extra() %>% collect %>% group_by(kthid) %>%
+  summarize(
+    elm = max(emp_lastmod),
+    ebeg = min(emp_beg),
+    eend = max(emp_end),
+    duration = eend - ebeg,
+    ttl = eend - Sys.Date(),
+    n = length(kthid)
+  ) %>%
+  arrange(desc(n), desc(elm))
 
 secret <- Sys.getenv("PLUMBER_API_SECRET")
 
@@ -127,7 +139,17 @@ function(req, res, user = NULL, password = NULL) {
 #* @tag HR
 #* @serializer csv
 function(res) {
-  hr_plus_extra()
+  hrp_current
+}
+
+
+#* Employees summary
+#* @get /v1/hr/summary
+#* @response 400 Bad request
+#* @tag HR
+#* @serializer csv
+function(res) {
+  hrp_summary
 }
 
 #* @plumber

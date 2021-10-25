@@ -10,7 +10,7 @@ py_bibliutils <- function() {
   on.exit(close(con1))
   writeLines(readLines(con1), "/tmp/bibapi.py")
 
-  bibapi <- reticulate::import_from_path("bibapi_v2", path = "/tmp")
+  bibapi <- reticulate::import_from_path("bibapi", path = "/tmp")
   #reticulate::import("ftfy")
   #biblib <- reticulate::source_python(sprintf("%s/bibformat.py", repo))
 
@@ -71,7 +71,7 @@ options(future.globals.onReference = "error")
 # see https://future.futureverse.org/articles/future-4-non-exportable-objects.html#package-reticulate
 # Error: Detected a non-exportable reference (‘externalptr’) in one of the globals (‘pyb’ of class ‘list’) used in the future expression
 
-# Options seen ti be: a) do parallelization and vectorization on py side or b) on R side
+# Options seen to be: a) do parallelization and vectorization on py side or b) on R side
 
 
 # option B
@@ -86,6 +86,7 @@ fix_kthid2 <- function(x, type = c("any", "person", "unit")) {
   )
 
   m <- regmatches(x, regexec(re, x))
+
   unlist(Map(function(x) ifelse(length(x) == 0, NA_character_, x), m))
 
 }
@@ -95,11 +96,11 @@ fix_kthid2 <- function(x, type = c("any", "person", "unit")) {
 
 library(tictoc)
 
-message("Using multicore plan")
+message("Using multicore plan (approx 3x faster)")
 
 tic()
 plan(multicore, workers = 10)
-rep(myids, 5e3) %>%
+rep(myids, 5e4) %>%
   furrr::future_map_chr(function(x) fix_kthid2(x, type = "any")) %>%
   head()
 toc()
@@ -108,7 +109,7 @@ message("Using sequental plan")
 
 tic()
 plan(sequential)
-rep(myids, 5e3) %>%
+rep(myids, 5e4) %>%
   furrr::future_map_chr(function(x) fix_kthid2(x, type = "any")) %>%
   head()
 toc()

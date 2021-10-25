@@ -50,7 +50,15 @@ kth_diva_issues <- function(authors = kth_diva_authors()) {
   list(overview = overview, details = details, pubs = pubs)
 }
 
+diva_link <- function(href, text) {
+  paste0("<a href='https://kth.diva-portal.org/smash/record.jsf?dswid=-310&pid=diva2%3A",
+         href, "' target='_blank' rel='noopener noreferrer'>", text, "</a>")
+}
+
 check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
+
+  Year <- NULL
+  n_check <- NULL
 
   article_title_multiplettes <-
     pubs %>%
@@ -60,13 +68,43 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
     arrange(desc(n)) %>%
     filter(n > 1)
 
-  article_title_multiplettes %>%
+  atm <-
+    article_title_multiplettes %>%
     left_join(pubs %>% filter(grepl("^Artikel", PublicationType)) %>% select(Title, PID), by = "Title") %>%
     group_by(Title, n) %>%
     summarize(pids = paste0(collapse = " ", PID)) %>%
     arrange(desc(n)) %>%
     collect()
+
+  # FIXME
+
+  atm <-
+    atm %>% tidyr::separate_rows(pids) %>%
+    mutate(PID = as.double(pids)) %>%
+    inner_join(pubs) %>%
+    #mutate(year = lubridate::year(PublicationDate)) %>%
+    select(Title, n, PID, Year)
+
+  a <-
+    kth_diva_authors() %>%
+    filter(PID %in% atm$PID) %>%
+    mutate(last_name = gsub("(.+?)(,.*)", "\\1", name)) %>%
+    group_by(PID) %>%
+    summarise(initials = paste0(collapse = "", substr(last_name, 1, 1)))
+
+  atm %>%
+    inner_join(a) %>%
+    mutate(check_key = paste0(initials, "_", Year)) %>%
+    select(Title, n, PID, check_key) %>%
+    mutate(Title = diva_link(PID, Title)) %>%
+    group_by(check_key) %>%
+    add_count(check_key, sort = TRUE, name = "n_check") %>%
+    arrange(desc(n_check), Title, check_key) %>%
+    ungroup() %>%
+    collect()
+
 }
+
 
 check_invalid_submission_status <- function(pubs = kth_diva_pubs()) {
   pubs %>%

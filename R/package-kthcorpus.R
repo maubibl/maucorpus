@@ -22,7 +22,7 @@ utils::globalVariables(
     "DOI", "ISI", "JournalEISSN", "JournalISSN", "Notes", "PublicationDate",
     "PublicationType", "Status", "Title", "has_notes", "is_QSorNQC", "is_not_published",
     "emp_beg", "emp_degree", "emp_end", "emp_lastmod", "LastModified",
-    "mid", "Key"
+    "mid", "Key", "check_key", "initials", "last_name"
   )
 )
 NULL

@@ -60,8 +60,9 @@ extract_affs <- function(s) {
 extract_extorgs <- function(x) {
   # NB modified from
   # extract_re2(extract_re2(x, "(\\([^(\\[|\\(]*\\))$"), "\\((.*?)\\)")
-  # use second parens ONLY
-  extract_affs(x)[2]
+  # use last parens ONLY
+  affs <- extract_affs(x)
+  ifelse(length(affs) > 1, rev(affs)[1], NA_character_)
 }
 
 tokenize_affs <- function(x) {
@@ -156,6 +157,7 @@ parse_diva_name <- function(diva_name) {
 #' @importFrom purrr map2_df
 #' @import dplyr
 parse_diva_names <- function(pubs = kth_diva_pubs()) {
+
   items <- pubs %>%
     filter(!is.na(PID) & !is.na(Name)) %>%
     select(PID, Name)
@@ -167,20 +169,20 @@ parse_diva_names <- function(pubs = kth_diva_pubs()) {
 
   parse_names <- function(x, y) {
     pb$tick()
-    bind_cols(tibble(PID = x), parse_diva_name(y))
+    bind_cols(tibble(PID = x), parse_diva_namestring(y))
   }
 
   res <- purrr::map2_df(items$PID, items$Name, parse_names)
 
   # remap some values due to dirty input
-  res %>%
-    mutate(is_external = is.na(kthid) & is.na(orcid) & is.na(orgids)) %>%
-    mutate(is_unmatched_extorg = is_external & (Name != name) & is.na(extorg)) %>%
-    mutate(n_commas = nchar(gsub("[^,]", "", name))) %>%
-    mutate(is_remappable_extorg = n_commas > 2 & is.na(extorg)) %>%
-    mutate(extorg = ifelse(is_remappable_extorg, name, extorg)) %>%
-    mutate(name = ifelse(is_remappable_extorg, NA_character_, name)) %>%
-    mutate(extorg = gsub("\\.\\)$", "", extorg))
+  # res %>%
+  #   mutate(is_external = is.na(kthid) & is.na(orcid) & is.na(orgids)) %>%
+  #   mutate(is_unmatched_extorg = is_external & (Name != name) & is.na(extorg)) %>%
+  #   mutate(n_commas = nchar(gsub("[^,]", "", name))) %>%
+  #   mutate(is_remappable_extorg = n_commas > 2 & is.na(extorg)) %>%
+  #   mutate(extorg = ifelse(is_remappable_extorg, name, extorg)) %>%
+  #   mutate(name = ifelse(is_remappable_extorg, NA_character_, name)) %>%
+  #   mutate(extorg = gsub("\\.\\)$", "", extorg))
 
   # pubs may have a kthid, orcid, name or extorg
   # we group on combinations of those and assign unique PIDs
@@ -250,7 +252,6 @@ parse_diva_names <- function(pubs = kth_diva_pubs()) {
 
 extract_affiliations <- function(s) {
 
-  #s <- "Markus Skyttner (blaha;ihi) (öåö;ööö); Linus (oj;oj2)(blähä;boho;aha)(boho)"
   s2 <- sandr(s)
   res <- tokenize_affs(s2)
   n_aff_total <- extract_aff_count(s2)
@@ -258,26 +259,45 @@ extract_affiliations <- function(s) {
   if (is.na(n_aff_total))
     return(NULL)
 
-  re <- paste0("AFF#", 1:n_aff_total)
+  re <- paste0("{AFF#", 1:n_aff_total, "}")
 
-  data <- Map(function(x) grep(x, res, value = T), re)
+  data <- Map(function(x) grep(x, res, value = T, fixed = TRUE), re)
   namez <- gsub("\\s*[[].*[]]\\s*", "", data)
   namez <- gsub("\\s*\\(.*\\)\\s*", "", namez)
 
   affs <- extract_affs(s)
 
-  extorg_idx <- sapply(unlist(lapply(unlist(strsplit(s2, ";")), extract_extorgs)), extract_aff_tokens)
-  is_extorg <- rep(FALSE, length(affs))
-  is_extorg[extorg_idx] <- TRUE
+  #extorg_idx <- sapply(unlist(lapply(unlist(strsplit(s2, ";")), extract_extorgs)), extract_aff_tokens)
+  #is_extorg <- rep(FALSE, length(affs))
+  #is_extorg[extorg_idx] <- TRUE
 
-  tibble(
-    aff_id = sprintf("{%s}", names(data)),
-    fullname = trimws(namez),
+  # if affiliation mentions KTH, it is not external
+  is_extorg <- rep(TRUE, length(affs))
+  is_extorg[grep("KTH", affs)] <- FALSE
+
+  a <- tibble(
+    aff_id = sprintf("%s", names(data)),
+    name = trimws(namez),
     aff = affs,
     n_aff = lengths(strsplit(affs, split = ";")),
     divaorgs = extract_orgids(affs),
     is_extorg
   )
+
+  a %>%
+    filter(!is_extorg) %>%
+    group_by(name) %>%
+    summarize(
+      n_aff = sum(n_aff),
+      aff = paste0(aff, collapse = "; "),
+      divaorgs = paste0(divaorgs, collapse = " "),
+      is_extorg = FALSE
+    ) %>%
+    mutate(
+      divaorgs = paste0(unique(unlist(strsplit(divaorgs, " ", fixed = TRUE))), collapse = " ")
+    ) %>%
+    bind_rows(a %>% filter(is_extorg) %>% select(-aff_id)) %>%
+    arrange(name)
 }
 
 sandr <- function(x) {
@@ -305,25 +325,9 @@ parse_re3 <- function(x, re, sep = " ") {
   vapply(res, function(s) ifelse(length(s) > 1, paste(s, collapse = sep), s), character(1))
 }
 
-parse_dns <- function(x) {
-
-  uses_etal <- has_etal(x)
-  dns <- strsplit(sandr(replace_etal(x)), ";")
-  x <- trimws(unlist(dns))
-
-  tibble(
-    fullname = extract_fullname(x),
-    kthid = extract_kthid(x),
-    orcid = extract_orcid(x),
-    orgids = extract_orgids(x),
-    extorg = extract_extorgs(x),
-    uses_etal
-  )
-
-}
-
 parse_diva_namestring <- function(s) {
 
+  #s <- "Rwegasira, Diana [u14dm8hq] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249]) (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Ben Dhaou, Imed (Qassim Univ, Coll Engn, Buraydah, Saudi Arabia.;Univ Monastir, Monastir, Tunisia.);Kondoro, Aron [u15hybsr] [0000-0002-7734-7817] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249]) (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Kelati, Amleset [u1w7tfrt] [0000-0003-2357-1108] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Elektronik och inbyggda system [879300]) (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Integrerade komponenter och kretsar [879301]) (Univ Turku, Turku, Finland.);Mvungi, Nerey (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Tenhunen, Hannu [u1wjjaxp] [0000-0003-1959-6513] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Integrerade komponenter och kretsar [879301]) (Univ Turku, Turku, Finland.)"
   aff <- aff_one <- aff_two <- divaorgs <- is_extorg <- NULL
 
   uses_etal <- has_etal(s)
@@ -331,7 +335,7 @@ parse_diva_namestring <- function(s) {
   x <- trimws(unlist(dns))
 
   dns <- tibble(
-    fullname = extract_fullname(x),
+    name = extract_fullname(x),
     kthid = extract_kthid(x),
     orcid = extract_orcid(x),
     orgids = extract_orgids(x),
@@ -343,16 +347,18 @@ parse_diva_namestring <- function(s) {
 
   res <-
     dns %>%
-    left_join(affs %>% filter(is_extorg == FALSE), by = "fullname") %>%
+    left_join(affs %>% filter(is_extorg == FALSE), by = "name") %>%
     mutate(aff_one = aff) %>%
     mutate(orgids = divaorgs) %>%
-    select(one_of(names(dns)), aff_one)
+    mutate(n_aff_kth = n_aff) %>%
+    select(one_of(names(dns)), aff_one, n_aff_kth)
 
   res %>%
-    left_join(affs %>% filter(is_extorg == TRUE), by = "fullname") %>%
+    left_join(affs %>% filter(is_extorg == TRUE), by = "name") %>%
     mutate(aff_two = aff) %>%
     mutate(extorg = aff_two) %>%
-    select(one_of(names(dns)))
+    mutate(n_aff_ext = n_aff) %>%
+    select(one_of(names(dns)), c("n_aff_ext", "n_aff_kth"))
 
 }
 

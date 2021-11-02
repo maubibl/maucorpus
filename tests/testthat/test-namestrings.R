@@ -13,9 +13,10 @@ test_that("parsing a namestring with two external affiliations works", {
 
   data <- parse_diva_namestring(diva_name)
 
-  is_ok <- with(subset(data, fullname == "Asem, Heba"),
+  data$orgids
+  is_ok <- with(subset(data, name == "Asem, Heba"),
        kthid == "u1dc4g2x" &&
-       orgids == "177 879224 879315 879338" &&
+       orgids == "177 879224 879315 879338 5994 13000 13302" &&
        orcid == "0000-0001-8887-9141"
   )
 
@@ -25,7 +26,7 @@ test_that("parsing a namestring with two external affiliations works", {
 
 test_that("parsing a namestring with some quirks works", {
 
-  a <- "Osqulda af der KTH [u1234567][0000-0001-8887-9141] (KTH [177])(blaha (CBH);boho); Oscar von KTH [u1234567] (well)(woho; baha) et al"
+  a <- "Osqulda af der KTH [u1234567][0000-0001-8887-9141] (KTH [177])(blaha (CBH);boho); Oscar von KTH [u1234567] (KTH [177] well)(woho; baha) et al"
 
   # replace_etal(a)
   # extract_kthid(a)
@@ -42,7 +43,7 @@ test_that("parsing a namestring with some quirks works", {
   # parse_dns(a)
   data <- parse_diva_namestring(a)
 
-  is_ok <- with(subset(data, fullname == "Osqulda af der KTH"),
+  is_ok <- with(subset(data, name == "Osqulda af der KTH"),
     kthid == "u1234567" &&
     orgids == "177" &&
     orcid == "0000-0001-8887-9141"
@@ -67,7 +68,7 @@ test_that("parsing another real namestring works", {
 
   data <- parse_diva_namestring(x)
 
-  is_ok <- with(subset(data, fullname == "Popov, Sergei"),
+  is_ok <- with(subset(data, name == "Popov, Sergei"),
     kthid == "u1fs8je2" &&
     orgids == "177 5994"
   )
@@ -76,3 +77,30 @@ test_that("parsing another real namestring works", {
   expect_true(is_valid)
 
 })
+
+# TODO: add tests where there can be at least THREE parens
+# and where the first TWO can be KTH affiliations for example
+
+#  kth_diva_pubs() %>%
+#  filter(PID==1351863) %>% # mixed affs
+#  filter(PID==1513081) %>% # three parens, kth affs only
+#  filter(PID==1121547) %>% # three parens, mixed affs
+#  pull(Name) %>%
+#  extract_fullname()
+#  extract_affiliations()
+#  parse_diva_namestring()
+
+# TODO add tests for LONG namestrings
+
+# b <- kth_diva_pubs() %>% mutate(n = nchar(Name)) %>% arrange(desc(n)) %>% head(100) %>% pull(Name)
+# parse_diva_names(b[1]) %>% arrange(desc(kthid))
+
+# TODO: add timings
+
+# tictoc::tic()
+# parse_diva_name(x)
+# tictoc::toc()
+#
+# tictoc::tic()
+# parse_diva_namestring(x)
+# tictoc::toc()

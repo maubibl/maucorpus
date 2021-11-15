@@ -83,6 +83,13 @@ myDT(checks$multiplettes_DOI)
 myDT(checks$multiplettes_scopusid)
 ```
 
+### Multiplettes for ISI
+
+```{r}
+myDT(checks$multiplettes_ISI)
+```
+
+
 ### Invalid ISI
 
 ```{r}

@@ -208,6 +208,26 @@ check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
   select(ScopusId, DOI_link, n_pids, PID, Title)
 }
 
+check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
+  pubs %>%
+    select(PID, ISI, ScopusId) %>%
+    filter(!is.na(ScopusId)) %>%
+    count(ISI) %>%
+    filter(n > 1, !is.na(ISI)) %>%
+    arrange(desc(n)) %>%
+    inner_join(kth_diva_pubs(), by = "ISI") %>%
+    select(ISI, n_pids = n, PID, Title, ScopusId) %>%
+    collect() %>%
+    select(ISI, ScopusId, n_pids, PID, Title) %>%
+    group_by(ISI) %>%
+    mutate(n_scopusid = n_distinct(ScopusId)) %>%
+    filter(n_scopusid > 1) %>%
+    arrange(desc(ISI)) %>%
+    rowwise() %>%
+    mutate(link_d = link_diva(PID, shorten(Title)))
+
+}
+
 check_invalid_ISSN <- function(pubs = kth_diva_pubs()) {
 
   pubs %>%
@@ -265,7 +285,8 @@ kth_diva_checks <- function() {
     invalid_orgid = check_invalid_orgid(),
     uncertain_published = check_published(),
     multiplettes_scopusid = check_multiplettes_scopusid(),
-    multiplettes_DOI = check_multiplettes_DOI()
+    multiplettes_DOI = check_multiplettes_DOI(),
+    multiplettes_ISI = check_multiplettes_ISI()
   )
 }
 

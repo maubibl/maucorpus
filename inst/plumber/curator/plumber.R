@@ -127,7 +127,12 @@ function(req, res, user = NULL, password = NULL) {
 
   # jwt payload; information about the additional fields at
   # https://tools.ietf.org/html/rfc7519#section-4.1
-  payload <- jose::jwt_claim(userID = users$id[index])
+  payload <- jose::jwt_claim(
+    userID = users$id[index],
+    # NumericDate - seconds since the epoch (token expires in 30 days)
+    exp = as.numeric(lubridate::as_datetime(lubridate::today() + 30))
+  )
+
   secret_raw <- charToRaw(secret)
   jwt <- jose::jwt_encode_hmac(payload, secret = secret_raw)
   return(jwt = jwt)

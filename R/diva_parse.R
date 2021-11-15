@@ -163,12 +163,12 @@ parse_diva_names <- function(pubs = kth_diva_pubs()) {
     select(PID, Name)
 
   pb <- progress::progress_bar$new(
-    format = "parsing items [:bar] :percent eta: :eta",
+    format = "parsing PID [:what] [:bar] :percent eta: :eta",
     total = nrow(items)
   )
 
   parse_names <- function(x, y) {
-    pb$tick()
+    pb$tick(tokens = list(what = x))
     bind_cols(tibble(PID = x), parse_diva_namestring(y))
   }
 
@@ -344,6 +344,11 @@ parse_diva_namestring <- function(s) {
   )
 
   affs <- extract_affiliations(replace_etal(s))
+
+  if (is.null(affs)) {
+    message("\nNo affs in string: ", s)
+    return(dns)
+  }
 
   res <-
     dns %>%

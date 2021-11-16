@@ -11,7 +11,7 @@ library(flexdashboard)
 
 myDT <- function(data) {
   if (nrow(data) <= 0) 
-    data <- data.frame()
+    return(htmltools::pre("No results found for this check"))
   
   DT::datatable(data, #filter = "top",
     escape = FALSE,
@@ -22,8 +22,8 @@ myDT <- function(data) {
     )
 }
 
-shorten <- function(x) {
-  if (nchar(x) > 20) return(substr(x, 1, 20))
+shorten <- function(x, n = 20) {
+  if (nchar(x) > n) return(substr(x, 1, n))
   x
 }
 
@@ -71,12 +71,24 @@ myDT(checks$missing_confpubdate)
 ```{r}
 myDT(checks$missing_journal_ids  %>% select(-c(Name, Abstract)) %>% compact_cols())
 ```
-
-### Odd book chapters
+### Multiplettes for DOI
 
 ```{r}
-myDT(checks$odd_book_chapters)
+myDT(checks$multiplettes_DOI)
 ```
+
+### Multiplettes for ScopusID
+
+```{r}
+myDT(checks$multiplettes_scopusid)
+```
+
+### Multiplettes for ISI
+
+```{r}
+myDT(checks$multiplettes_ISI)
+```
+
 
 ### Invalid ISI
 

@@ -39,6 +39,7 @@ Imports:
     R.utils,
     tidyselect,
     aws.s3,
-    lubridate
+    lubridate,
+    tidyr
 Depends: 
     R (>= 2.10)

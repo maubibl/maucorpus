@@ -180,6 +180,7 @@ check_invalid_DOI <- function(pubs = kth_diva_pubs()) {
 }
 
 check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
+  ScopusId <- NULL
   pubs %>%
     select(PID, DOI, ScopusId) %>%
     filter(!is.na(DOI)) %>%
@@ -194,6 +195,7 @@ check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
 }
 
 check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
+  ScopusId <- n_pids <- DOI_link <- NULL
   pubs %>%
   select(PID, DOI, ScopusId) %>%
   filter(!is.na(ScopusId)) %>%
@@ -209,6 +211,7 @@ check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
 }
 
 check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
+  ScopusId <- n_pids <- n_scopusid <- NULL
   pubs %>%
     select(PID, ISI, ScopusId) %>%
     filter(!is.na(ScopusId)) %>%

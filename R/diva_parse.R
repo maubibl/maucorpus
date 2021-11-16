@@ -252,6 +252,8 @@ parse_diva_names <- function(pubs = kth_diva_pubs()) {
 
 extract_affiliations <- function(s) {
 
+  n_aff <- aff <- divaorgs <- aff_id <- NULL
+
   s2 <- sandr(s)
   res <- tokenize_affs(s2)
   n_aff_total <- extract_aff_count(s2)
@@ -328,7 +330,7 @@ parse_re3 <- function(x, re, sep = " ") {
 parse_diva_namestring <- function(s) {
 
   #s <- "Rwegasira, Diana [u14dm8hq] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249]) (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Ben Dhaou, Imed (Qassim Univ, Coll Engn, Buraydah, Saudi Arabia.;Univ Monastir, Monastir, Tunisia.);Kondoro, Aron [u15hybsr] [0000-0002-7734-7817] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249]) (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Kelati, Amleset [u1w7tfrt] [0000-0003-2357-1108] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Elektronik och inbyggda system [879300]) (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Integrerade komponenter och kretsar [879301]) (Univ Turku, Turku, Finland.);Mvungi, Nerey (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Tenhunen, Hannu [u1wjjaxp] [0000-0003-1959-6513] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Integrerade komponenter och kretsar [879301]) (Univ Turku, Turku, Finland.)"
-  aff <- aff_one <- aff_two <- divaorgs <- is_extorg <- NULL
+  aff <- aff_one <- aff_two <- divaorgs <- is_extorg <- n_aff <- n_aff_kth <- NULL
 
   uses_etal <- has_etal(s)
   dns <- strsplit(sandr(replace_etal(s)), ";")

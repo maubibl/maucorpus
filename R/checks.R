@@ -51,14 +51,14 @@ kth_diva_issues <- function(authors = kth_diva_authors()) {
 }
 
 link_diva <- function(href, text) {
-  if (nzchar(href) || nzchar(text))
+  if (!nzchar(href) || !nzchar(text))
     return (NA_character_)
   paste0("<a href='https://kth.diva-portal.org/smash/record.jsf?dswid=-310&pid=diva2%3A",
          href, "' target='_blank' rel='noopener noreferrer'>", text, "</a>")
 }
 
 link_DOI <- function(href, text) {
-  if (nzchar(href) || nzchar(text))
+  if (!nzchar(href) || !nzchar(text))
     return (NA_character_)
   paste0("<a href='https://doi.org/", href,
      "' target='_blank' rel='noopener noreferrer'>", text, "</a>")

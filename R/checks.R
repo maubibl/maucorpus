@@ -51,11 +51,15 @@ kth_diva_issues <- function(authors = kth_diva_authors()) {
 }
 
 link_diva <- function(href, text) {
+  if (nzchar(href) || nzchar(text))
+    return (NA_character_)
   paste0("<a href='https://kth.diva-portal.org/smash/record.jsf?dswid=-310&pid=diva2%3A",
          href, "' target='_blank' rel='noopener noreferrer'>", text, "</a>")
 }
 
 link_DOI <- function(href, text) {
+  if (nzchar(href) || nzchar(text))
+    return (NA_character_)
   paste0("<a href='https://doi.org/", href,
      "' target='_blank' rel='noopener noreferrer'>", text, "</a>")
 }
@@ -212,7 +216,7 @@ check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
 
 check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
   ScopusId <- n_pids <- n_scopusid <- NULL
-  pubs %>%
+  isi <- pubs %>%
     select(PID, ISI, ScopusId) %>%
     filter(!is.na(ScopusId)) %>%
     count(ISI) %>%
@@ -224,10 +228,14 @@ check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
     select(ISI, ScopusId, n_pids, PID, Title) %>%
     group_by(ISI) %>%
     mutate(n_scopusid = n_distinct(ScopusId)) %>%
-    filter(n_scopusid > 1) %>%
+    filter(n_scopusid > 1)
+
+  if (nrow(isi) > 0) {
+    isi %>%
     arrange(desc(ISI)) %>%
     rowwise() %>%
     mutate(link_d = link_diva(PID, shorten(Title)))
+  }
 
 }
 

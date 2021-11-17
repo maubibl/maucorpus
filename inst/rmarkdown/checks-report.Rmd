@@ -10,7 +10,7 @@ output:
 library(flexdashboard)
 
 myDT <- function(data) {
-  if (nrow(data) <= 0) 
+  if (is.null(data) || nrow(data) <= 0) 
     return(htmltools::pre("No results found for this check"))
   
   DT::datatable(data, #filter = "top",

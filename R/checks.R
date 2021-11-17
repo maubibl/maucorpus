@@ -21,7 +21,7 @@ kth_diva_issues <- function(authors = kth_diva_authors()) {
     group_by(orcid) %>%
     mutate(n1 = n_distinct(name), n2 = n_distinct(kthid)) %>%
     filter(n2 > 1) %>%
-    distinct(orcid, kthid, n2, name, Name) %>%
+    distinct(orcid, kthid, n2, name) %>%
     ungroup() %>%
     arrange(orcid, kthid, desc(n2), name) %>%
     select(orcid, kthid, n = n2) %>%

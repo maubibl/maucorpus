@@ -35,12 +35,64 @@ emp_title_eng|FUNKTION_ENG|Forskarens egen angivna funktionsbeskrivning||
 
 use_data(hr_mapping, overwrite = TRUE)
 
+library(dplyr)
 
 hr <- hr_plus()
 
 # is latest modification data reasonable?
-hr %>% collect %>% summarize(elm = max(emp_lastmod, na.rm = TRUE))
+shr <-
+  hr %>% collect %>% group_by(kthid) %>%
+  summarize(
+    elm = max(emp_lastmod),
+    ebeg = min(emp_beg),
+    eend = max(emp_end),
+    duration = eend - ebeg,
+    ttl = eend - Sys.Date(),
+    n = length(kthid)
+    ) %>%
+  arrange(desc(n), desc(elm))
 
+# forskargrupp? vad är detta?
+shr %>% filter(ebeg < lubridate::ymd("1921-01-01"))
+hr %>% filter(kthid == "u17tp77x")
+
+
+# several have end date set 6 years into the future
+shr %>% filter(eend > Sys.Date(), eend < lubridate::ymd("2999-12-31")) %>%
+  arrange(desc(eend))
+
+# would these be new phd students?
+shr %>% filter(
+  ttl > lubridate::duration(5, units="years"),
+  ttl < lubridate::duration(100, unit = "years")
+)
+
+summary(shr)
+
+
+
+
+# modification date is same as beginning date?
+# this person seems to have ended employment
+shr %>% filter(elm == lubridate::ymd("1974-07-31"))
+
+# 23 persons have last modification date set in the future?
+# 2 have ended employment already?
+shr %>% filter(elm > Sys.Date()) %>% arrange(ttl)
+
+
+
+shr %>%
+  filter(
+    ebeg > lubridate::ymd("2013-01-01")
+  ) %>%
+  mutate(is_active = ttl > 0) %>%
+  filter(is_active) %>%
+  summary()
+
+
+warnings()
+hr %>%
 # no gender given? are all genders M or K?
 hr %>% filter(!gender %in% c("M", "K")) %>% View()
 hr %>% filter(yob == 1900) %>% View()
@@ -74,6 +126,8 @@ check_research_area <- function(data) {
 # these codes do not seem to exist in UKÄ?
 check_research_area(hr)
 
+
+hr %>% left_join(research_areas, by = c(scb_topic = "id"))
 hr %>% filter(grepl("athanasios", tolower(firstname)))
 
 # list of staff which has a employment code for a title which is marked
@@ -81,7 +135,11 @@ hr %>% filter(grepl("athanasios", tolower(firstname)))
 researchers <-
   hr %>%
   left_join(ss_employment_title, by = c("emp_code" = "id")) %>%
-  filter(is_uf_ta == "UF")
+  mutate(is_uf_ta = is_uf_ta == "UF") %>%
+  filter(is_uf_ta)
+
+researchers %>%
+  count(emp_desc)
 
 View(researchers)
 
@@ -180,6 +238,74 @@ researchers_pc %>%
   count(middle_name) %>%
   arrange(desc(n)) %>%
   View()
+
+library(dplyr)
+library(lubridate)
+
+hr_plus_extra <- function() {
+
+  hr <- hr_plus()
+
+  hr <- hr %>%
+    left_join(ss_employment_title, by = c("emp_code" = "id")) %>%
+    mutate(is_uf_ta = is_uf_ta == "UF")
+
+  hr %>% left_join(research_areas, by = c("scb_topic" = "id")) %>%
+    rename(
+      "scb_topic_swe" = "swe",
+      "scb_topic_eng" = "eng",
+      "scb_topic_level" = "level"
+    )
+
+  # hr %>%
+  #   filter(emp_beg <= lubridate::today(), emp_end > lubridate::today()) %>%
+  #   group_by(kthid) %>%
+  #   summarize(
+  #     across(c("emp_lastmod", "emp_end", "emp_beg"), max)
+  #   ) %>%
+  #   arrange(desc(emp_lastmod, emp_end, emp_beg)) %>%
+  #   inner_join(hr) %>%
+  #   # some rows have duplicates ...
+  #   # filter(kthid == "u1fzcxlt") %>%
+  #   #select(-c(starts_with("emp"), is_public, scb_topic)) %>%
+  #   unique()
+
+}
+
+# current employees
+current <-
+  hr_plus_extra() %>% View()
+
+current %>%
+  count(kthid) %>%
+  arrange(desc(n))
+
+# employees with two different current orglocations at KTH
+current %>%
+  count(kthid) %>%
+  filter(n > 1) %>%
+  inner_join(hr)
+
+emp_periods <-
+  hr %>% group_by(kthid) %>% summarize(
+    across(c("emp_lastmod", "emp_end", "emp_beg"), min)
+  ) %>%
+  rename_with(function(x) paste0("min_", x), .cols = -c("kthid")) %>%
+  left_join(
+    hr %>% group_by(kthid) %>% summarize(
+      across(c("emp_lastmod", "emp_end", "emp_beg"), max)
+    ) %>%
+      rename_with(function(x) paste0("max_", x), .cols = -c("kthid"))
+  )
+
+ts_beg <- lubridate::as_date("2017-01-17")
+ts_end <- lubridate::as_date("2018-01-01")
+
+emp_periods %>%
+  filter(min_emp_beg <= ts_beg & max_emp_end >= ts_end) %>%
+  arrange(desc(max_emp_end), desc(min_emp_end))
+
+current
 
 #TODO:
 #a) nuvarande anställning dvs "Är personen i nuläget anställd? Har personen publikationer som ska hänföras till KTH i dagsläget?"

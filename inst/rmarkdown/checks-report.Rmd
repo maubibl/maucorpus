@@ -1,9 +1,30 @@
 ---
-title: "Checks for KTH Corpus"
-output: 
+title: "Kontroller för KTHs publikationscorpus"
+output:
   flexdashboard::flex_dashboard:
+    logo: logo.png
+    favicon: favicon.ico
     orientation: rows
     vertical_layout: fill
+    theme: 
+      version: 5
+      font-size-base: 1
+      bg: "#FFF"
+      fg: "#272c30" 
+      primary: "#1954A6"
+      navbar-bg: "#1954A6"
+      base_font: 
+        google: 
+          family: Open Sans
+          local: true
+      heading_font:
+        google: 
+          family: Open Sans
+          local: true
+      code_font:
+        google: 
+          family: Open Sans
+          local: true
 ---
 
 ```{r setup, include=FALSE}
@@ -34,10 +55,10 @@ compact_cols <- function(data) {
 
 ```
 
-Checks {.tabset}
+Kontroller {.tabset}
 -----------------------------------------------------------------------
 
-### Title Multiplettes
+### Titelmultipletter
 
 ```{r}
 library(kthcorpus)
@@ -48,90 +69,93 @@ checks <- kth_diva_checks()
 myDT(checks$article_title_multiplettes)
 ```
 
-### Submission status
+### Publiceringsstatus
 
 ```{r}
 myDT(checks$submission_status_invalid %>% select(-c(Name, Abstract)) %>% compact_cols())
 ```
 
-### Missing kthid
+### Saknade kthid:n
 
 ```{r}
 myDT(checks$missing_kthid)
 ```
 
-### Missing conference publication dates
+<!-- TODO: ska detta vara med? för alla publikationer?
+### Saknade år/publiceringsdatum i DiVA
 
 ```{r}
-myDT(checks$missing_confpubdate)
+myDT(checks$missing_date)
 ```
+-->
 
-### Missing journal ids
+### Saknade ISSN
 
 ```{r}
 myDT(checks$missing_journal_ids  %>% select(-c(Name, Abstract)) %>% compact_cols())
 ```
-### Multiplettes for DOI
+
+### DOI-multipletter
 
 ```{r}
-myDT(checks$multiplettes_DOI)
+myDT(checks$multiplettes_DOI %>% select(DOI_link, everything()) %>% select(-c("DOI")))
 ```
 
-### Multiplettes for ScopusID
+### ScopusID-multipletter
 
 ```{r}
 myDT(checks$multiplettes_scopusid)
 ```
 
-### Multiplettes for ISI
+### ISI-multipletter
 
 ```{r}
 myDT(checks$multiplettes_ISI)
 ```
 
 
-### Invalid ISI
+### Ogiltig ISI
 
 ```{r}
 myDT(checks$invalid_ISI)
 ```
 
-### Invalid DOI
+### Ogiltig DOI
 
 ```{r}
 myDT(checks$invalid_DOI)
 ```
 
-### Invalid ISSN
+### Ogiltig ISSN
 
 ```{r}
 myDT(checks$invalid_ISSN)
 ```
 
-### Invalid org unit id
+### Ogiltig organisationstillhörighet
 
 ```{r}
 myDT(checks$invalid_orgid)
 ```
 
-### Uncertain publication status
+### Oklar publikationsstatus
 
 ```{r}
 myDT(checks$uncertain_published)
 ```
 
-### SwePub checks
+### SwePubs kontroller
 
 ```{r}
 myDT(swepub_checks())
 ```
 
 
-### About
+### Information
 
-This report was generated on `r Sys.time()` and contains results from running checks on KTH Publications downloaded from DiVA.
+Denna sammanställning gjordes `r Sys.time()` och innehåller resultat från kontroller gjorda på KTHs publikationsmängd som laddades ned från DiVA-portalen.
 
-The data sources used for the check have the following timestamps:
+Datakällorna som användes vid kontrollerna har följande tidsstämplar:
 
 ```{r}
 

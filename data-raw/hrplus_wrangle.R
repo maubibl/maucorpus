@@ -400,6 +400,14 @@ hr_read_csv(latest)
 # check what changes were since the previous dataset
 render_diff(hr_diff(latest, previous))
 
+library(kthcorpus)
+library(daff)
+
+latest <- hr_plus()
+earlier <- hr_plus(offset = 1)
+
+render_diff(diff_data(latest, earlier))
+
 # fcn to generate diffs for several datasets
 hr_diffs <- function(max_tail = 1) {
 

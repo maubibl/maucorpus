@@ -64,6 +64,13 @@ link_DOI <- function(href, text) {
      "' target='_blank' rel='noopener noreferrer'>", text, "</a>")
 }
 
+link_ScopusID <- function(href, text) {
+  if (!nzchar(href) || !nzchar(text))
+    return (NA_character_)
+  paste0("<a href='https://www.scopus.com/record/display.url?origin=inward&partnerID=40&eid=", href,
+         "' target='_blank' rel='noopener noreferrer'>", text, "</a>")
+}
+
 shorten <- function(x) {
   if (nchar(x) > 20) return(substr(x, 1, 20))
   x
@@ -132,10 +139,12 @@ check_missing_kthid <- function(authors = kth_diva_authors()) {
     collect()
 }
 
-check_missing_confpubdate <- function(pubs = kth_diva_pubs()) {
+check_missing_date <- function(pubs = kth_diva_pubs()) {
+  # TODO: PublicationDate may not be needed (earlier such issues are fixed)
+  Year <- NULL
   pubs %>%
-    filter(PublicationType == "Konferensbidrag") %>%
-    filter(is.na(PublicationDate))  %>%
+    #filter(PublicationType == "Konferensbidrag") %>%
+    filter(is.na(PublicationDate), is.na(Year))  %>%
     collect()
 }
 
@@ -199,7 +208,7 @@ check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
 }
 
 check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
-  ScopusId <- n_pids <- DOI_link <- NULL
+  ScopusId <- n_pids <- DOI_link <- ScopusId_link <- NULL
   pubs %>%
   select(PID, DOI, ScopusId) %>%
   filter(!is.na(ScopusId)) %>%
@@ -210,8 +219,9 @@ check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
   select(DOI, n_pids = n, PID, Title, ScopusId) %>%
   mutate(Title = link_diva(PID, shorten(Title))) %>%
   mutate(DOI_link = link_DOI(DOI, DOI)) %>%
+  mutate(ScopusId_link = link_ScopusID(ScopusId, ScopusId)) %>%
   collect() %>%
-  select(ScopusId, DOI_link, n_pids, PID, Title)
+  select(PID, ScopusId_link, DOI_link, n_pids, Title)
 }
 
 check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
@@ -287,7 +297,7 @@ kth_diva_checks <- function() {
     article_title_multiplettes = check_multiplettes_article_title(),
     submission_status_invalid = check_invalid_submission_status(),
     missing_kthid = check_missing_kthid(),
-    missing_confpubdate = check_missing_confpubdate(),
+    missing_confpubdate = check_missing_date(),
     missing_journal_ids = check_missing_journals_identifiers(),
     odd_book_chapters = check_titles_book_chapters(),
     invalid_ISI = check_invalid_ISI(),

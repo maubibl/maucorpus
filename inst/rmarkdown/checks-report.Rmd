@@ -4,7 +4,6 @@ output:
   flexdashboard::flex_dashboard:
     logo: logo.png
     favicon: favicon.ico
-    orientation: rows
     vertical_layout: fill
     theme: 
       version: 5
@@ -32,20 +31,47 @@ library(flexdashboard)
 
 myDT <- function(data) {
   if (is.null(data) || nrow(data) <= 0) 
-    return(htmltools::pre("No results found for this check"))
+    return(htmltools::pre("Denna kontroll passerar utan anmärkning! 🥳"))
   
-  DT::datatable(data, #filter = "top",
+  dt <- DT::datatable(data, filter = "top",
     escape = FALSE,
     rownames = FALSE,
+    style = "bootstrap",
+#    class = "compact",
+    width = "100%",
+    extensions = c(
+      "Buttons",  
+      "Select",
+      "Scroller"
+    ),
     options = list(
-      dom = 'pt',
-      scrollX = "90vh", scrollY = "80vh")
+      dom = "fBlrtip",  # specify content (search box, etc)
+#      dom = 'pt',
+# l - Length changing
+# f - Filtering input
+# t - The Table!
+# i - Information
+# p - Pagination
+# r - pRocessing
+      scrollX = TRUE, 
+      scrollY = "60vh",
+      deferRender = TRUE,
+      scroller = TRUE,
+      select = TRUE,
+      buttons = list(
+        I("colvis"),  
+        "csv",  
+        "excel",
+        list(
+          extend = "copy",
+          text = 'Copy to clipboard',
+          exportOptions = list(modifier = list(selected = TRUE))
+        )
+      )  
     )
-}
-
-shorten <- function(x, n = 20) {
-  if (nchar(x) > n) return(substr(x, 1, n))
-  x
+  )  
+    
+  htmltools::div(dt, style = "font-size:80%")
 }
 
 compact_cols <- function(data) {
@@ -55,8 +81,11 @@ compact_cols <- function(data) {
 
 ```
 
-Kontroller {.tabset}
------------------------------------------------------------------------
+Resultat  {data-icon="fa-table"}
+=============================
+
+Kontroller {.tabset .tabset-pills .tabset-fade}
+-------------------------
 
 ### Titelmultipletter
 
@@ -150,8 +179,13 @@ myDT(checks$uncertain_published)
 myDT(swepub_checks())
 ```
 
+Information {data-icon="fa-info-circle"}
+========================================
 
-### Information
+About
+--------------------
+
+### Information 
 
 Denna sammanställning gjordes `r Sys.time()` och innehåller resultat från kontroller gjorda på KTHs publikationsmängd som laddades ned från DiVA-portalen.
 

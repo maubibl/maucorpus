@@ -72,8 +72,7 @@ link_ScopusID <- function(href, text) {
 }
 
 shorten <- function(x) {
-  if (nchar(x) > 20) return(substr(x, 1, 20))
-  x
+  ifelse(nchar(x) > 20, paste0(substr(x, 1, 20), "..."), x)
 }
 
 check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
@@ -120,7 +119,7 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
     mutate(Title = link_diva(PID, Title)) %>%
     group_by(check_key) %>%
     add_count(check_key, sort = TRUE, name = "n_check") %>%
-    arrange(desc(n_check), Title, check_key) %>%
+    arrange(desc(check_key), desc(n_check), desc(Title)) %>%
     ungroup() %>%
     collect()
 

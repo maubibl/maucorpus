@@ -21,7 +21,7 @@ hr_ls <- function(bucket = "hrplus") {
   #bucket_list_df(use_https = FALSE)
 
   # these are the files in the hrplus bucket
-  aws.s3::get_bucket_df(bucket, use_https = TRUE) %>%
+  aws.s3::get_bucket_df(bucket, use_https = uses_https()) %>%
     arrange(desc(LastModified))
 }
 
@@ -48,7 +48,7 @@ read_minio <- function(bucket = "hrplus", file, offset) {
   }
 
 
-  f1 <- get_object(my_file, bucket, use_https = FALSE)
+  f1 <- get_object(my_file, bucket, use_https = uses_https())
 
 }
 
@@ -57,7 +57,7 @@ read_minio <- function(bucket = "hrplus", file, offset) {
 #' @param file optional character string for file name in bucket
 #' @param offset optional offset in days (when retrieving older files)
 #' @importFrom `aws.s3` get_object
-#' @importFrom utils head
+#' @importFrom utils head capture.output
 #' @export
 hr_plus <- function(bucket = "hrplus", file, offset) {
   f1 <- read_minio(bucket, file, offset)
@@ -66,8 +66,9 @@ hr_plus <- function(bucket = "hrplus", file, offset) {
 
 #' Parse and read the HR data in CSV format
 #' @param file path to file
-#' @importFrom readr read_csv cols parse_double locale parse_integer
-#' @importFrom dplyr rename_with mutate contains
+#' @importFrom readr read_csv cols parse_double locale parse_integer problems
+#' @importFrom dplyr rename_with mutate contains everything
+#' @importFrom purrr map_dfr
 #' @import lubridate
 #' @export
 hr_read_csv <- function(file) {
@@ -95,5 +96,27 @@ hr_read_csv <- function(file) {
     mutate(across(.cols = contains(dtecols), .fns = ymd)) %>%
     mutate(emp_degree = parse_double(emp_degree, locale = locale(decimal_mark = ","))) %>%
     mutate(across(.cols = contains(intcols), .fns = parse_integer))
+
+  typed <-
+    hr %>%
+    mutate(across(.cols = contains(dtecols), .fns = ymd)) %>%
+    mutate(emp_degree = parse_double(emp_degree, locale = locale(decimal_mark = ","))) %>%
+    mutate(across(.cols = contains(intcols), .fns = parse_integer))
+
+  probs <- map_dfr(typed %>% select(kthid, c(intcols, dtecols)), problems)
+
+  if (nrow(probs) > 0) {
+    info <- hr %>% select(kthid, c(intcols, dtecols)) %>%
+      slice(probs$row) %>% mutate(row = probs$row) %>%
+      inner_join(probs, by = "row") %>%
+      select(kthid, row, everything())
+    w <- paste0(collapse = "\n", capture.output(info))
+    warning("Proceeding, but with parsing issues for row(s): ",
+      paste(sep = ", ", probs$row), "\n\n", w, "\n")
+    w2 <- read_lines(file)[probs$row + 1]
+    warning("Raw data:\n\n", w2)
+  }
+
+  return(typed)
 
 }

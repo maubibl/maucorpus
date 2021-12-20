@@ -1,9 +1,29 @@
 ---
-title: "Checks for KTH Corpus"
-output: 
+title: "Kontroller för KTHs publikationscorpus"
+output:
   flexdashboard::flex_dashboard:
-    orientation: rows
+    logo: logo.png
+    favicon: favicon.ico
     vertical_layout: fill
+    theme: 
+      version: 5
+      font-size-base: 1
+      bg: "#FFF"
+      fg: "#272c30" 
+      primary: "#1954A6"
+      navbar-bg: "#1954A6"
+      base_font: 
+        google: 
+          family: Open Sans
+          local: true
+      heading_font:
+        google: 
+          family: Open Sans
+          local: true
+      code_font:
+        google: 
+          family: Open Sans
+          local: true
 ---
 
 ```{r setup, include=FALSE}
@@ -11,20 +31,47 @@ library(flexdashboard)
 
 myDT <- function(data) {
   if (is.null(data) || nrow(data) <= 0) 
-    return(htmltools::pre("No results found for this check"))
+    return(htmltools::pre("Denna kontroll passerar utan anmärkning! 🥳"))
   
-  DT::datatable(data, #filter = "top",
+  dt <- DT::datatable(data, filter = "top",
     escape = FALSE,
     rownames = FALSE,
+    style = "bootstrap",
+#    class = "compact",
+    width = "100%",
+    extensions = c(
+      "Buttons",  
+      "Select",
+      "Scroller"
+    ),
     options = list(
-      dom = 'pt',
-      scrollX = "90vh", scrollY = "80vh")
+      dom = "fBlrtip",  # specify content (search box, etc)
+#      dom = 'pt',
+# l - Length changing
+# f - Filtering input
+# t - The Table!
+# i - Information
+# p - Pagination
+# r - pRocessing
+      scrollX = TRUE, 
+      scrollY = "60vh",
+      deferRender = TRUE,
+      scroller = TRUE,
+      select = TRUE,
+      buttons = list(
+        I("colvis"),  
+        "csv",  
+        "excel",
+        list(
+          extend = "copy",
+          text = 'Copy to clipboard',
+          exportOptions = list(modifier = list(selected = TRUE))
+        )
+      )  
     )
-}
-
-shorten <- function(x, n = 20) {
-  if (nchar(x) > n) return(substr(x, 1, n))
-  x
+  )  
+    
+  htmltools::div(dt, style = "font-size:80%")
 }
 
 compact_cols <- function(data) {
@@ -34,10 +81,13 @@ compact_cols <- function(data) {
 
 ```
 
-Checks {.tabset}
------------------------------------------------------------------------
+Resultat  {data-icon="fa-table"}
+=============================
 
-### Title Multiplettes
+Kontroller {.tabset .tabset-pills .tabset-fade}
+-------------------------
+
+### Titelmultipletter
 
 ```{r}
 library(kthcorpus)
@@ -48,90 +98,98 @@ checks <- kth_diva_checks()
 myDT(checks$article_title_multiplettes)
 ```
 
-### Submission status
+### Publiceringsstatus
 
 ```{r}
 myDT(checks$submission_status_invalid %>% select(-c(Name, Abstract)) %>% compact_cols())
 ```
 
-### Missing kthid
+### Saknade kthid:n
 
 ```{r}
 myDT(checks$missing_kthid)
 ```
 
-### Missing conference publication dates
+<!-- TODO: ska detta vara med? för alla publikationer?
+### Saknade år/publiceringsdatum i DiVA
 
 ```{r}
-myDT(checks$missing_confpubdate)
+myDT(checks$missing_date)
 ```
+-->
 
-### Missing journal ids
+### Saknade ISSN
 
 ```{r}
 myDT(checks$missing_journal_ids  %>% select(-c(Name, Abstract)) %>% compact_cols())
 ```
-### Multiplettes for DOI
+
+### DOI-multipletter
 
 ```{r}
-myDT(checks$multiplettes_DOI)
+myDT(checks$multiplettes_DOI %>% select(DOI_link, everything()) %>% select(-c("DOI")))
 ```
 
-### Multiplettes for ScopusID
+### ScopusID-multipletter
 
 ```{r}
 myDT(checks$multiplettes_scopusid)
 ```
 
-### Multiplettes for ISI
+### ISI-multipletter
 
 ```{r}
 myDT(checks$multiplettes_ISI)
 ```
 
 
-### Invalid ISI
+### Ogiltig ISI
 
 ```{r}
 myDT(checks$invalid_ISI)
 ```
 
-### Invalid DOI
+### Ogiltig DOI
 
 ```{r}
 myDT(checks$invalid_DOI)
 ```
 
-### Invalid ISSN
+### Ogiltig ISSN
 
 ```{r}
 myDT(checks$invalid_ISSN)
 ```
 
-### Invalid org unit id
+### Ogiltig organisationstillhörighet
 
 ```{r}
 myDT(checks$invalid_orgid)
 ```
 
-### Uncertain publication status
+### Oklar publikationsstatus
 
 ```{r}
 myDT(checks$uncertain_published)
 ```
 
-### SwePub checks
+### SwePubs kontroller
 
 ```{r}
 myDT(swepub_checks())
 ```
 
+Information {data-icon="fa-info-circle"}
+========================================
 
-### About
+About
+--------------------
 
-This report was generated on `r Sys.time()` and contains results from running checks on KTH Publications downloaded from DiVA.
+### Information 
 
-The data sources used for the check have the following timestamps:
+Denna sammanställning gjordes `r Sys.time()` och innehåller resultat från kontroller gjorda på KTHs publikationsmängd som laddades ned från DiVA-portalen.
+
+Datakällorna som användes vid kontrollerna har följande tidsstämplar:
 
 ```{r}
 

@@ -21,7 +21,7 @@ hr_ls <- function(bucket = "hrplus") {
   #bucket_list_df(use_https = FALSE)
 
   # these are the files in the hrplus bucket
-  aws.s3::get_bucket_df(bucket, use_https = TRUE) %>%
+  aws.s3::get_bucket_df(bucket, use_https = uses_https()) %>%
     arrange(desc(LastModified))
 }
 

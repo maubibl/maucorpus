@@ -30,6 +30,8 @@ scb_topic|ÄMNESKOD|Ämneskod|p_befreg|P_k55001
 is_public|VISAS_HEMSIDA|Visas publikt på KTH-webben||
 emp_title_swe|FUNKTION_SV|Forskarens egen angivna funktionsbeskrivning||
 emp_title_eng|FUNKTION_ENG|Forskarens egen angivna funktionsbeskrivning||
+unit_school|SKOLA|Vilken skola som enheten hänförs till, fält tillagt 2022-01-31||
+unit_status|STATUS|Flagga för om enheten är Active, Inactive eller Deleted, fält tillagt 2022-01-31||
 "
 )
 
@@ -38,6 +40,8 @@ use_data(hr_mapping, overwrite = TRUE)
 library(dplyr)
 
 hr <- hr_plus()
+
+#hr_read_csv("~/test-20220128-1.csv")
 
 # is latest modification data reasonable?
 shr <-

@@ -69,6 +69,7 @@ hr_plus <- function(bucket = "hrplus", file, offset) {
 #' @importFrom readr read_csv cols parse_double locale parse_integer problems
 #' @importFrom dplyr rename_with mutate contains everything
 #' @importFrom purrr map_dfr
+#' @importFrom utils capture.output
 #' @import lubridate
 #' @export
 hr_read_csv <- function(file) {
@@ -85,7 +86,14 @@ hr_read_csv <- function(file) {
   }
 
   hr <- read_csv(file = file, col_types = cs, quote = "\"") %>%
-    rename_with(hr_map, .cols = colnames(.))
+    rename_with(.fn = hr_map, .cols = colnames(.))
+
+  if (nrow(problems(hr)) > 0) {
+    #warning("Inconsistent data format in csv file: ", file)
+    out <- capture.output(problems(hr))
+    message("Inconsistent data format in csv file (is header complete?): ")
+    print(out)
+  }
 
   # data types parsing
 

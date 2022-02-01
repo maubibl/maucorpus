@@ -27,11 +27,11 @@ emp_end|BEF_TOM|Bef tom|p_befreg|P_k12100
 emp_lastmod|DATUM_NUV_BEF|Datum nuv bef|p_befreg|P_k12300
 emp_degree|SYSS_GRAD|Syss.grad|p_befreg|P_k13200
 scb_topic|ÄMNESKOD|Ämneskod|p_befreg|P_k55001
-is_public|VISAS_HEMSIDA|Visas publikt på KTH-webben||
-emp_title_swe|FUNKTION_SV|Forskarens egen angivna funktionsbeskrivning||
-emp_title_eng|FUNKTION_ENG|Forskarens egen angivna funktionsbeskrivning||
-unit_school|SKOLA|Vilken skola som enheten hänförs till, fält tillagt 2022-01-31||
-unit_status|STATUS|Flagga för om enheten är Active, Inactive eller Deleted, fält tillagt 2022-01-31||
+is_public|VISAS_HEMSIDA|Visas publikt på KTH-webben|p_befreg|p_k55301
+emp_title_swe|FUNKTION_SV|Forskarens egen angivna funktionsbeskrivning|p_befreg|p_k55302
+emp_title_eng|FUNKTION_ENG|Forskarens egen angivna funktionsbeskrivning|p_befreg|p_k55007
+unit_school|SKOLA|Vilken skola som enheten hänförs till, fält tillagt 2022-01-31|p_befreg|p_k55014
+unit_status|STATUS|Flagga för om enheten är Active, Inactive eller Deleted, fält tillagt 2022-01-31|allm010|allm309
 "
 )
 

@@ -9,7 +9,9 @@ RUN ./install_extra_pkgs.sh
 
 WORKDIR /
 
-RUN R -e 'install.packages(".", repos = NULL, type="source")'
+COPY . /kthcorpus
+
+RUN R -e 'remotes::install_deps("kthcorpus", dependencies = TRUE)'
 
 #RUN installGithub.r --deps TRUE kth-library/bibliomatrix@fix-static-site
 

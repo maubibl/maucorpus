@@ -37,6 +37,17 @@ unit_status|STATUS|Flagga för om enheten är Active, Inactive eller Deleted, f�
 
 use_data(hr_mapping, overwrite = TRUE)
 
+check_mapping <-
+  readr::read_csv("data-raw/colnames_tooltip.csv",
+    locale = readr::locale(encoding = "iso-8859-1"), show_col_types = FALSE)
+
+use_data(check_mapping, overwrite = TRUE)
+
+
+
+
+
+
 library(dplyr)
 
 hr <- hr_plus()

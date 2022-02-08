@@ -7,7 +7,7 @@
 kth_diva_authors(
   orgid = "177",
   year_beg = "2013",
-  year_end = "2020",
+  year_end = "2022",
   use_cache = TRUE,
   refresh_cache = FALSE
 )

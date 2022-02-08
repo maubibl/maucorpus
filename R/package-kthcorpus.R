@@ -66,5 +66,13 @@ NULL
 #'   \item{\code{table}}{character Source table}
 #'   \item{\code{field}}{character Source field}
 #'}
-#' @details DETAILS
 "hr_mapping"
+
+
+#' @title Mappings for check data
+#' @description Field massings for the check data used for column names etc
+#' \describe{
+#'   \item{\code{colname_en}}{character lowersnakecase column name}
+#'   \item{\code{desc_swe}}{character Swedish language explanation for field}
+#'}
+"check_mapping"

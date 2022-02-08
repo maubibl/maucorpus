@@ -1,6 +1,6 @@
 Package: kthcorpus
 Title: Swedish Research Publications Data from KTH
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: 
     person(given = "Markus",
            family = "Skyttner",
@@ -40,6 +40,8 @@ Imports:
     tidyselect,
     aws.s3,
     lubridate,
-    tidyr
+    tidyr,
+    rvest,
+    stringr
 Depends: 
     R (>= 2.10)

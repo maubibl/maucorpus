@@ -5,7 +5,7 @@
 \title{Checks from swepub processing of KTH publication records
 This function calls an API at SwePub for KTH data in a specific time period}
 \usage{
-swepub_checks(org = "kth", year_beg = 1900L, year_end = 2020)
+swepub_checks(org = "kth", year_beg = 1900L, year_end = 2022)
 }
 \arguments{
 \item{org}{the organization, default: "kth"}

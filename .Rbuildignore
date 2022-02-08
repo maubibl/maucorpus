@@ -7,3 +7,6 @@
 ^docs$
 ^pkgdown$
 ^\.github$
+Dockerfile$
+Makefile$
+rocker_scripts$

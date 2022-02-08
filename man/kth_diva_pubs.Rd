@@ -7,7 +7,7 @@
 kth_diva_pubs(
   orgid = "177",
   year_beg = "2013",
-  year_end = "2020",
+  year_end = "2022",
   use_cache = TRUE
 )
 }
@@ -16,7 +16,7 @@ kth_diva_pubs(
 
 \item{year_beg}{the beginning of the period, by default "2013"}
 
-\item{year_end}{the end of the period, by default "2020"}
+\item{year_end}{the end of the period, by default "2022"}
 
 \item{use_cache}{logical flag to indicate if cached data should be used, default: TRUE}
 }
@@ -25,5 +25,5 @@ data frame with results
 }
 \description{
 This function sends a request to KTH's DiVA portal for a CSV data export
-covering KTH publications between 2012 and 2019.
+covering KTH publications between 2013 and 2022.
 }

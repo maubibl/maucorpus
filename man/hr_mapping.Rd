@@ -20,7 +20,4 @@ hr_mapping
 \description{
 Field mappings used in HR data extract
 }
-\details{
-DETAILS
-}
 \keyword{datasets}

@@ -11,7 +11,7 @@ WORKDIR /
 
 COPY . /kthcorpus
 
-RUN R -e 'remotes::install_deps("kthcorpus", dependencies = TRUE)'
+RUN R -e 'remotes::install_local("kthcorpus", dependencies = TRUE)'
 
 #RUN installGithub.r --deps TRUE kth-library/bibliomatrix@fix-static-site
 

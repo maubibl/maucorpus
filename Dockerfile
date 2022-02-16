@@ -17,6 +17,8 @@ RUN cd /usr/local/bin && \
   wget https://dl.min.io/client/mc/release/linux-amd64/mc && \
   chmod +x mc
 
+RUN R -e 'remotes::install_github("rstudio/bslib", dependencies = TRUE)'
+
 #RUN installGithub.r --deps TRUE kth-library/bibliomatrix@fix-static-site
 
 #CMD R -e "plumber::plumb(system.file('plumber', 'authorbased', 'plumber.R', package = 'bibliomatrix'))$run(port = 8080)"

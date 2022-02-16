@@ -11,13 +11,14 @@ WORKDIR /
 
 COPY . /kthcorpus
 
-RUN R -e 'remotes::install_local("kthcorpus", dependencies = TRUE)'
-
 RUN cd /usr/local/bin && \
   wget https://dl.min.io/client/mc/release/linux-amd64/mc && \
   chmod +x mc
 
-RUN R -e 'install.packages("bslib")'
+# in order to change repositories source 
+COPY /rocker_scripts/.Rprofile /root/.Rprofile
+RUN R -e 'remotes::install_local("kthcorpus", dependencies = TRUE)'
+RUN installGithub.r --deps TRUE rstudio/bslib
 
 #RUN installGithub.r --deps TRUE kth-library/bibliomatrix@fix-static-site
 

@@ -258,17 +258,18 @@ myDT(checks$missing_date)
 myDT(checks$missing_journal_ids)#  %>% select(-c(Name, Abstract)) %>% compact_cols())
 ```
 
-
+<!--
 ### Oklar publikationsstatus `r stats("uncertain_published")`
 
 ```{r}
 myDT(checks$uncertain_published)
 ```
+-->
 
 ### Ogiltig publiceringsstatus `r stats("submission_status_invalid")`
 
 ```{r}
-myDT(checks$submission_status_invalid %>% select(-c(Name, Abstract)) %>% compact_cols())
+myDT(checks$submission_status_invalid)
 ```
 
 Externkontrollerat {data-icon="fa-university"}

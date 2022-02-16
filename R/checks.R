@@ -744,3 +744,41 @@ check_missing_affiliations <- function(authors = kth_diva_authors()) {
 #   select(suggested_orcid = orcid, suggested_orgid = orgids, everything())
 #
 # cma %>% left_join(sa, by = "kthid")
+
+#' Path to rmarkdown report
+#' @export
+checks_report_path <- function() {
+  system.file("rmarkdown", "checks-report.Rmd", package = "kthcorpus")
+}
+
+#' Render rmarkdown report with results from checks
+#' @param report path to rmarkdown file, by default checks_report_path()
+#' @param use_tmp boolean to indicate if resulting file should be placed in /tmp, default TRUE
+#' @export
+#' @importFrom rmarkdown render
+checks_render_report <- function(report = checks_report_path(), use_tmp = TRUE) {
+
+  # moves bundled rmarkdown files to tempdir if used from shiny
+  root <- dirname(normalizePath(report))
+  dest <- tempdir()
+  on.exit(unlink(dest))
+
+  if (!dir.exists(dest)) dir.create(dest, recursive = TRUE)
+
+  fr <- dir(root, full.names = TRUE)
+  to <- file.path(dest, dir(root))
+
+  file.copy(fr, to, overwrite = TRUE)
+  src <- file.path(dest, basename(report))
+  message("Moving rmarkdown files to temp dir: ", src)
+
+  message("Rendering ", basename(report), "...")
+  out <- rmarkdown::render(src, quiet = TRUE)
+
+  if (use_tmp == TRUE) {
+    file.copy(out, "/tmp", overwrite = TRUE)
+    return(file.path("/tmp", basename(out)))
+  }
+
+  return (out)
+}

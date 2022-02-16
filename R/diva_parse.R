@@ -155,12 +155,28 @@ parse_diva_name <- function(diva_name) {
 #' @export
 #' @importFrom progress progress_bar
 #' @importFrom purrr map2_df
+#' @importFrom stats na.omit
+#' @importFrom stringr str_c
+#' @importFrom digest digest
 #' @import dplyr
 parse_diva_names <- function(pubs = kth_diva_pubs()) {
 
-  items <- pubs %>%
+  items <-
+    pubs %>%
     filter(!is.na(PID) & !is.na(Name)) %>%
     select(PID, Name)
+
+  # TODO: only need to process unique namestrings (may be connected to several PIDs)
+  # with xxhash64 as identifier, a list of previously processed namestrings can
+  # be excluded?
+  pubs %>%
+    add_count(Name, sort = TRUE) %>%
+    select(starts_with("n")) %>%
+    distinct(n, Name) %>%
+    rowwise() %>%
+    mutate(xx = digest::digest(Name, "xxhash64")) %>%
+    ungroup() %>%
+    mutate(Name = stringr::str_trunc(Name, 15))
 
   pb <- progress::progress_bar$new(
     format = "parsing PID [:what] [:bar] :percent eta: :eta",
@@ -190,7 +206,7 @@ parse_diva_names <- function(pubs = kth_diva_pubs()) {
     res %>%
     inner_join(pubs, by = "PID") %>%
     group_by(kthid, orcid, name, extorg) %>%
-    mutate(pids = paste0(collapse = " ", unique(PID))) %>%
+    mutate(pids = paste0(collapse = " ", na.omit(unique(PID)))) %>%
     mutate(n_pid = lengths(strsplit(pids, " "))) %>%
     select(kthid, orcid, name, extorg, pids, orgids, n_pid) %>%
     distinct() %>%
@@ -330,7 +346,8 @@ parse_re3 <- function(x, re, sep = " ") {
 parse_diva_namestring <- function(s) {
 
   #s <- "Rwegasira, Diana [u14dm8hq] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249]) (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Ben Dhaou, Imed (Qassim Univ, Coll Engn, Buraydah, Saudi Arabia.;Univ Monastir, Monastir, Tunisia.);Kondoro, Aron [u15hybsr] [0000-0002-7734-7817] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249]) (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Kelati, Amleset [u1w7tfrt] [0000-0003-2357-1108] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Elektronik och inbyggda system [879300]) (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Integrerade komponenter och kretsar [879301]) (Univ Turku, Turku, Finland.);Mvungi, Nerey (Univ Dar Es Salaam, Dar Es Salaam, Tanzania.);Tenhunen, Hannu [u1wjjaxp] [0000-0003-1959-6513] (KTH [177], Skolan för elektroteknik och datavetenskap (EECS) [879223], Elektronik [879249], Integrerade komponenter och kretsar [879301]) (Univ Turku, Turku, Finland.)"
-  aff <- aff_one <- aff_two <- divaorgs <- is_extorg <- n_aff <- n_aff_kth <- NULL
+  aff <- aff_one <- aff_two <- divaorgs <- is_extorg <-
+    n_aff <- n_aff_ext <- n_aff_kth <- NULL
 
   uses_etal <- has_etal(s)
   dns <- strsplit(sandr(replace_etal(s)), ";")

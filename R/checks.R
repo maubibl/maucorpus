@@ -181,7 +181,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
     ScopusID = p_ScopusID(href),
     ISSN = p_ISSN(href),
     ISBN = p_ISBN(href),
-    UT = p_ISI(href),
+    ISI = p_ISI(href),
     ORCID = p_ORCID(href),
     href
   )
@@ -397,12 +397,19 @@ check_invalid_submission_status <- function(pubs = kth_diva_pubs()) {
   # possibly a Zenodo DOI could exist, but in general no identifier
   # has yet been assigned if "only" submitted
 
-  ScopusId <- ISI <- DOI <- NULL
+  ScopusId <- ISI <- DOI <- PID <- NULL
 
   pubs %>%
     filter(Status == "submitted" &
         (!is.na(DOI) | !is.na(ISI) | !is.na(ScopusId))) %>%
-    collect()
+    select(PID, ISI, DOI, ScopusId) %>%
+    mutate(
+      PID = linkify(PID, target = "PID"),
+      ISI = linkify(ISI, target = "ISI"),
+      DOI = linkify(DOI, target = "DOI"),
+      ScopusId = linkify(ScopusId, target = "ScopusID")
+    )
+
 }
 
 check_missing_kthid <- function(authors = kth_diva_authors()) {
@@ -472,22 +479,36 @@ check_titles_book_chapters <- function(pubs = kth_diva_pubs()) {
 
 check_invalid_ISI <- function(pubs = kth_diva_pubs()) {
 
-  ISI <- NULL
+  ISI <- PID <- DOI <- ScopusId <- NULL
 
   pubs %>%
     filter(!is.na(ISI)) %>%
     filter(nchar(ISI) != 15, !grepl("^A1", ISI), !grepl("^000", ISI))  %>%
-    collect()
+    collect() %>%
+    select(PID, ISI, DOI, ScopusId) %>%
+    mutate(
+      PID = linkify(PID, target = "PID"),
+      ISI = linkify(ISI, target = "ISI"),
+      DOI = linkify(DOI, target = "DOI"),
+      ScopusId = linkify(ScopusId, target = "ScopusID")
+    )
 
 }
 
 check_invalid_DOI <- function(pubs = kth_diva_pubs()) {
 
+  ISI <- PID <- DOI <- ScopusId <- NULL
+
   pubs %>%
     filter(!is.na(DOI)) %>%
     filter(!grepl("^10[.]", DOI)) %>%
-    select(DOI, PID)  %>%
-    collect()
+    select(PID, DOI, ISI, ScopusId)  %>%
+    mutate(
+      PID = linkify(PID, target = "PID"),
+      ISI = linkify(ISI, target = "ISI"),
+      DOI = linkify(DOI, target = "DOI"),
+      ScopusId = linkify(ScopusId, target = "ScopusID")
+    )
 
 }
 
@@ -613,6 +634,7 @@ kth_diva_checks <- function() {
     title_multiplettes = check_multiplettes_title(),
     submission_status_invalid = check_invalid_submission_status(),
     missing_kthid = check_missing_kthid(),
+    missing_affiliations = check_missing_affiliations(),
     missing_confpubdate = check_missing_date(),
     missing_journal_ids = check_missing_journals_identifiers(),
     odd_book_chapters = check_titles_book_chapters(),
@@ -663,3 +685,62 @@ check_remap_colnames <- function(x) {
 # https://rdrr.io/cran/libbib/man/get_issn_check_digit.html
 #library(libbib)
 #libbib::get_issn_check_digit()
+
+check_missing_affiliations <- function(authors = kth_diva_authors()) {
+
+  n_aff_ext <- n_aff_kth <- NULL
+  # some namestrings have a kthid but no organizational affiliation, examples:
+  # parsing PID [1257552] [====>-----------------------------------]  13% eta: 32m
+  # No affs in string: Emanuel, Martin [u16f0x93] [0000-0001-6867-5790]
+  # parsing PID [1257033] [=======>--------------------------------]  20% eta: 31m
+  # No affs in string: Emanuel, Martin [u16f0x93]
+  # parsing PID [921548] [=========>-------------------------------]  24% eta: 30m
+  # No affs in string: Arlid, Hedda
+  # parsing PID [1518530] [===========>----------------------------]  31% eta: 27m
+  # No affs in string: Crouzet, Guillemette
+  # parsing PID [1556135] [==============>-------------------------]  38% eta: 24m
+  # No affs in string: Djurovic, Kristina
+  # parsing PID [1257585] [===============>------------------------]  40% eta: 23m
+  # No affs in string: Emanuel, Martin [u16f0x93]
+  # parsing PID [1257589] [===================>--------------------]  49% eta: 20m
+  # No affs in string: Emanuel, Martin [u16f0x93]
+  # parsing PID [1449191] [====================>-------------------]  53% eta: 18m
+  # No affs in string: Ghauch, Hadi [u1lujhq6] [0000-0002-9442-671X]
+  # parsing PID [1349747] [=============================>----------]  75% eta: 10m
+  # No affs in string: Bonde, Ingrid
+  # parsing PID [1576494] [================================>-------]  82% eta:  7m
+  # No affs in string: Almlöf, Jonas [u1f2lz4l] [0000-0002-8721-3580]
+  authors %>%
+    filter(!is.na(kthid) & is.na(n_aff_kth) & is.na(n_aff_ext)) %>%
+    arrange(desc(n_pid), desc(kthid)) %>%
+    select(PID, name, kthid, orcid, n_pid)
+}
+
+# cma <- check_missing_affiliations()
+#
+# suggest_affiliation <- function(id)
+#   kth_diva_authors() %>%
+#   filter(kthid == id) %>%
+#   group_by(orcid, orgids) %>%
+#   add_count(sort = TRUE) %>%
+#   arrange(desc(n), desc(orcid)) %>%
+#   mutate(kthid = id) %>%
+#   mutate(n_variants = n_groups(.)) %>%
+#   head(1) %>%
+#   select(kthid, orcid, orgids, n_variants)
+#
+# suggest_affiliations <- function(ids)
+#   ids %>%
+#   map_dfr(suggest_affiliation) %>%
+#   arrange(desc(n_variants))
+#
+# ids <-
+#   cma %>%
+#   filter(n_pid > 200) %>%
+#   pull(kthid)
+#
+# sa <-
+#   suggest_affiliations(ids) %>%
+#   select(suggested_orcid = orcid, suggested_orgid = orgids, everything())
+#
+# cma %>% left_join(sa, by = "kthid")

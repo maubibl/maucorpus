@@ -13,6 +13,10 @@ COPY . /kthcorpus
 
 RUN R -e 'remotes::install_local("kthcorpus", dependencies = TRUE)'
 
+RUN cd /usr/local/bin && \
+  wget https://dl.min.io/client/mc/release/linux-amd64/mc && \
+  chmod +x mc
+
 #RUN installGithub.r --deps TRUE kth-library/bibliomatrix@fix-static-site
 
 #CMD R -e "plumber::plumb(system.file('plumber', 'authorbased', 'plumber.R', package = 'bibliomatrix'))$run(port = 8080)"

@@ -10,3 +10,4 @@
 Dockerfile$
 Makefile$
 rocker_scripts$
+.dockerignore$

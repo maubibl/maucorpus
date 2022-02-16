@@ -17,7 +17,7 @@ RUN cd /usr/local/bin && \
   wget https://dl.min.io/client/mc/release/linux-amd64/mc && \
   chmod +x mc
 
-RUN R -e 'remotes::install_github("rstudio/bslib", dependencies = TRUE)'
+RUN R -e 'install.packages("bslib")'
 
 #RUN installGithub.r --deps TRUE kth-library/bibliomatrix@fix-static-site
 

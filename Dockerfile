@@ -1,5 +1,8 @@
 FROM ghcr.io/kth-library/kontarion
 
+# use R repo source https://packagemanager.rstudio.com/cran/__linux__/focal/latest
+COPY rocker_scripts/.Rprofile /root/.Rprofile
+
 WORKDIR /rocker_scripts
 
 #COPY rocker_scripts/install_extra_pkgs.sh rocker_scripts/pkgs-cran rocker_scripts/pkgs-github ./
@@ -11,19 +14,12 @@ WORKDIR /
 
 COPY . /kthcorpus
 
+RUN R -e 'remotes::install_local("kthcorpus", dependencies = TRUE)'
+
+# install minio client
 RUN cd /usr/local/bin && \
   wget https://dl.min.io/client/mc/release/linux-amd64/mc && \
   chmod +x mc
-
-# in order to change repositories source 
-COPY /rocker_scripts/.Rprofile /root/.Rprofile
-RUN R -e 'remotes::install_local("kthcorpus", dependencies = TRUE)'
-RUN installGithub.r --deps TRUE rstudio/bslib
-
-#RUN installGithub.r --deps TRUE kth-library/bibliomatrix@fix-static-site
-
-#CMD R -e "plumber::plumb(system.file('plumber', 'authorbased', 'plumber.R', package = 'bibliomatrix'))$run(port = 8080)"
-
 
 # pak approach
 

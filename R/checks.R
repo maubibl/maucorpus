@@ -782,3 +782,29 @@ checks_render_report <- function(report = checks_report_path(), use_tmp = TRUE) 
 
   return (out)
 }
+
+#' Upload file to S3
+#'
+#' @details Checks for minio client being present on the system and assumes
+#' an alias "kthb" has been set up, as well as the bucket "kthcorpus"
+#' which can be achieved by setting a MC_HOST_kthb environment variable
+#' @param path the full path to the file to upload
+#' @param dest the path to the destination (s3 alias and bucket), by default "kthb/kthcorpus"
+#' @return exit code for upload command (0 means success)
+#' @export
+checks_upload_report <- function(path, dest = "kthb/kthcorpus") {
+
+  stopifnot(nzchar(Sys.which("mc")) || file.exists(path))
+  stopifnot(file.exists(path))
+
+  if (Sys.getenv("MC_HOST_kthb") == "" & !file.exists("~/.mc/config.json"))
+    warning("Please see if envvar MC_HOST_kthb has been set, or that ~/.mc/config.json exists")
+
+  cmd <- sprintf("mc cp %s %s", path, dest)
+  res <- system(cmd, timeout = 15)
+
+  if (res == 124) stop("Time out when uploading file ", path)
+  if (res != 0) stop("Error when using minio client to upload file, error code: ", res)
+
+  return (res)
+}

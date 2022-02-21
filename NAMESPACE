@@ -3,6 +3,7 @@
 export(check_remap_colnames)
 export(checks_render_report)
 export(checks_report_path)
+export(checks_upload_report)
 export(classify_swepub)
 export(classify_umu_ub)
 export(diva_meta)

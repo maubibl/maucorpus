@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - '.github/workflows/report.yml'
+  schedule:
+    - cron: '49 1 * * *' # UTC 49th min after 01th hour every day of month, month, day of week
 
 name: Generate report using latest kthcorpus container
 
@@ -12,19 +14,13 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     container: ghcr.io/kth-library/kthcorpus
+    env:
+      MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
     steps:
-
-      - shell: bash
-        env:
-          MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
-        run: |
-          mc ls kthb/kthcorpus
-
       - run: |
-          R -e 'library(kthcorpus); library(rmarkdown); render(system.file(package = "kthcorpus", "rmarkdown", "checks-report.Rmd"))'
-          R -e 'file.copy(system.file(package = "kthcorpus", "rmarkdown", "checks-report.html"), "/tmp/checks-report.html")'
+          R -e 'library(kthcorpus); report <- checks_render_report(); checks_upload_report(report)'
 
-      - name: Upload results
+      - name: Upload results as GitHub Artifact
         uses: actions/upload-artifact@main
         with:
           name: report

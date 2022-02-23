@@ -1,9 +1,9 @@
 on:
   workflow_dispatch:
   push:
-    paths:
-      - 'Dockerfile'
-      - '.github/workflows/push.yml'
+#    paths:
+#      - 'Dockerfile'
+#      - '.github/workflows/push.yml'
 
 name: Push docker image to ghcr.io
 

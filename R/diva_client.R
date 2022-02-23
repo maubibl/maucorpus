@@ -200,9 +200,35 @@ diva_tmp <- function(file)
 
 insert_ts <- function(file) {
   file.path(paste0(tools::file_path_sans_ext(file), "_",
-                   format(Sys.time(), "%y%m%d%H%M"), ".",
+                   format(Sys.time(), "%Y%m%d%H%M"), ".",
                    tools::file_ext(file))
   )
+}
+
+diva_upload_s3 <- function(path, dest = "kthb/kthcorpus", options = "") {
+
+  #hr_ls("kthcorpus") %>%
+  # mutate(age = lubridate::as_datetime(LastModified)) %>%
+  # mutate(age = lubridate::as.difftime(Sys.time() - age))
+
+  stopifnot(nzchar(Sys.which("mc")) || all(file.exists(path)))
+
+  if (length(path) > 1) path <- paste0(collapse = " ", path)
+
+  if (Sys.getenv("MC_HOST_kthb") == "" & !file.exists("~/.mc/config.json"))
+    warning("Please see if envvar MC_HOST_kthb has been set, or that ~/.mc/config.json exists")
+
+  # options can be "--newer-than 7d10h"
+  cmd <- sprintf("mc cp %s %s %s", options, path, dest)
+  res <- system(cmd, timeout = 15)
+
+  if (res == 124)
+    stop("Time out when uploading file ", path)
+
+  if (res != 0)
+    stop("Error when using minio client to upload file, error code: ", res)
+
+  return (res)
 }
 
 #' Metadata for cached data files

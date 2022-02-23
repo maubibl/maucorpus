@@ -522,7 +522,7 @@ check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
     count(DOI) %>%
     filter(n > 1) %>%
     arrange(desc(n)) %>%
-    inner_join(kth_diva_pubs(), by = "DOI") %>%
+    inner_join(pubs, by = "DOI") %>%
     select(PID, Title, n_pids = n, DOI, ScopusId, LastUpdated, ISI) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(Title = linkify(Title, target = "titlesearch")) %>%

@@ -14,6 +14,7 @@ WORKDIR /
 
 COPY . /kthcorpus
 
+RUN R -e 'update.packages(ask = FALSE)'
 RUN R -e 'remotes::install_local("kthcorpus", dependencies = TRUE)'
 
 # install minio client
@@ -23,12 +24,12 @@ RUN cd /usr/local/bin && \
 
 # pak approach
 
-#RUN R -e 'install.packages("pak", repos = "https://r-lib.github.io/p/pak/dev/")'
 #ENV RLIBS=/usr/local/lib/R/site-library:/usr/local/lib/R/library:/pak
 #RUN mkdir -p /pak
+
+#RUN R -e 'install.packages("pak", repos = "https://r-lib.github.io/p/pak/dev/")
 #RUN R -q -e 'pak::pak(c("pkgload", "pkgbuild"), lib = "/pak")'
 #RUN R -q -e 'pak::pak(c("r-lib/pkgcache", "r-lib/pkgdepends"), lib = "/pak")'
 #RUN R -e '.libPaths()'
-#RUN R -q -e 'pak::pak("./kthcorpus", lib = "/pak", dependencies = TRUE)'
-
-
+# oops - pak errors out below, but devtools::install_github works.... wierd...
+#RUN R -q -e 'pak::pak("kth-library/bibliomatrix", lib = "/pak")'

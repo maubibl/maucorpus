@@ -131,7 +131,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
       "?aq2=%5B%5B%5D%5D&af=%5B%5D&searchType=RESEARCH",
       "&sortOrder2=title_sort_asc&language=en",
       "&aq=%5B%5B%7B%22titleAll%22%3A%22",
-      utils::URLencode(term),
+      utils::URLencode(term, reserved = TRUE, repeated = FALSE),
       "%22%7D%5D%5D",
       "&sf=all&aqe=%5B%5D&sortOrder=author_sort_asc",
       "&onlyFullText=false&noOfRows=50&dswid=-4347"
@@ -142,7 +142,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
       "https://kth.diva-portal.org/smash/resultList.jsf",
       "?language=en&searchType=RESEARCH&",
       "query=&af=%5B%5D&aq=%5B%5B%7B%22freeText%22%3A%22",
-      utils::URLencode(term),
+      utils::URLencode(term, reserved = TRUE, repeated = FALSE),
       "%22%7D%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50",
       "&sortOrder=author_sort_asc&sortOrder2=title_sort_asc",
       "&onlyFullText=false&sf=all"
@@ -580,12 +580,25 @@ check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
 
 }
 
+check_invalid_kthid <- function(authors = kth_diva_authors()) {
+
+  # TODO: multiple same kthids in one publication?
+  # username in orcid field?
+
+  re <- "^u1[a-z0-9]{6}$"
+
+  authors %>%
+    filter(!is.na(kthid)) %>%
+    filter(!grepl(re, kthid))
+
+}
+
 check_invalid_ISSN <- function(pubs = kth_diva_pubs()) {
 
   # TODO: also check JournalEISSN here too..
   # https://portal.issn.org/api/search?search[]=MUST=allissnbis=%220003-682X%22
 
-  re <- "\\d{4}-\\d{3}(X|x|\\d)"
+  re <- "\\d{4}-?\\d{3}(X|x|\\d)"
 
   pubs %>%
     filter(!is.na(JournalISSN) & !is.na(JournalEISSN)) %>%

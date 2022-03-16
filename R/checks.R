@@ -26,7 +26,7 @@ kth_diva_issues <- function(authors = kth_diva_authors()) {
     arrange(orcid, kthid, desc(n2), name) %>%
     select(orcid, kthid, n = n2) %>%
     inner_join(namez) %>%
-    distinct(orcid, kthid, pids) %>%
+    distinct(orcid, kthid) %>%
     collect()
 
   overview <-

@@ -285,8 +285,10 @@ diva_backup <- function(file) {
   fto <- diva_tmp(insert_ts(file))
 
   message("Backing up ", ffr, " to ", fto)
-  file.rename(ffr, fto)
+  if (file.exists(ffr))
+    file.rename(ffr, fto)
 
+  return(file.exists(fto))
 }
 
 #' Refresh locally cached data files (and backup older data)
@@ -299,6 +301,7 @@ diva_refresh <- function() {
   )
   if (!refreshed)
     warning("Not all files refreshed...")
+
   return (refreshed)
 }
 
@@ -687,9 +690,18 @@ diva_refresh_trigger <- function() {
   kth_diva_pubs(refresh_cache = TRUE)
 
   # render the report and upload to S3
-  checks_render_report("/tmp/checks-report.html")
+  checks_render_report()
+
+  if (!file.exists("/tmp/checks-report")) {
+    warning("Was not able to generate the report...")
+    return (invisible(FALSE))
+  }
+
+  message("Uploading report")
   checks_upload_report("/tmp/checks-report.html")
 
   # delete the report locally
   unlink("/tmp/checks-report.html")
+
+  return(invisible(TRUE))
 }

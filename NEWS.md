@@ -1,5 +1,14 @@
 # kthcorpus
 
+## kthcorpus 0.2.0
+
+* Added function to scrape DiVA portal for units/organisations (en/sv)
+* Dockerfile and Makefile moved to inst/docker and GHA adjusted for this
+* Download of persons data from DiVA to remove need for time consuming name parsing
+* Functions to upload and download from S3 buckets
+* Bootstrap v 5 w latest DT and vertical scrolling fix
+* Added checks for missing kthid, invalid ISSN, ISBN, orcid
+
 ## kthcorpus 0.1.0
 
 * Refactored functions to remove non-ascii variable names due to Windows build issue, see https://developer.r-project.org/Blog/public/2020/05/02/utf-8-support-on-windows/

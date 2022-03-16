@@ -44,6 +44,7 @@ Imports:
     rvest,
     stringr,
     digest,
-    rmarkdown
+    rmarkdown,
+    libbib
 Depends: 
     R (>= 2.10)

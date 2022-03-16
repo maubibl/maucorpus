@@ -4,25 +4,13 @@
 \alias{kth_diva_authors}
 \title{Retrieve DiVA authors for KTH from the KTH DiVA portal}
 \usage{
-kth_diva_authors(
-  orgid = "177",
-  year_beg = "2013",
-  year_end = "2022",
-  use_cache = TRUE,
-  refresh_cache = FALSE
-)
+kth_diva_authors(use_cache = TRUE, refresh_cache = FALSE)
 }
 \arguments{
-\item{orgid}{the DiVA organisation id, by default "177" for KTH}
-
-\item{year_beg}{the beginning of the period, by default "2013"}
-
-\item{year_end}{the end of the period, by default "2020"}
-
-\item{use_cache}{logical flag to indicate if cached data should be used,
+\item{use_cache}{logical flag to indicate locally cached data should be used,
 default: TRUE}
 
-\item{refresh_cache}{logical flag to indicate if data cache should be
+\item{refresh_cache}{logical flag to indicate if local data cache should be
 refreshed, default: FALSE}
 }
 \value{

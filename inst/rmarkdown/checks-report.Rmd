@@ -29,9 +29,15 @@ output:
 
 ```{css, echo=FALSE}
 .tooltip-inner {max-width: 500px;}
+.dataTables_scrollBody {
+    max-height: 100vh !important;
+}
+
 ```
 
 ```{r setup, include=FALSE}
+#NB: important css above to allow DT to display nicely even with vertical scrolling
+
 library(flexdashboard)
 library(glue)
 
@@ -64,7 +70,8 @@ myDT <- function(data) {
     rownames = FALSE,
     style = "bootstrap",
     # see https://getbootstrap.com/docs/5.1/content/tables/
-    class = "table-borderless table-striped table-sm", 
+    class = "table-borderless table-striped table-sm",
+    fillContainer = TRUE,
     width = "100%",
     extensions = c(
       "Buttons",  
@@ -84,7 +91,9 @@ myDT <- function(data) {
 # r - pRocessing
       scrollX = TRUE, 
       scrollY = "100vh",
-      deferRender = TRUE,
+      #paging = FALSE,
+      #bPaginate = FALSE,
+      #deferRender = FALSE,
       scroller = TRUE,
       select = TRUE,
       buttons = list(
@@ -170,7 +179,7 @@ myTOC(toc)
 Multipletter {data-icon="fa-copy"}
 =============================
 
-Duplikat {.tabset .tabset-pills .tabset-fade}
+Duplikat {.tabset .tabset-pills .tabset-fade data-width=1200}
 -------------------------
 
 ### DOI-multipletter `r stats("multiplettes_DOI")`
@@ -203,7 +212,7 @@ myDT(checks$title_multiplettes)
 Formatfel  {data-icon="fa-bug"}
 =============================
 
-Ogiltiga identifierare {.tabset .tabset-pills .tabset-fade}
+Ogiltiga identifierare {.tabset .tabset-pills .tabset-fade data-width=1200}
 -------------------------
 
 ### Ogiltig DOI `r stats("invalid_DOI")`
@@ -232,10 +241,35 @@ myDT(checks$invalid_orgid)
 ```
 -->
 
+### Ogiltigt ORCiD `r stats("invalid_orcid")`
+
+```{r}
+myDT(checks$invalid_orcid)
+```
+
+### Ogiltigt KTH-id `r stats("invalid_kthid")`
+
+```{r}
+myDT(checks$invalid_kthid)
+```
+
+### Ogiltigt Scopus-id `r stats("invalid_scopusid")`
+
+```{r}
+myDT(checks$invalid_scopusid)
+```
+
+### Ogiltigt ISBN `r stats("invalid_isbn")`
+
+```{r}
+myDT(checks$invalid_isbn)
+```
+
+
 Saknat mm {data-icon="fa-glasses"}
 ==================
 
-Saknad och oklart mm {.tabset .tabset-pills .tabset-fade}
+Saknad och oklart mm {.tabset .tabset-pills .tabset-fade data-width=1200}
 -------------------------
 
 ### Saknade kthid:n `r stats("missing_kthid")`
@@ -272,7 +306,13 @@ myDT(checks$uncertain_published)
 myDT(checks$submission_status_invalid)
 ```
 
-Externkontrollerat {data-icon="fa-university"}
+### Ogiltigt författarnamn `r stats("invalid_authorname")`
+
+```{r}
+myDT(checks$invalid_authorname)
+```
+
+Externt {data-icon="fa-university" data-width=1200}
 =============================
 
 ### SwePubs kontroller `r stats("swepub")`
@@ -281,11 +321,49 @@ Externkontrollerat {data-icon="fa-university"}
 myDT(checks$swepub)
 ```
 
-Information {data-icon="fa-info-circle"}
+Information {data-icon="fa-info-circle" data-width=1200}
 ========================================
 
 About {.tabset .tabset-pills .tabset-fade}
 --------------------
+
+### Förklaringar
+
+__Multipletter__
+
+Kontroller grupperade under rubriken [multipletter](#multipletter) identifierar flera förekomster av samma publikation i DiVA. Detta sker genom att hitta dubbletter, tripletter etc. med avseende på DOI, ISI(UT), ScopusId eller titel. Om en DOI förekommer i flera poster är risken stor att även så är fallet för identifierarna ISI och ScopusId. 
+
+Samma publikationer kan alltså finnas i flera av nedanstående kontroller/flikar. Titelmultipletter fastnar endast om titlarna förekommer i samma publikationstyp, t.ex. artikel. Publikationer med identiska titlar kan alltså förekomma om det rör sig om olika publikationstyper (artikel, konferensbidrag, manuskript).
+
+- *DOI-multipletter*: Samma DOI förekommer på mer än en publikation
+- *ISI-multipletter*: Samma ISI förekommer på mer än en publikation
+- *ScopusID-multipletter*: Samma ScopusId förekommer på mer än en publikation
+- *Titelmultipletter*: Samma titel förekommer på mer än en publikation inom samma publikationstyp
+
+__Formatfel__
+
+Kontroller grupperade under [formatfel](#formatfel) identifierar ogiltigt format på identifierare. 
+
+- *Ogiltig DOI*: En DOI skall börja på "10", exempelvis: `10.1007/JHEP04(2021)165`
+- *Ogiltigt ISI*: ISI skall börja på "000" eller "A19" [??] och innehålla xx siffror[??]. Exempel: `000642153100001` eller `A1975AU56200018`
+- *Ogiltigt ScopusId*: Ett ScopusId skall börja på "2-s" [uteckla exakta kriterier]. Exempel: `2-s2.0-85104770225`
+- *Ogiltigt ISSN eller EISSN*: Ett ISSN eller EISSN skall innehålla minst åtta tecken [utveckla!] och har en [checksiffra](https://www.loc.gov/issn/basics/basics-checkdigit.html). Exempel: `1126-6708`
+- *Ogiltigt ORCiD*: Ett ORCiD skall innehålla fyra grupper om fyra siffror separerade med ett bindestreck. Exempel: `0000-0003-3455-0855`
+- *Ogiltigt KTH-id*: Ett KTH-id skall börja på "u" och innehålla åtta tecken. Exempel: `u13h9uqy`
+
+__Saknat mm__
+
+Kontroller grupperade under rubriken [saknat](#saknat-mm) identifierar saknade uppgifter eller ogiltig publiceringsstatus.
+
+- *Saknade KTH-id:n*: Alla KTH-författare skall helst identifieras med sitt KTH-id. Denna kontroll identifierar författare vilka har affilierats till KTH men där vi inte lyckats hitta deras KTH-id. Vanligen har dessa författare fått det temporära PI000000 i fältet för KTH-id för att markera detta.
+- *Saknade ISSN*: Tidskrift som saknar ett angivet ISSN.
+- *Ogiltig publiceringsstatus*: Publikationer som t.ex. är angivna som artiklar i tidskrift, men där publiceringsstatus är "submitted". Det är inte säkert att submittade artiklar verkligen blir publicerade i den angivna tidskriften. Submittade artikelmanuskript skall ligga i publikationstypen "manuskript" även om t.ex. en doktorand har angivet "submitted to journal..." i sin avhandling.
+
+__Externkontrollerat__
+
+Denna rubrik rymmer just nu endast de SwePub-kontroller som även presenteras [här](https://bibliometri.swepub.kb.se/process/kth?from=1900&to=2022).
+
+Det finns mer att läsa om validering och berikning hos SwePub [här](https://www.kb.se/samverkan-och-utveckling/swepub/datamodell/uppmarkningsflaggor.html).
 
 ### Allmänt
 
@@ -314,43 +392,3 @@ __Saknade kthid__
 Förslag till möjliga kthid kan hanteras här:
 
 https://github.com/KTH-Library/curation/issues
-
-
-### Förklaringar
-
-__Multipletter__
-
-Kontroller grupperade under rubriken [multipletter](#multipletter) identifierar flera förekomster av samma publikation i DiVA. Detta sker genom att hitta dubbletter, tripletter etc. med avseende på DOI, ISI(UT), ScopusId eller titel. Om en DOI förekommer i flera poster är risken stor att även så är fallet för identifierarna ISI och ScopusId. 
-
-Samma publikationer kan alltså finnas i flera av nedanstående kontroller/flikar. Titelmultipletter fastnar endast om titlarna förekommer i samma publikationstyp, t.ex. artikel. Publikationer med identiska titlar kan alltså förekomma om det rör sig om olika publikationstyper (artikel, konferensbidrag, manuskript).
-
-- *DOI-multipletter*: Förekomst av flera likadana DOI
-- *ISI-multipletter*: Förekomst av flera likadana ISI
-- *ScopusID-multipletter*: Förekomst av flera likadana ScopusId
-- *Titelmultipletter*: Förekomst av flera likadana titlar för samma publikationstyp
-
-__Formatfel__
-
-Kontroller grupperade under [formatfel](#formatfel) identifierar ogiltigt format på identifierare. 
-
-- *Ogiltig DOI*: En DOI skall börja på "10", exempelvis: `10.1007/JHEP04(2021)165`
-- *Ogiltigt ISI*: ISI skall börja på "000" eller "A19" [??] och innehålla xx siffror[??]. Exempel: `000642153100001` eller `A1975AU56200018`
-- *Ogiltigt ScopusId*: Ett ScopusId skall börja på "2-s" [uteckla exakta kriterier]. Exempel: `2-s2.0-85104770225`
-- *Ogiltigt ISSN eller EISSN*: Ett ISSN eller EISSN skall innehålla minst åtta tecken [utveckla!] och har en [checksiffra](https://www.loc.gov/issn/basics/basics-checkdigit.html). Exempel: `1126-6708`
-- *Ogiltigt ORCiD*: Ett ORCiD skall innehålla fyra grupper om fyra siffror separerade med ett bindestreck. Exempel: `0000-0003-3455-0855`
-- *Ogiltigt KTH-id*: Ett KTH-id skall börja på "u" och innehålla åtta tecken. Exempel: `u13h9uqy`
-
-__Saknat mm__
-
-Kontroller grupperade under rubriken [saknat](#saknat-mm) identifierar saknade uppgifter eller ogiltig publiceringsstatus.
-
-- *Saknade KTH-id:n*: Alla KTH-författare skall helst identifieras med sitt KTH-id. Denna kontroll identifierar författare vilka har affilierats till KTH men där vi inte lyckats hitta deras KTH-id. Vanligen har dessa författare fått det temporära PI000000 i fältet för KTH-id för att markera detta.
-- *Saknade ISSN*: Tidskrift som saknar ett angivet ISSN.
-- *Ogiltig publiceringsstatus*: Publikationer som t.ex. är angivna som artiklar i tidskrift, men där publiceringsstatus är "submitted". Det är inte säkert att submittade artiklar verkligen blir publicerade i den angivna tidskriften. Submittade artikelmanuskript skall ligga i publikationstypen "manuskript" även om t.ex. en doktorand har angivet "submitted to journal..." i sin avhandling.
-
-__Externkontrollerat__
-
-Denna rubrik rymmer just nu endast de SwePub-kontroller som även presenteras [här](https://bibliometri.swepub.kb.se/process/kth?from=1900&to=2022).
-
-Det finns mer att läsa om validering och berikning hos SwePub [här](https://www.kb.se/samverkan-och-utveckling/swepub/datamodell/uppmarkningsflaggor.html).
-

@@ -4,26 +4,19 @@
 \alias{kth_diva_pubs}
 \title{Retrieve DiVA publications for KTH from the KTH DiVA portal}
 \usage{
-kth_diva_pubs(
-  orgid = "177",
-  year_beg = "2013",
-  year_end = "2022",
-  use_cache = TRUE
-)
+kth_diva_pubs(use_cache = TRUE, refresh_cache = FALSE)
 }
 \arguments{
-\item{orgid}{the DiVA organisation id, by default "177" for KTH}
+\item{use_cache}{logical flag to indicate locally cached data should be used,
+default: TRUE}
 
-\item{year_beg}{the beginning of the period, by default "2013"}
-
-\item{year_end}{the end of the period, by default "2022"}
-
-\item{use_cache}{logical flag to indicate if cached data should be used, default: TRUE}
+\item{refresh_cache}{logical flag to indicate if local data cache should be
+refreshed, default: FALSE}
 }
 \value{
 data frame with results
 }
 \description{
-This function sends a request to KTH's DiVA portal for a CSV data export
+This function sends a request to KTH's DiVA portal from a CSV data export
 covering KTH publications between 2013 and 2022.
 }

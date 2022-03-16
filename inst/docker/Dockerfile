@@ -1,7 +1,10 @@
-FROM ghcr.io/kth-library/kontarion
+FROM kthb/kontarion:latest
 
 # use R repo source https://packagemanager.rstudio.com/cran/__linux__/focal/latest
-COPY inst/docker/rocker_scripts/.Rprofile /root/.Rprofile
+#COPY inst/docker/rocker_scripts/.Rprofile /root/.Rprofile
+RUN echo 'options(repos = c(CRAN = "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"))' >> ${R_HOME}/etc/Rprofile.site
+
+RUN R -e 'source("https://docs.rstudio.com/rspm/1.1.4/admin/check-user-agent.R")'
 
 WORKDIR /rocker_scripts
 
@@ -14,12 +17,15 @@ WORKDIR /
 
 COPY . /kthcorpus
 
-RUN R -e 'update.packages(ask = FALSE)'
-RUN R -e 'remotes::install_local("kthcorpus", dependencies = TRUE)'
+#RUN R -e 'update.packages(ask = FALSE)'
+#RUN apt-get install -y libjq-dev
+#RUN R -e 'install.packages("faststack")'
+#RUN R -e 'install.packages("htmltools")'
+RUN R -e 'remotes::install_local("kthcorpus")'
 
 # install minio client
 RUN cd /usr/local/bin && \
-  wget https://dl.min.io/client/mc/release/linux-amd64/mc && \
+  wget -q --show-progress mhttps://dl.min.io/client/mc/release/linux-amd64/mc && \
   chmod +x mc
 
 # pak approach

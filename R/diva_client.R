@@ -8,13 +8,12 @@
 #' @param year_end the end of the period, by default "2022"
 #' @param use_cache logical flag to indicate if cached data should be used, default: TRUE
 #' @return data frame with results
-#' @export
 #' @importFrom jsonlite toJSON
 #' @importFrom httr parse_url build_url
 #' @importFrom curl curl_download
 #' @importFrom rappdirs app_dir
 #' @import readr
-kth_diva_pubs <- function(orgid = "177", year_beg = "2013", year_end = "2022", use_cache = TRUE) {
+kth_diva_pubs_deprecated <- function(orgid = "177", year_beg = "2013", year_end = "2022", use_cache = TRUE) {
   diva_tmp <- function(file) file.path(rappdirs::app_dir("kthcorpus")$config(), file)
   tmp <- diva_tmp("kth_diva_pubs.rds")
   if (!dir.exists(dirname(tmp))) dir.create(dirname(tmp), recursive = TRUE)
@@ -108,9 +107,8 @@ kth_diva_pubs <- function(orgid = "177", year_beg = "2013", year_end = "2022", u
 #' @param refresh_cache logical flag to indicate if data cache should be
 #' refreshed, default: FALSE
 #' @return data frame with results
-#' @export
 #' @importFrom readr write_rds read_rds
-kth_diva_authors <- function(orgid = "177", year_beg = "2013", year_end = "2022",
+kth_diva_authors_deprecated <- function(orgid = "177", year_beg = "2013", year_end = "2022",
                              use_cache = TRUE, refresh_cache = FALSE) {
   diva_tmp <- function(file) file.path(rappdirs::app_dir("kthcorpus")$config(), file)
   tmp <- diva_tmp("kth_diva_authors.rds")
@@ -119,12 +117,121 @@ kth_diva_authors <- function(orgid = "177", year_beg = "2013", year_end = "2022"
     return(readr::read_rds(tmp))
   }
 
-  .pubs <- kth_diva_pubs(orgid, year_beg, year_end, use_cache)
+  .pubs <- kth_diva_pubs_deprecated(orgid, year_beg, year_end, use_cache)
   parsed_diva_names <- parse_diva_names(pubs = .pubs)
 
   if (use_cache) readr::write_rds(parsed_diva_names, tmp)
 
   return(parsed_diva_names)
+}
+
+#' Retrieve DiVA authors for KTH from the KTH DiVA portal
+#'
+#' This function returns parsed author information from DiVA data
+#' @param use_cache logical flag to indicate locally cached data should be used,
+#' default: TRUE
+#' @param refresh_cache logical flag to indicate if local data cache should be
+#' refreshed, default: FALSE
+#' @return data frame with results
+#' @export
+kth_diva_authors <- function(use_cache = TRUE, refresh_cache = FALSE) {
+
+  diva_tmp <- function(file)
+    file.path(rappdirs::app_dir("kthcorpus")$config(), file)
+
+  tmp <- diva_tmp("kth_kda.rds")
+
+  if (!dir.exists(dirname(tmp))) dir.create(dirname(tmp), recursive = TRUE)
+  if (file.exists(tmp) && !refresh_cache) {
+    return(readr::read_rds(tmp))
+  }
+
+  res <- diva_download_s3(files = "aut.csv")
+
+  stopifnot(res == 0 && file.exists(diva_tmp("aut.csv")))
+
+  ct <- readr::cols(
+    .default = col_character(),
+    PID = col_integer(),
+    Position = col_integer(),
+    PMID = col_double()
+  )
+
+  LastName <- FirstName <- LocalId <- ORCID <- OrganisationId <-
+    UncontrolledOrganisation <- ResearchGroup <- Role <-
+    orgid <- pos <- AuthorityPid <- NULL
+
+  data <-
+    readr::read_csv(diva_tmp("aut.csv"), col_types = ct) %>%
+    mutate(name = paste0(LastName, ", ", FirstName)) %>%
+    rename(
+      kthid = LocalId,
+      orcid = ORCID,
+      orgid = OrganisationId,
+      autid = AuthorityPid,
+      extorg = UncontrolledOrganisation,
+      pos = Position,
+      group = ResearchGroup,
+      role = Role
+    ) %>%
+    select(-c(FirstName, LastName)) %>% #, DOI, ISI, ISRN, NBN, PMID, ScopusId)) %>%
+    select(PID, name, kthid, orcid, orgid, extorg, pos, everything()) %>%
+    mutate(uses_etal = NA, is_extorg = !is.na(extorg))
+
+  if (use_cache) readr::write_rds(data, tmp)
+
+  return(data)
+
+}
+
+#' Retrieve DiVA publications for KTH from the KTH DiVA portal
+#'
+#' This function sends a request to KTH's DiVA portal from a CSV data export
+#' covering KTH publications between 2013 and 2022.
+#'
+#' @param use_cache logical flag to indicate locally cached data should be used,
+#' default: TRUE
+#' @param refresh_cache logical flag to indicate if local data cache should be
+#' refreshed, default: FALSE
+#' @return data frame with results
+#' @importFrom rappdirs app_dir
+#' @import readr
+#' @export
+kth_diva_pubs <- function(use_cache = TRUE, refresh_cache = FALSE) {
+
+  diva_tmp <- function(file)
+    file.path(rappdirs::app_dir("kthcorpus")$config(), file)
+
+  tmp <- diva_tmp("kth_kdp.rds")
+
+  if (!dir.exists(dirname(tmp))) dir.create(dirname(tmp), recursive = TRUE)
+  if (file.exists(tmp) && !refresh_cache) {
+    return(readr::read_rds(tmp))
+  }
+
+  res <- diva_download_s3(files = "pub.csv")
+
+  stopifnot(res == 0 && file.exists(diva_tmp("pub.csv")))
+
+  ct <- readr::cols(
+    .default = col_character(),
+    PID = col_double(),
+    Year = col_double(),
+    PMID = col_double(),
+    CreatedDate = col_date(format = ""),
+    PublicationDate = col_date(format = ""),
+    LastUpdated = col_date(format = ""),
+    NumberOfAuthors = col_double(),
+    FridaLevel = col_double()
+  )
+
+  data <-
+    readr::read_csv(diva_tmp("pub.csv"), col_types = ct)
+
+  if (use_cache) readr::write_rds(data, tmp)
+
+  return(data)
+
 }
 
 #' Name aliases for DiVA authors in the KTH DiVA portal
@@ -228,7 +335,36 @@ diva_upload_s3 <- function(path, dest = "kthb/kthcorpus", options = "") {
   if (res != 0)
     stop("Error when using minio client to upload file, error code: ", res)
 
-  return (res)
+  return (invisible(res))
+}
+
+diva_download_s3 <- function(files, destination, source = "kthb/kthcorpus", options = "") {
+
+  if (missing(destination))
+    destination <- file.path(rappdirs::app_dir("kthcorpus")$config())
+
+  stopifnot(nzchar(Sys.which("mc")) || all(dir.exists(destination)))
+
+  paths <- file.path(source, files)
+
+  if (length(files) > 1)
+    paths <- paste0(collapse = " ", file.path(source, files))
+
+  if (Sys.getenv("MC_HOST_kthb") == "" & !file.exists("~/.mc/config.json"))
+    warning("Please see if envvar MC_HOST_kthb has been set, or that ~/.mc/config.json exists")
+
+  # options can be "--newer-than 7d10h"
+  cmd <- sprintf("mc cp %s %s %s", options, paths, destination)
+  res <- system(cmd, timeout = 60)
+  #res <- cmd
+
+  if (res == 124)
+    stop("Time out when downloading file(s) ", paths)
+
+  if (res != 0)
+    stop("Error when using minio client to download file, error code: ", res)
+
+  return (invisible(res))
 }
 
 #' Metadata for cached data files
@@ -237,13 +373,297 @@ diva_upload_s3 <- function(path, dest = "kthb/kthcorpus", options = "") {
 diva_meta <- function() {
 
   sources <- c(
-    "kth_diva_authors.rds",
-    "kth_diva_pubs.rds"
+    "kth_kda.rds",
+    "kth_kdp.rds"
   )
 
   timez <- file.mtime(diva_tmp(sources))
 
-  age <- as.double(difftime(Sys.time(), timez, units = "h"))
+  age <- as.difftime(Sys.time() - timez, format = "%H:%M:%OS3")
 
   data.frame(source = sources, ts = timez, age = age)
+}
+
+diva_url <- function(
+  orgid = "177", year_beg = "2013", year_end = "2022",
+  variant = c("pub", "aut")) {
+
+  pubtypes <- function() {
+    c(
+      "bookReview", "review", "article",
+      "artisticOutput", "book", "chapter",
+      "manuscript", "collection", "other",
+      "conferencePaper", "patent", "conferenceProceedings",
+      "report", "dataset"
+    )
+  }
+
+  queryparam_aq2 <- function(.pubtypes = pubtypes()) {
+    list(list(
+      list(dateIssued = I(list(from = year_beg, to = year_end))),
+      list(organisationId = orgid, `organisationId-Xtra` = TRUE),
+      list(publicationTypeCode = .pubtypes)
+    )) %>% jsonlite::toJSON(auto_unbox = TRUE)
+  }
+
+  smash_url <- httr::parse_url("https://kth.diva-portal.org/smash/export.jsf")
+
+  # TODO: add any params? "language=en&searchType=RESEARCH&query=&af=[]&onlyFullText=false&sf=all"
+  smash_url$query <- switch(
+    match.arg(variant),
+    "aut" = list(
+      format = "csv", addFilename = "true",
+      aq = I("[[]]"), aqe = I("[]"), aq2 = I(queryparam_aq2()),
+      onlyFullText = "false", noOfRows = as.character(5e6L),
+      sortOrder = "title_sort_asc", sortOrder2 = "title_sort_asc",
+      csvType = "person", fl = I(paste0(
+        "PID,AuthorityPid,DOI,FirstName,ISI,ISRN,LastName,LocalId,",
+        "NBN,ORCID,OrganisationId,UncontrolledOrganisation,Position,",
+        "PMID,ResearchGroup,Role,ScopusId"))
+    ),
+    "pub" = smash_url$query <- list(
+      format = "csvall2", addFilename = "true",
+      aq = I("[[]]"), aqe = I("[]"), aq2 = I(queryparam_aq2()),
+      onlyFullText = "false", noOfRows = as.character(5e6L),
+      sortOrder = "title_sort_asc", sortOrder2 = "title_sort_asc"
+    )
+  )
+
+  httr::build_url(smash_url)
+
+}
+
+diva_download_aut <- function(
+  orgid = "177",
+  year_beg = "2013", year_end = "2022", sync = TRUE) {
+
+  fn <- dl <- NULL
+
+  yb <- as.integer(year_beg)
+  ye <- as.integer(year_end)
+
+  be <- function(beg, end) {
+    stopifnot(is.integer(beg) && is.integer(end) && (end >= beg))
+    data.frame(orgid = orgid, variant = "aut", year_beg = beg:end, year_end = beg:end)
+    #year_beg = beg:(end -1), year_end = (beg + 1):end)
+  }
+
+  all_years <-
+    be(yb, ye) %>%
+    purrr::pmap_chr(diva_url) %>%
+    tibble(dl = .) %>%
+    bind_cols(be(yb, ye)) %>%
+    mutate(fn = paste0("persons_", year_beg, ".csv")) %>%
+    mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
+
+  script <- c(
+    "#!/bin/bash",
+    "curl -Z --globoff -L \\",
+    all_years$curl,
+    "&& (awk '(NR == 1) || (FNR > 1)' persons_*.csv > aut.csv && rm persons_*.csv)"
+  )
+
+  write_lines(script, "/tmp/dl_aut.sh")
+  Sys.chmod("/tmp/dl_aut.sh", mode = "744")
+  res <- system("cd /tmp && ./dl_aut.sh", timeout = 60 * 10)
+
+  stopifnot(file.exists("/tmp/aut.csv") && res == 0)
+
+  if (sync) # sync to kthcorpus bucket
+    diva_upload_s3("/tmp/aut.csv")
+
+  # parse and return content
+  ct <- readr::cols(
+    .default = col_character(),
+    PID = col_integer(),
+    Position = col_integer(),
+    PMID = col_double()
+  )
+
+  #on.exit(unlink("/tmp/aut.csv"))
+  readr::read_csv("/tmp/aut.csv", col_types = ct)
+
+}
+
+diva_download_pub <- function(
+  orgid = "177",
+  year_beg = "2013", year_end = "2022", sync = TRUE) {
+
+  fn <- dl <- NULL
+
+  yb <- as.integer(year_beg)
+  ye <- as.integer(year_end)
+
+  be <- function(beg, end) {
+    stopifnot(is.integer(beg) && is.integer(end) && (end >= beg))
+    data.frame(orgid = orgid, variant = "pub", year_beg = beg:end, year_end = beg:end) #year_beg = beg:(end -1), year_end = (beg + 1):end)
+  }
+
+  all_years <-
+    be(yb, ye) %>%
+    purrr::pmap_chr(diva_url) %>%
+    tibble(dl = .) %>%
+    bind_cols(be(yb, ye)) %>%
+    mutate(fn = paste0("pubs_", year_beg, ".csv")) %>%
+    mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
+
+  script <- c(
+    "#!/bin/bash",
+    "curl -Z --globoff -L \\",
+    all_years$curl,
+    "&& awk '(NR == 1) || (FNR > 1)' pubs_*.csv > pub.csv && rm pubs_*.csv"
+  )
+
+  write_lines(script, "/tmp/dl_pubs.sh")
+  Sys.chmod("/tmp/dl_pubs.sh", mode = "744")
+  res <- system("cd /tmp && ./dl_pubs.sh", timeout = 60 * 10)
+
+  stopifnot(file.exists("/tmp/pub.csv") && res == 0)
+
+  if (sync)
+    diva_upload_s3("/tmp/pub.csv")
+
+  # parse and return content
+  ct <- readr::cols(
+    .default = col_character(),
+    PID = col_double(),
+    Year = col_double(),
+    PMID = col_double(),
+    CreatedDate = col_date(format = ""),
+    PublicationDate = col_date(format = ""),
+    LastUpdated = col_date(format = ""),
+    NumberOfAuthors = col_double(),
+    FridaLevel = col_double()
+  )
+
+  #on.exit(unlink("/tmp/pub.csv"))
+  readr::read_csv("/tmp/pub.csv", col_types = ct)
+
+}
+
+#' Download publication or author data from DiVA
+#'
+#' @param set dataset to use, either "pub" (default) or "aut"
+#' @param org_id organisation to filter for, by default "177" (KTH)
+#' @param year_beg first year in a range of years, default 2013
+#' @param year_end last year in a range of years, default 2022
+#' @param sync logical to indicate if sync should be made to s3 (default: FALSE)
+diva_download <- function(
+  set = c("pub", "aut"), org_id = "177",
+  year_beg = 2013, year_end = 2022,
+  sync = FALSE) {
+
+  stopifnot(has_sysreqs(c("curl", "awk")))
+  if (sync) stopifnot(has_sysreqs("mc"))
+
+  message("Downloading ", set, " from DiVA, pls wait a couple of minutes.")
+  t1 <- Sys.time()
+
+  res <- switch(
+    match.arg(set),
+    "aut" =
+      diva_download_aut(org_id, year_beg, year_end, sync = sync),
+    "pub" =
+      diva_download_pub(org_id, year_beg, year_end, sync = sync)
+  )
+
+  t2 <- Sys.time()
+  d <- as.difftime(t2 - t1, units = "mins")
+
+  message(sprintf("Done, took %0.2f %s", d, attr(d, "units")))
+  return (res)
+}
+
+has_sysreqs <- function(utils)
+  all(nzchar(Sys.which(utils)))
+
+scrape_diva_organisations <- function(language = NULL) {
+
+  url <- "https://kth.diva-portal.org/smash/search.jsf?searchType=ORGANISATION"
+
+  re_closed <- "Closed down"
+
+  if (!is.null(language)) {
+
+    stopifnot(language %in% c("sv", "en"))
+    url <- sprintf(paste0(url, "&language=%s"), language)
+
+    # if (language == "sv") {
+    #   re_closed <- "Upphörd"
+    # }
+    #
+    # if (language == "no") {
+    #   re_closed <- "Opphørt"
+    # }
+
+  }
+
+  page <-
+    httr::GET(url) %>%
+    httr::content()
+
+  rowkey <-
+    page %>%
+    rvest::html_elements(css = "li[data-rowkey]") %>%
+    rvest::html_attr("data-rowkey")
+
+  orgs <-
+    page %>%
+    rvest::html_elements(css = "li[data-rowkey] a")
+
+  url2 <- url3 <- url4 <- unit <- n_hits <- orgid <- is_closed <- NULL
+
+  tibble::tibble(
+    n_hits = orgs %>% rvest::html_text(),
+    url = orgs %>% rvest::html_attr("href"),
+    unit = orgs %>% rvest::html_attr("title")
+  ) %>%
+    mutate(url2 = utils::URLdecode(url)) %>%
+    mutate(url3 = stringr::str_extract(url2, "aq=(.*?)$")) %>%
+    mutate(url4 = stringr::str_extract(url3, "\\d+")) %>%
+    select(unit,  !any_of(c("url2", "url3"))) %>%
+    mutate(n = as.double(stringr::str_extract(n_hits, "\\d+"))) %>%
+    mutate(url = paste0("https://kth.diva-portal.org", url)) %>%
+    rename(orgid = url4) %>%
+    select(unit, orgid, everything()) %>%
+    mutate(is_closed = grepl(re_closed, unit)) %>%
+    mutate(closed_date = stringr::str_extract(unit, "\\d{4}-\\d{2}-\\d{2}")) %>%
+    mutate(unit = ifelse(is_closed, gsub("\\s+[(].*?\\d{4}-\\d{2}-\\d{2}[)]$", "", unit), unit)) %>%
+    mutate(rowkey = rowkey) %>%
+    mutate(level = stringr::str_count(rowkey, "_"))
+
+}
+
+diva_orgs <- function() {
+
+  unit <- orgid <- rowkey <- level <- unit_sv <- is_closed <-
+    closed_date <- p_rowkey <- p_orgid <- NULL
+
+  en <-
+    scrape_diva_organisations(language = "en")
+
+  sv <-
+    scrape_diva_organisations(language = "sv") %>%
+    select(unit_sv = unit, orgid)
+
+  combo <-
+    left_join(en, sv, by = "orgid") %>%
+    select(orgid, rowkey, level, unit_en = unit, unit_sv, n, is_closed, closed_date, url) %>%
+    mutate(p_rowkey = ifelse(nchar(rowkey) > 1, gsub("_\\d+$", "", rowkey), NA_character_))
+
+  parents <-
+    combo %>% select(orgid, rowkey, p_rowkey) %>%
+    left_join(combo %>% select(orgid, rowkey, p_orgid = orgid), by = c("p_rowkey" = "rowkey")) %>%
+    pull(p_orgid)
+
+  combo %>%
+    mutate(p_orgid = parents) %>%
+    select(orgid, p_orgid, n_diva_pubs = n, everything(), -c("rowkey", "p_rowkey")) %>%
+    mutate(across(contains("orgid"), .fns = as.integer))
+}
+
+#' Get organisation data from DiVA portal
+#' @export
+diva_organisations <- function() {
+  diva_orgs()
 }

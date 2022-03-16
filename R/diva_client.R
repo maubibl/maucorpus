@@ -692,16 +692,18 @@ diva_refresh_trigger <- function() {
   # render the report and upload to S3
   checks_render_report()
 
-  if (!file.exists("/tmp/checks-report")) {
+  report <- "/tmp/checks-report.html"
+
+  if (!file.exists(report)) {
     warning("Was not able to generate the report...")
     return (invisible(FALSE))
   }
 
   message("Uploading report")
-  checks_upload_report("/tmp/checks-report.html")
+  checks_upload_report(report)
 
   # delete the report locally
-  unlink("/tmp/checks-report.html")
+  unlink(report)
 
   return(invisible(TRUE))
 }

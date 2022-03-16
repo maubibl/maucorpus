@@ -24,9 +24,9 @@ COPY . /kthcorpus
 RUN R -e 'remotes::install_local("kthcorpus")'
 
 # install minio client
-RUN cd /usr/local/bin && \
-  wget -q --show-progress mhttps://dl.min.io/client/mc/release/linux-amd64/mc && \
-  chmod +x mc
+#RUN cd /usr/local/bin && \
+#  wget -q --show-progress https://dl.min.io/client/mc/release/linux-amd64/mc && \
+#  chmod +x mc
 
 # pak approach
 

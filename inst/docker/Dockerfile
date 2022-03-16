@@ -1,4 +1,4 @@
-FROM ghcr.io/kthb/kontarion
+FROM ghcr.io/kth-library/kontarion
 
 # use R repo source https://packagemanager.rstudio.com/cran/__linux__/focal/latest
 #COPY inst/docker/rocker_scripts/.Rprofile /root/.Rprofile

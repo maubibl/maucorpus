@@ -18,7 +18,7 @@ jobs:
       MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
     steps:
       - run: |
-          R -e 'library(kthcorpus); report <- checks_render_report(); checks_upload_report(report)'
+          R -e 'library(kthcorpus); diva_refresh_trigger();'
 
       - name: Upload results as GitHub Artifact
         uses: actions/upload-artifact@main

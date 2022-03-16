@@ -294,8 +294,8 @@ diva_backup <- function(file) {
 #' @export
 diva_refresh <- function() {
   refreshed <- all(
-    diva_backup("kth_diva_authors.rds"),
-    diva_backup("kth_diva_pubs.rds")
+    diva_backup("kth_kda.rds"),
+    diva_backup("kth_kdp.rds")
   )
   if (!refreshed)
     warning("Not all files refreshed...")
@@ -327,7 +327,7 @@ diva_upload_s3 <- function(path, dest = "kthb/kthcorpus", options = "") {
 
   # options can be "--newer-than 7d10h"
   cmd <- sprintf("mc cp %s %s %s", options, path, dest)
-  res <- system(cmd, timeout = 15)
+  res <- system(cmd, timeout = 60 * 3)
 
   if (res == 124)
     stop("Time out when uploading file ", path)
@@ -666,4 +666,30 @@ diva_orgs <- function() {
 #' @export
 diva_organisations <- function() {
   diva_orgs()
+}
+
+#' Refresh data trigger function
+#'
+#' This function can be used to automatically download data from DiVA
+#' from scratch, render the report and upload it to an S3 bucket
+#' @export
+diva_refresh_trigger <- function() {
+
+  # download locally and sync to S3
+  aut <- diva_download("aut", sync = TRUE)
+  pub <- diva_download("pub", sync = TRUE)
+
+  # backup local files
+  diva_refresh()
+
+  # refresh the local cache (from S3)
+  kth_diva_authors(refresh_cache = TRUE)
+  kth_diva_pubs(refresh_cache = TRUE)
+
+  # render the report and upload to S3
+  checks_render_report("/tmp/checks-report.html")
+  checks_upload_report("/tmp/checks-report.html")
+
+  # delete the report locally
+  unlink("/tmp/checks-report.html")
 }

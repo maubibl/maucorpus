@@ -59,7 +59,7 @@ hrp_current <-
   summarize(
     across(c("emp_lastmod", "emp_end", "emp_beg"), max)
   ) %>%
-  arrange(desc(emp_lastmod, emp_end, emp_beg)) %>%
+  arrange(desc(emp_lastmod), desc(emp_end), desc(emp_beg)) %>%
   inner_join(hrp) %>%
   unique()
 

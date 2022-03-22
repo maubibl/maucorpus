@@ -28,5 +28,8 @@ kth_employment_title <-
 
 usethis::use_data(kth_employment_title, overwrite = TRUE)
 
+kth_employment_title %>%
+  View()
+
 # system("mc cp data-raw/emp_title_lookup.csv kthb/kthcorpus/kth_employment_title.csv")
 

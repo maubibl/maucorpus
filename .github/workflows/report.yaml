@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/report.yml'
   schedule:
-    - cron: '49 1 * * *' # UTC 49th min after 01th hour every day of month, month, day of week
+    - cron: '15 * * * *' # UTC 49th min after 01th hour every day of month, month, day of week
 
 name: Generate report using latest kthcorpus container
 

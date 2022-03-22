@@ -699,11 +699,13 @@ diva_refresh_trigger <- function() {
     return (invisible(FALSE))
   }
 
-  message("Uploading report")
+  message("Uploading report and RDS files")
   checks_upload_report(report)
+  diva_upload_s3(diva_tmp("kth_kda.rds"))
+  diva_upload_s3(diva_tmp("kth_kdp.rds"))
 
   # delete the report locally
-  unlink(report)
+  #unlink(report)
 
   return(invisible(TRUE))
 }

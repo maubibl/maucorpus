@@ -56,6 +56,19 @@ NULL
 #' @details See \url{https://www.h6.scb.se/anstallningsbenamning/}
 "ss_employment_title"
 
+#' @title Employment Titles from KTH
+#' @description Employment Titles have codes and descriptions in english and swedish
+#' @format A data frame with 61 rows and 5 variables:
+#' \describe{
+#'   \item{\code{emp_code_hr}}{character code for employment title}
+#'   \item{\code{emp_desc}}{character description in uppercase Swedish}
+#'   \item{\code{title_sv}}{character title in mixed case Swedish}
+#'   \item{\code{title_en}}{character title in mixed case English}
+#'   \item{\code{title_comment}}{character comment about this category of employees}
+#'}
+"kth_employment_title"
+
+
 #' @title HR mapping
 #' @description Field mappings used in HR data extract
 #' @format A data frame with 14 rows and 5 variables:

@@ -1,54 +1,54 @@
-"Befattning","Kod","Position"
-"Administrativ chef","255","Head of Administration"
-"Assistent","3680","Assistant"
-"Administratör","280","Administrator"
-"Handläggare","30283","Officer"
-"Kvalificerad handläggare","30314","Senior officer"
-"Avdelningschef","4340","Head of Department"
-"Ekonomiansvarig","18167","Financial Manager"
-"Ekonomichef","18220","Financial Director"
-"Enhetschef","18701","Head of Division"
-"Universitetsdirektör","88630","University Director"
-"Gruppchef","29310","Team Manager"
-"HR-ansvarig","31029","HR Manager"
-"Lokalvårdare","47720","Cleaner"
-"Personalchef","60470","Director of Personnel"
-"Specialist","75070","Specialist"
-"Studievägledare","79450","Study counsellor"
-"Utbildningsadm.ansvarig","89204","Educational Administration Manager"
-"Amanuens","920","Teaching assistant"
-"Doktorand","16848","Doctoral student"
-"FOFU-ingenjör","22600","FOFU-engineer"
-"Forskningsingenjör","23400","Research Engineer"
-"Forskare","23150","Researcher"
-"Föreståndare","26040","Director"
-"Gästforskare","29940","Visiting researcher"
-"Gästlektor","29945","Visiting associate professor"
-"Gästlärare","29950","Visiting teacher"
-"Postdoktor","62390","Postdoc"
-"Professor","63820","Professor"
-"Professor adjungerad","63825","Adjunct professor"
-"Professor gäst","63865","Visiting professor"
-"Professor kallad","63866","Called to professor"
-"Prorektor","64312","Deputy President"
-"Rektor","66710","President"
-"Vicerektor","92020","Vice President"
-"Senior forskare","70933","Senior researcher"
-"Senior lärare","70928","Senior teacher"
-"Befattning","Kod","Position"
-"Universitetsadjunkt","88620","Lecturer"
-"Universitetslektor","88700","Associate professor"
-"Universitetslektor biträdande","88713","Assistant professor"
-"Ingenjör","33290","Engineer"
-"Systemadministratör","80411","Systems administrator"
-"Systemansvarig","80412","Systems manager"
-"IT-chef","34906","IT director"
-"IT-tekniker","34915","IT Technician"
-"Systemspecialist","80562","Systems specialist"
-"Tekniker","82270","Technician"
-"Vaktmästare","90640","Janitor"
-"Bibliotekarie","7420","Librarian"
-"Biblioteksassistent","7480","Assistant librarian"
-"Bokbindare","8640","Bookbinder"
-"Informatiker","33220","Information specialist"
-"Överbibliotekarie","95470","University Librarian"
+emp_code,emp_title_sv,emp_title_en
+255,Administrativ chef,Head of Administration
+3680,Assistent,Assistant
+280,Administratör,Administrator
+30283,Handläggare,Officer
+30314,Kvalificerad handläggare,Senior officer
+4340,Avdelningschef,Head of Department
+18167,Ekonomiansvarig,Financial Manager
+18220,Ekonomichef,Financial Director
+18701,Enhetschef,Head of Division
+88630,Universitetsdirektör,University Director
+29310,Gruppchef,Team Manager
+31029,HR-ansvarig,HR Manager
+47720,Lokalvårdare,Cleaner
+60470,Personalchef,Director of Personnel
+75070,Specialist,Specialist
+79450,Studievägledare,Study counsellor
+89204,Utbildningsadm.ansvarig,Educational Administration Manager
+920,Amanuens,Teaching assistant
+16848,Doktorand,Doctoral student
+22600,FOFU-ingenjör,FOFU-engineer
+23400,Forskningsingenjör,Research Engineer
+23150,Forskare,Researcher
+26040,Föreståndare,Director
+29940,Gästforskare,Visiting researcher
+29945,Gästlektor,Visiting associate professor
+29950,Gästlärare,Visiting teacher
+62390,Postdoktor,Postdoc
+63820,Professor,Professor
+63825,Professor adjungerad,Adjunct professor
+63865,Professor gäst,Visiting professor
+63866,Professor kallad,Called to professor
+64312,Prorektor,Deputy President
+66710,Rektor,President
+92020,Vicerektor,Vice President
+70933,Senior forskare,Senior researcher
+70928,Senior lärare,Senior teacher
+Kod,Befattning,Position
+88620,Universitetsadjunkt,Lecturer
+88700,Universitetslektor,Associate professor
+88713,Universitetslektor biträdande,Assistant professor
+33290,Ingenjör,Engineer
+80411,Systemadministratör,Systems administrator
+80412,Systemansvarig,Systems manager
+34906,IT-chef,IT director
+34915,IT-tekniker,IT Technician
+80562,Systemspecialist,Systems specialist
+82270,Tekniker,Technician
+90640,Vaktmästare,Janitor
+7420,Bibliotekarie,Librarian
+7480,Biblioteksassistent,Assistant librarian
+8640,Bokbindare,Bookbinder
+33220,Informatiker,Information specialist
+95470,Överbibliotekarie,University Librarian

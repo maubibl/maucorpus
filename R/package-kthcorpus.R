@@ -68,6 +68,17 @@ NULL
 #'}
 "kth_employment_title"
 
+#' @title Employment Titles from KTH according to BESTA
+#' @description Employment Titles have BESTA codes and descriptions in english and swedish
+#' @format A data frame with 53 rows and 3 variables:
+#' \describe{
+#'   \item{\code{emp_code}}{character code for employment title}
+#'   \item{\code{emp_title_sv}}{character title in mixed case Swedish}
+#'   \item{\code{emp_title_en}}{character title in mixed case English}
+#'}
+"kth_besta"
+
+
 
 #' @title HR mapping
 #' @description Field mappings used in HR data extract

@@ -43,11 +43,6 @@ check_mapping <-
 
 use_data(check_mapping, overwrite = TRUE)
 
-
-
-
-
-
 library(dplyr)
 
 hr <- hr_plus()
@@ -73,7 +68,8 @@ hr %>% filter(kthid == "u17tp77x")
 
 
 # several have end date set 6 years into the future
-shr %>% filter(eend > Sys.Date(), eend < lubridate::ymd("2999-12-31")) %>%
+shr %>%
+  filter(eend > Sys.Date(), eend < lubridate::ymd("2999-12-31")) %>%
   arrange(desc(eend))
 
 # would these be new phd students?
@@ -82,19 +78,21 @@ shr %>% filter(
   ttl < lubridate::duration(100, unit = "years")
 )
 
+# summary shows that last modified date max is 2101-02-01, en date max is 2999-12-31
 summary(shr)
 
-
+# is the 2101-02-01 elm max an outlier?
+shr %>% filter(elm == "2101-02-01")
+hr %>% filter(kthid == "u1pk4au0")
 
 
 # modification date is same as beginning date?
 # this person seems to have ended employment
 shr %>% filter(elm == lubridate::ymd("1974-07-31"))
 
-# 23 persons have last modification date set in the future?
+# 18 persons have last modification date set in the future?
 # 2 have ended employment already?
 shr %>% filter(elm > Sys.Date()) %>% arrange(ttl)
-
 
 
 shr %>%
@@ -105,15 +103,13 @@ shr %>%
   filter(is_active) %>%
   summary()
 
-
-warnings()
-hr %>%
 # no gender given? are all genders M or K?
 hr %>% filter(!gender %in% c("M", "K")) %>% View()
+
 hr %>% filter(yob == 1900) %>% View()
 
 # yob has large span, for example 1900 -> check ages
-# emp_lastmod has 200 NAs -> why are these missing?
+# emp_lastmod has approx 200 NAs -> why are these missing?
 summary(hr)
 
 check_research_area <- function(data) {
@@ -134,6 +130,7 @@ check_research_area <- function(data) {
 
   print(topics)
 
+  topics
 }
 
 
@@ -141,8 +138,26 @@ check_research_area <- function(data) {
 # these codes do not seem to exist in UKÄ?
 check_research_area(hr)
 
+# besides 999, what records have scb_topic codes not recognized by SCB?
+non_scb_topic <- check_research_area(hr) %>% filter(scb_topic != "999") %>% pull(scb_topic)
+
+hr %>% filter(scb_topic %in% "999") %>% count(unit_name) %>% arrange(desc(n))
+
+hr %>% filter(scb_topic %in% non_scb_topic)
+
+
+# frequency table for number of researchers by SCB research topic
+hr_plus() %>%
+  left_join(ra) %>%
+  distinct(kthid, research_area, unit_abbr, scb_topic) %>%
+  count(research_area, scb_topic) %>%
+  arrange(desc(n)) %>%
+  View()
+
+# AW: ständigt kolla; vilka har inte kopplat sitt ORCID till kthid?
 
 hr %>% left_join(research_areas, by = c(scb_topic = "id"))
+
 hr %>% filter(grepl("athanasios", tolower(firstname)))
 
 # list of staff which has a employment code for a title which is marked
@@ -174,10 +189,13 @@ hr %>%
   filter(age >= 115) %>%
   mutate(note = "Oldtimer, age > 115 years")
 
-# missing employee code
+# missing numerical employee code (AFFAK, AFFIL, INDOK)
+# TODO: should INDOK be classified as researchers?
+
 hr %>%
   filter(is.na(as.integer(emp_code))) %>%
-  select(kthid, emp_code, firstname, lastname)
+  select(kthid, emp_code, firstname, lastname) %>%
+  count(emp_code)
 
 # records of researchers who have ended employment (?)
 hr %>%
@@ -286,6 +304,117 @@ hr_plus_extra <- function() {
   #   unique()
 
 }
+
+# kthids that have flag for Educator/Researcher
+hr_plus_extra() %>% filter(is_uf_ta == TRUE) %>% count(emp_desc)
+
+# "researchers" as defined by combinations of emp_descr
+# AW has a website from NO for a lookup of kthid/orcid
+
+is_researcher <- function(x)
+  grepl(paste0(collapse = "|", c(
+      ".*PROFESSOR.*",
+      ".*LEKTOR.*",
+      "FORSKARE",
+      ".*AFFIL.*",
+      ".*DOKTORAND.*",
+      "POSTDOKTOR",
+      ".*FOFU.*",
+      ".*FORSKNINGS.*",
+      ".*ADJUNKT.*",
+      ".*STIPENDIAT.*"
+    )), x)
+
+# HR-filter extends SCB's which does not include FORSKNINGSINGENJÖR (872 kthids)
+# and also adds STIPENDIAT, DOKTORAND, FOFU-INGENJÖR, INDUSTRIDOKTORAND,
+# AFFILIERAD FAKULTET, AFFILIERAD PROFESSOR
+
+hr_plus_extra() %>%
+  mutate(is_researcher = is_researcher(emp_desc)) %>%
+  filter(is_researcher == TRUE) %>%
+  distinct(kthid, is_uf_ta, emp_desc, emp_code) %>%
+  count(is_uf_ta, emp_code, emp_desc) %>%
+  arrange(is_uf_ta, desc(n))
+
+
+orcid_kthid <-
+  read_delim(
+    "data-raw/kthid_orcid_till_cecilia.txt",
+    delim = ";", trim_ws = TRUE, show_col_types = FALSE) %>%
+  select(kthid = KTHid, orcid = `Orcid`) %>%
+  distinct(kthid, orcid)
+
+
+# 1. whom to send email to, ie they don't exist in orcid_kthid
+# 2. make a check_missing_orcid fcn
+# 3. esquisse-app for those who have or have not orcids, and use categories for emp_desc (is_uf_ta flag)
+# 4. study ratio across organizational units (connected orcid or not)
+
+hr_plus_extra() %>%
+  mutate(is_researcher = is_researcher(emp_desc)) %>%
+  filter(is_researcher == TRUE) %>%
+  distinct(kthid) %>%
+  left_join(orcid_kthid) %>%
+  summarize(
+    is_not = sum(is.na(orcid)),
+    n = length(unique(kthid)),
+    is_orcid = sum(!is.na(orcid))
+    ) %>%
+  mutate(ratio = is_orcid / n)
+
+hr_plus_extra() %>%
+#  mutate(is_researcher = is_researcher(emp_desc)) %>%
+#  filter(is_researcher == TRUE) %>%
+  distinct(kthid) %>%
+  left_join(orcid_kthid) %>%
+  filter(is.na(orcid))
+
+# vilka kthid i kopplingstabellen finns inte i hrp
+# varför inte? kan det bero på begränsning > 2016 och framåt?
+
+orcid_kthid %>%
+  anti_join(
+    hr_plus_extra() %>%
+      mutate(is_researcher = is_researcher(emp_desc)) %>%
+      filter(is_researcher == TRUE) %>%
+      distinct(kthid)
+  )
+
+# difference between AW-HRP and KTHB-HRP
+read_fwf("data-raw/HR+_forskare_2021-02-15.txt",
+         skip = 2, skip_empty_rows = TRUE,
+         locale = locale(encoding = "ISO-8859-1"),
+         show_col_types = FALSE
+) %>%
+  distinct(X23)
+
+
+
+
+# by widening the definition, we include 7418 more kthids
+hr_plus_extra() %>%
+  mutate(is_researcher = is_researcher(emp_desc)) %>%
+  filter(is_researcher == TRUE) %>%
+  count(is_uf_ta, is_researcher) %>%
+  arrange(desc(n)) %>%
+  filter(is.na(is_uf_ta) | !is_uf_ta) %>%
+  mutate(total_cumulative = cumsum(n))
+
+# these 947 kthids are flagged as Technicians rather than Research personnel
+# according to their assigned emp_code as classified by SCB
+# TODO: should their emp_codes be changed in HR?
+hr_plus_extra() %>%
+  mutate(is_researcher = is_researcher(emp_desc)) %>%
+  filter(is_researcher & !is_uf_ta) %>%
+  select(kthid, emp_code, emp_desc, scb_topic, is_uf_ta) %>%
+  left_join(ss_employment_title %>% select(emp_code = id, scb_desc = desc_swe, scb_cat = cat_desc))
+
+
+# Q1: vilka av dessa "forskarkategorier" har publikationer? Hur många? Fångar den bredare eller den smalare upp bättre?
+# Q2: vilka kategorier är "publicerande forskare"? Kan bakvägen ge ett lämpligt filter på "publicerande forskare"?
+# Q3: är det en ambition eller målsättning för HR att använda koder som matchar mot "UF" i SCB över huvud taget?
+
+ss_employment_title
 
 # current employees
 current <-

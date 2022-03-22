@@ -3,7 +3,6 @@ library(glue)
 
 mkthid <-
   check_missing_kthid() %>%
-  filter(name == "Yu, Ze")
   arrange(desc(n_pid)) %>%
   group_by(name) %>%
   summarise(pidz = paste0(collapse=" ", PID)) %>%
@@ -44,8 +43,11 @@ ghissues <-
 # see potential rate limit issue: https://github.com/cli/cli/issues/4801
 # advise is to refactor to make 1h pause after 150 issues
 
+rate_limit <- ceiling((3600 + 1) / 150)
+
 script <- glue("#!/bin/bash
-{paste0(collapse='\nsleep 3\n', ghissues$issue)}
+{paste0(collapse='\nsleep 25 \n', ghissues$issue)}
 ")
 
 write_lines(script, file = "~/repos/curation/create_issues.sh")
+

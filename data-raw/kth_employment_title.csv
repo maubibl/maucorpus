@@ -1,9 +1,9 @@
 emp_code_hr,emp_desc,title_sv,title_en,title_comment
 03540,ARVODIST,Arvodist,Temporary employee,"Troligen irrelevant för oss, arvodister är timanställda som till exempel tentavakter, gästlärare."
-99999,STIPENDIAT,Stipendiat,Scholarship,
+99999,STIPENDIAT,Stipendiat,Scholarship holder,
 16848,DOKTORAND,Doktorand,Doctoral student,
 23150,FORSKARE,Forskare,Researcher,
-00920,AMANUENS,Amanuens,Undergraduate assistant,
+00920,AMANUENS,Amanuens,Teaching assistant,
 23400,FORSKNINGSINGENJÖR,Forskningsingenjör,Research engineer,
 62390,POSTDOKTOR,Postdoktor,Postdoc,
 30283,HANDLÄGGARE,Handläggare,Administrator,Irrelevant för oss att skilja på handläggare och andra med administrativa uppgifter
@@ -16,7 +16,7 @@ INDOK,INDUSTRIDOKTORAND,Industridoktorand,"Doctoral student, industry ","Industr
 82270,TEKNIKER,Tekniker,Technician,
 30314,"HANDLÄGGARE, KVALIFICERAD","Handläggare, kvalificerad",Administrator,Irrelevant för oss att skilja på handläggare och andra med administrativa uppgifter
 63825,"PROFESSOR, ADJUNGERAD","Professor, adjungerad","Professor, adjunct",
-29310,GRUPPCHEF,Gruppchef,Group leader,
+29310,GRUPPCHEF,Gruppchef,Group manager,
 AFFAK,AFFILIERAD FAKULTET,Affilierad Fakultet,Affiliated faculty,
 03680,ASSISTENT,Assistent,Assistant,
 39920,KONSULT,Konsult,Consultant,
@@ -37,7 +37,7 @@ AFFIL,AFFILIERAD PROFESSOR,Affilierad professor,"Professor, affiliated",
 26040,FÖRESTÅNDARE,Föreståndare,Director,
 29950,GÄSTLÄRARE,Gästlärare,Guest Lecturer,Finns inga aktiva
 70928,SENIOR LÄRARE,Senior lärare,Senior lecturer,Finns inga aktiva
-63866,"PROFESSOR, KALLAD","Professor, kallad",Professor,Dessa står som Professor på webben
+63866,"PROFESSOR, KALLAD","Professor, kallad","Professor, called",Dessa står som Professor på webben
 00255,ADMINISTRATIV CHEF,Administrativ chef,Head of Administration,
 04340,AVDELNINGSCHEF,Avdelningschef,Unit manager,
 18167,EKONOMIANSVARIG,Ekonomiansvarig,Finance manager,
@@ -46,17 +46,17 @@ AFFIL,AFFILIERAD PROFESSOR,Affilierad professor,"Professor, affiliated",
 92020,VICEREKTOR,Vicerektor,Vice President,
 79185,STUDENTMEDARBETARE,Studentmedarbetare,Student staff,Finns inga aktiva
 00296,SENIOR ADMINISTRATÖR,Senior administratör,Administrator,Finns inga aktiva
-07480,BIBLIOTEKSASSISTENT,Biblioteksassistent,Library assistant,Finns inga aktiva
-89204,UTBILDNINGSADM ANSVARIG,Utbildningssamordnare/enhetsledare,Education Administration Manager,
+07480,BIBLIOTEKSASSISTENT,Biblioteksassistent,Assistant librarian,Finns inga aktiva
+89204,UTBILDNINGSADM ANSVARIG,Utbildningssamordnare/enhetsledare,Education administration manager,
 00296,"ADMINISTRATÖR, SENIOR","Administratör, senior",Administrator,Finns inga aktiva
-33220,INFORMATIKER,Informatiker,Computer Scientist,
+33220,INFORMATIKER,Informatiker,Information specialist,
 95470,ÖVERBIBLIOTEKARIE,Överbibliotekarie,University Librarian,
 28465,FÖRVALTNINGSCHEF,Förvaltningschef,Head of Administration,Finns inga aktiva
 88630,UNIVERSITETSDIREKTÖR,Universitetsdirektör,University Director,
 29940,GÄSTFORSKARE,Gästforskare,Guest researcher,Finns inga aktiva
 15930,DIRECTOR MUSICES,Director Musices,Director Musices,Finns inga aktiva
 18220,EKONOMICHEF,Ekonomichef,Chief Financial Officer,
-34906,IT-CHEF,IT-chef,IT Manager,
+34906,IT-CHEF,IT-chef,IT director,
 60470,PERSONALCHEF,Personalchef,Human resources manager,
 64312,PROREKTOR,Prorektor,Deputy President,
 66710,REKTOR,Rektor,President,

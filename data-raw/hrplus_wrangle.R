@@ -337,6 +337,50 @@ hr_plus_extra() %>%
   arrange(is_uf_ta, desc(n))
 
 
+# Extraction for AW sendout
+# TODO: add route for all researchers lacking orcid in UG
+
+rs <-
+  hr_plus_extra() %>%
+  mutate(is_researcher = is_researcher(emp_desc)) %>%
+  filter(is_researcher == TRUE)
+
+has_orcid_in_ug <-
+  readr::read_csv(aws.s3::get_object("ug_kthid_orcid.csv", "kthcorpus"))
+
+has_orcids <-
+  rs %>% distinct(kthid) %>% pull(kthid) %>% intersect(
+    has_orcid_in_ug %>% select(kthid = ugKthid) %>% pull(kthid) %>% unique()
+  )
+
+has_no_orcids <-
+  setdiff(rs %>% distinct(kthid) %>% pull(kthid), has_orcids)
+
+rs %>% filter(kthid %in% has_no_orcids)
+
+# current researcher employees
+rsc <-
+  rs %>%
+  filter(emp_beg <= lubridate::today(), emp_end > lubridate::today()) %>%
+  group_by(kthid) %>%
+  summarize(
+    across(c("emp_lastmod", "emp_end", "emp_beg"), max)
+  ) %>%
+  arrange(desc(emp_lastmod), desc(emp_end), desc(emp_beg)) %>%
+  inner_join(rs) %>%
+  unique()
+
+researchers_without_orcid <- rsc %>%
+  #distinct(kthid, lastname, firstname) %>%
+  anti_join(has_orcid_in_ug %>% select(kthid = ugKthid)) #%>%
+#  distinct()
+#  distinct(kthid, lastname, firstname)
+
+write_csv(researchers_without_orcid, "/tmp/researchers_without_orcid.csv", na = "")
+system("mc cp /tmp/researchers_without_orcid.csv kthb/kthcorpus")
+# which of these do not have orcid in UG?
+
+
 orcid_kthid <-
   read_delim(
     "data-raw/kthid_orcid_till_cecilia.txt",

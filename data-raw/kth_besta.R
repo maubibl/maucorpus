@@ -1,10 +1,20 @@
-kth_besta <- readr::read_csv("data-raw/kth_besta.csv")
+# check to see if data-raw/kth_besta.csv diffs from embedded data
+ct <- readr::cols(.default = col_character())
+
+besta_diff <-
+  daff::diff_data(
+    kth_besta,
+    readr::read_csv("data-raw/kth_besta.csv", col_types = ct)
+  )
+
+daff::render_diff(besta_diff)
+
+
+# if it diffs, then rebundle data from CSV
+kth_besta <-
+  readr::read_csv("data-raw/kth_besta.csv", col_types = ct)
 
 #readr::write_csv(kth_besta, "data-raw/kth_besta.csv", na = "")
-
-#kth_besta <-
-#  kth_besta %>%
-#  select(emp_code = Kod, emp_title_sv = Befattning, emp_title_en = Position)
 
 usethis::use_data(kth_besta, overwrite = TRUE)
 

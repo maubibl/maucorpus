@@ -78,7 +78,21 @@ NULL
 #'}
 "kth_besta"
 
-
+#' @title DiVA unit identifiers for KTH with Swedish and English translations
+#' @description In DiVA, organizational units have identifiers. This mapping table
+#' maps these units in DiVA to abbreviated unit codes used within KTH and provides
+#' translations in English and Swedish, as well as organization level with higher
+#' numbers representing a deeper nesting within the organizational structure (0 = root)
+#' @format A data frame with 160 rows and 6 variables:
+#' \describe{
+#'   \item{\code{orgid}}{integer representing DiVA organizational unit id}
+#'   \item{\code{unit_abbr}}{character KTH organizational abbreviation code}
+#'   \item{\code{level}}{integer representing node level where 0 is the root node}
+#'   \item{\code{unit_en}}{character title in mixed case English}
+#'   \item{\code{unit_sv}}{character title in mixed case Swedish}
+#'   \item{\code{is_closed}}{logical denoting if mapping is no longer in use}
+#'}
+"unit_names"
 
 #' @title HR mapping
 #' @description Field mappings used in HR data extract

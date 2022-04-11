@@ -338,10 +338,16 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
 
   Year <- LastUpdated <- clean_notes <- n_check <- NULL
 
+  re <- paste0(
+    "Not duplicate with|Non-duplicate with|Not dublicate|No duplicate",
+    "|Not a duplicate with|No duplikate|Nondupe with|Non-duplicate in",
+    "|No dublicate with"
+  )
+
   title_multiplettes <-
     pubs %>%
     mutate(clean_notes = map_chr(Notes, tidy_html)) %>%
-    filter(!grepl("Not duplicate with|Non-duplicate with|Not dublicate|No duplicate|Not a duplicate with|No duplikate", clean_notes)) %>%
+    filter(!grepl(re, clean_notes)) %>%
     #  filter(grepl("^Artikel", PublicationType)) %>%
     group_by(Title, PublicationType) %>%
     count(Title) %>%
@@ -352,7 +358,8 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     title_multiplettes %>%
     left_join(
       pubs %>%
-        #filter(grepl("^Artikel", PublicationType)) %>%
+        mutate(clean_notes = map_chr(Notes, tidy_html)) %>%
+        filter(!grepl(re, clean_notes)) %>%
         select(Title, PID, PublicationType, DOI)
       , by = c("Title", "PublicationType")) %>%
     group_by(Title, n, PublicationType) %>%

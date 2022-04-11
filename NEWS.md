@@ -1,5 +1,9 @@
 # kthcorpus
 
+## kthcorpus 0.2.1
+
+* Changed check_multiplettes_title to catch more variations of "not duplicate with"
+
 ## kthcorpus 0.2.0
 
 * Added function to scrape DiVA portal for units/organisations (en/sv)

@@ -45,22 +45,19 @@ Press “Ctrl-Shift-L” to load function, which can then be run, for
 example:
 
 ``` r
-check_invalid_DOI()
-# A tibble: 1 x 2
-#  DOI                         PID
-#  <chr>                     <dbl>
-#1 0.1109/ICC.2019.8761470 1498747
+mia <- 
+  check_missing_kthid() 
+
+# display results as interactive HTML table
+mia %>% 
+  DT::datatable(escape = FALSE)
 ```
 
 The cache with downloaded data for publications and author data can be
-cleared:
+refreshed:
 
 ``` r
-unlink(
-  file.path(rappdirs::app_dir("kthcorpus")$config(), 
-    c("kth_diva_pubs.rds", "kth_diva_authors.rds")
-  )
-)
+diva_refresh()
 ```
 
 ## Adding checks

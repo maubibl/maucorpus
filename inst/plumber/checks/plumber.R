@@ -163,13 +163,13 @@ function() {
 #   #checks$missing_journal_ids
 # }
 
-#* Check for article title multiplettes
-#* @get /v1/check/multiplettes/articletitle
+#* Check for publication title multiplettes
+#* @get /v1/check/multiplettes/title
 #* @response 400 Invalid input.
 #* @tag Check
 #* @serializer csv
 function() {
-  checks$article_title_multiplettes
+  checks$title_multiplettes
 }
 
 #* Check for invalid submission status
@@ -215,24 +215,6 @@ function() {
 #* @serializer csv
 function() {
   checks$invalid_ISSN
-}
-
-#* Check for publications with invalid orgid identifiers
-#* @get /v1/check/invalid/orgid
-#* @response 400 Invalid input.
-#* @tag Check
-#* @serializer csv
-function() {
-  checks$invalid_orgid
-}
-
-#* Check for publications which may not have been published
-#* @get /v1/check/uncertain/published
-#* @response 400 Invalid input.
-#* @tag Check
-#* @serializer csv
-function() {
-  checks$uncertain_published
 }
 
 f <- rmarkdown::render(

@@ -339,9 +339,9 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
   Year <- LastUpdated <- clean_notes <- n_check <- NULL
 
   re <- paste0(
-    "Not duplicate with|Non-duplicate with|Not dublicate|No duplicate",
+    "Not duplicate with|not duplicate with|Non-duplicate with|Not dublicate|No duplicate",
     "|Not a duplicate with|No duplikate|Nondupe with|Non-duplicate in",
-    "|No dublicate with"
+    "|No dublicate with|No dupe"
   )
 
   title_multiplettes <-

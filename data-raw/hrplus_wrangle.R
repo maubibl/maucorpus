@@ -32,7 +32,7 @@ emp_title_swe|FUNKTION_SV|Forskarens egen angivna funktionsbeskrivning|p_befreg|
 emp_title_eng|FUNKTION_ENG|Forskarens egen angivna funktionsbeskrivning|p_befreg|p_k55007
 unit_school|SKOLA|Vilken skola som enheten hänförs till, fält tillagt 2022-01-31|p_befreg|p_k55014
 unit_status|STATUS|Flagga för om enheten är Active, Inactive eller Deleted, fält tillagt 2022-01-31|allm010|allm309
-email|KTH_EMAIL|Epost, fält tillagt 2022-04-25||
+email|KTH_EMAIL|Epost, fält tillagt 2022-04-25|allm016|allm164
 "
 )
 
@@ -290,6 +290,11 @@ hr_plus_extra <- function() {
       "scb_topic_eng" = "eng",
       "scb_topic_level" = "level"
     )
+
+  # TODO: could add more procesing here
+  # - casing fixes
+  # - extracting username/login
+  # - ...
 
   # hr %>%
   #   filter(emp_beg <= lubridate::today(), emp_end > lubridate::today()) %>%

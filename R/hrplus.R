@@ -79,14 +79,34 @@ hr_read_csv <- function(file) {
   # parse and remap colnames; use lowersnakecase field names
   # to fix R pkg warn: esc <- function(x) cat(stringi::stri_escape_unicode(x))
 
+  mapping <-
+    kthcorpus::hr_mapping # %>% filter(!(export %in% c("FÖRNAMN", "ORG_NR")))
+
   hr_map <- function(x) {
     tibble(export = x) %>%
-      inner_join(kthcorpus::hr_mapping, by = "export") %>%
+      inner_join(mapping, by = "export") %>%
       pull("colname")
   }
 
-  hr <- read_csv(file = file, col_types = cs, quote = "\"") %>%
-    rename_with(.fn = hr_map, .cols = colnames(.))
+  # fix issues with added fields not present in mapping, ie
+  # "Names must be unique. Names are duplicated.
+  #  In names[cols] <- .fn(names[cols], ...) :
+  #  number of items to replace is not a multiple of replacement length"
+
+  hr <- read_csv(file = file, col_types = cs, quote = "\"")
+
+  cn <- colnames(hr)
+
+  if (length(cn) > nrow(mapping)) {
+    mismatch <- setdiff(colnames(hr), mapping$export)
+    warning("New fields have been added, not present in hr_mapping: ",
+            paste0(collapse = ", ", mismatch))
+    hr <- hr %>% select(-any_of(mismatch))
+  }
+
+  hr <-
+    hr %>%
+    rename_with(.fn = hr_map, .cols = colnames(hr))
 
   if (nrow(problems(hr)) > 0) {
     #warning("Inconsistent data format in csv file: ", file)

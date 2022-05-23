@@ -5,14 +5,18 @@
 \title{Checks from swepub processing of KTH publication records
 This function calls an API at SwePub for KTH data in a specific time period}
 \usage{
-swepub_checks(org = "kth", year_beg = 1900L, year_end = 2022)
+swepub_checks(
+  config = diva_config(),
+  year_beg = 1900L,
+  year_end = lubridate::year(Sys.time())
+)
 }
 \arguments{
-\item{org}{the organization, default: "kth"}
+\item{config}{the configuration to use, by default diva_config (w org "kth")}
 
 \item{year_beg}{the beginning year, default 1900}
 
-\item{year_end}{the ending year, default 2020}
+\item{year_end}{the ending year, default is the current year}
 }
 \value{
 tibble with results

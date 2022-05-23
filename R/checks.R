@@ -98,9 +98,11 @@ linkify <- function(href, text = shorten(href), title = href, target =
       )
   }
 
+  portal <- diva_config()$portal
+
   p_PID <- function(x) {
     stringr::str_c(
-      "https://kth.diva-portal.org/smash/record.jsf?dswid=-310&pid=diva2%3A",
+      paste0(portal, "/smash/record.jsf?dswid=-310&pid=diva2%3A"),
       x
     )
   }
@@ -127,7 +129,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
 
   search_title <- function(term)
     stringr::str_c(
-      "https://kth.diva-portal.org/smash/resultList.jsf",
+      paste0(portal, "/smash/resultList.jsf"),
       "?aq2=%5B%5B%5D%5D&af=%5B%5D&searchType=RESEARCH",
       "&sortOrder2=title_sort_asc&language=en",
       "&aq=%5B%5B%7B%22titleAll%22%3A%22",
@@ -139,7 +141,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
 
   search_free <- function(term)
     stringr::str_c(
-      "https://kth.diva-portal.org/smash/resultList.jsf",
+      paste0(portal, "/smash/resultList.jsf"),
       "?language=en&searchType=RESEARCH&",
       "query=&af=%5B%5D&aq=%5B%5B%7B%22freeText%22%3A%22",
       utils::URLencode(term, reserved = TRUE, repeated = FALSE),
@@ -195,7 +197,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
 link_diva <- function(href, text) {
   if (!nzchar(href) || !nzchar(text))
     return (NA_character_)
-  paste0("<a href='https://kth.diva-portal.org/smash/record.jsf?dswid=-310&pid=diva2%3A",
+  paste0(paste0("<a href='", diva_config()$portal, "/smash/record.jsf?dswid=-310&pid=diva2%3A"),
          href, "' target='_blank' rel='noopener noreferrer' title='", text, "'>", shorten(text), "</a>")
 }
 
@@ -272,7 +274,7 @@ shorten <- function(x, w = 25) {
   #ifelse(nchar(x) > 20, paste0(substr(x, 1, 20), "..."), x)
 }
 
-check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
+check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = kth_diva_authors()) {
 
   Year <- n_check <- LastUpdated <- NULL
 
@@ -306,7 +308,7 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
     select(Title, n, PID, Year, LastUpdated)
 
   a <-
-    kth_diva_authors() %>%
+    authors %>%
     filter(PID %in% atm$PID) %>%
     mutate(last_name = gsub("(.+?)(,.*)", "\\1", name)) %>%
     group_by(PID) %>%
@@ -763,6 +765,52 @@ kth_diva_checks <- function() {
     multiplettes_DOI = check_multiplettes_DOI(),
     multiplettes_ISI = check_multiplettes_ISI(),
     swepub = swepub_checks()
+  )
+
+  stats <-
+    checks %>%
+    purrr::map(function(x) ifelse(is.null(x), NA, nrow(x))) %>%
+    tibble::as_tibble() %>%
+    tidyr::pivot_longer(cols = everything())
+
+  checks$stats <- stats
+
+  checks
+
+}
+
+#' Data quality checks for DiVA publication data
+#'
+#' This function makes a number of checks based on publications and author data
+#'
+#' @return a list with slots for data frames with check results
+#' @param authors a data frame with authors (from diva_download)
+#' @param pubs a data frame with pubs (from diva_download)
+#' @export
+diva_checks <- function(authors, pubs) {
+
+  checks <- list(
+    #article_title_multiplettes = check_multiplettes_article_title(pubs),
+    title_multiplettes = check_multiplettes_title(pubs),
+    submission_status_invalid = check_invalid_submission_status(pubs),
+    missing_kthid = check_missing_kthid(authors),
+    #missing_affiliations = check_missing_affiliations(),
+    missing_confpubdate = check_missing_date(pubs),
+    missing_journal_ids = check_missing_journals_identifiers(pubs),
+    odd_book_chapters = check_titles_book_chapters(pubs),
+    invalid_ISI = check_invalid_ISI(pubs),
+    invalid_DOI = check_invalid_DOI(pubs),
+    invalid_ISSN = check_invalid_ISSN(pubs),
+    invalid_kthid = check_invalid_kthid(authors),
+    invalid_orcid = check_invalid_orcid(authors),
+    invalid_scopusid = check_invalid_scopusid(authors),
+    invalid_isbn = check_invalid_ISBN(pubs),
+    invalid_authorname = check_invalid_authorname(authors),
+    uncertain_published = check_published(pubs),
+    multiplettes_scopusid = check_multiplettes_scopusid(pubs),
+    multiplettes_DOI = check_multiplettes_DOI(pubs),
+    multiplettes_ISI = check_multiplettes_ISI(pubs),
+    swepub = swepub_checks(diva_config()$org, diva_config()$ybeg, diva_config()$yend)
   )
 
   stats <-

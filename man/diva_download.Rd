@@ -6,9 +6,9 @@
 \usage{
 diva_download(
   set = c("pub", "aut"),
-  org_id = "177",
-  year_beg = 2013,
-  year_end = 2022,
+  org_id = diva_config()$id,
+  year_beg = diva_config()$ybeg,
+  year_end = diva_config()$yend,
   sync = FALSE
 )
 }

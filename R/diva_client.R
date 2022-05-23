@@ -619,7 +619,7 @@ diva_download_pub <- function(
 diva_download <- function(
   set = c("pub", "aut"), org_id = diva_config()$id,
   year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
-  sync = FALSE, portal = diva_config$portal) {
+  sync = FALSE, portal = diva_config()$portal) {
 
   stopifnot(has_sysreqs(c("curl", "awk")))
   if (sync) stopifnot(has_sysreqs("mc"))

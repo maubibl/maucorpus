@@ -187,28 +187,35 @@ kth_diva_authors <- function(use_cache = TRUE, refresh_cache = FALSE) {
 #' Retrieve DiVA authors for the default org from the DiVA portal
 #'
 #' This function returns parsed author information from DiVA data
+#' @param config settings for DiVA client, by default using diva_config()
 #' @return data frame with results
 #' @export
-diva_authors <- function() {
+diva_authors <- function(config = diva_config()) {
 
   AuthorityPid <- FirstName <- LastName <- LocalId <- ORCID <- OrganisationId <-
     ResearchGroup <- Role <- UncontrolledOrganisation <- orgid <- pos <- NULL
 
-  diva_download("aut") %>%
-    mutate(name = paste0(LastName, ", ", FirstName)) %>%
-    rename(
-      kthid = LocalId,
-      orcid = ORCID,
-      orgid = OrganisationId,
-      autid = AuthorityPid,
-      extorg = UncontrolledOrganisation,
-      pos = Position,
-      group = ResearchGroup,
-      role = Role
-    ) %>%
-    select(-c(FirstName, LastName)) %>% #, DOI, ISI, ISRN, NBN, PMID, ScopusId)) %>%
-    select(PID, name, kthid, orcid, orgid, extorg, pos, everything()) %>%
-    mutate(uses_etal = NA, is_extorg = !is.na(extorg))
+  diva_download(
+    "aut",
+    org_id = config$id,
+    year_beg = config$ybeg,
+    year_end = config$yend,
+    portal = config$portal
+  ) %>%
+  mutate(name = paste0(LastName, ", ", FirstName)) %>%
+  rename(
+    kthid = LocalId,
+    orcid = ORCID,
+    orgid = OrganisationId,
+    autid = AuthorityPid,
+    extorg = UncontrolledOrganisation,
+    pos = Position,
+    group = ResearchGroup,
+    role = Role
+  ) %>%
+  select(-c(FirstName, LastName)) %>% #, DOI, ISI, ISRN, NBN, PMID, ScopusId)) %>%
+  select(PID, name, kthid, orcid, orgid, extorg, pos, everything()) %>%
+  mutate(uses_etal = NA, is_extorg = !is.na(extorg))
 }
 
 #' Retrieve DiVA publications for the default org from the DiVA portal
@@ -216,9 +223,18 @@ diva_authors <- function() {
 #' This function sends a request to te DiVA portal from a CSV data export
 #' covering publications in the default time period.
 #'
+#' @return data frame with results
+#' @param config settings for DiVA client, by default using diva_config()
 #' @export
-diva_pubs <- function() {
-  diva_download("pub")
+diva_pubs <- function(config = diva_config()) {
+
+  diva_download(
+    "pub",
+    org_id = config$id,
+    year_beg = config$ybeg,
+    year_end = config$yend,
+    portal = config$portal
+  )
 }
 
 #' Retrieve DiVA publications for KTH from the KTH DiVA portal
@@ -425,8 +441,9 @@ diva_meta <- function() {
 }
 
 diva_url <- function(
-  orgid = diva_config()$id, year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
-  variant = c("pub", "aut")) {
+  orgid = diva_config()$id,
+  year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
+  variant = c("pub", "aut"), portal = diva_config()$portal) {
 
   pubtypes <- function() {
     c(
@@ -446,7 +463,7 @@ diva_url <- function(
     )) %>% jsonlite::toJSON(auto_unbox = TRUE)
   }
 
-  smash_url <- httr::parse_url(paste0(diva_config()$portal, "/smash/export.jsf"))
+  smash_url <- httr::parse_url(paste0(portal, "/smash/export.jsf"))
 
   # TODO: add any params? "language=en&searchType=RESEARCH&query=&af=[]&onlyFullText=false&sf=all"
   smash_url$query <- switch(
@@ -475,7 +492,7 @@ diva_url <- function(
 
 diva_download_aut <- function(
   orgid = "177",
-  year_beg = "2013", year_end = "2022", sync = TRUE) {
+  year_beg = "2013", year_end = "2022", sync = TRUE, diva_portal = diva_config()$portal) {
 
   fn <- dl <- NULL
 
@@ -484,7 +501,11 @@ diva_download_aut <- function(
 
   be <- function(beg, end) {
     stopifnot(is.integer(beg) && is.integer(end) && (end >= beg))
-    data.frame(orgid = orgid, variant = "aut", year_beg = beg:end, year_end = beg:end)
+    data.frame(
+      orgid = orgid, variant = "aut",
+      year_beg = beg:end, year_end = beg:end,
+      portal = diva_portal
+    )
     #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
 
@@ -527,7 +548,8 @@ diva_download_aut <- function(
 
 diva_download_pub <- function(
   orgid = diva_config()$id,
-  year_beg = diva_config()$ybeg, year_end = diva_config$yend, sync = TRUE) {
+  year_beg = diva_config()$ybeg, year_end = diva_config$yend,
+  sync = TRUE, diva_portal = diva_config()$portal) {
 
   fn <- dl <- NULL
 
@@ -536,7 +558,11 @@ diva_download_pub <- function(
 
   be <- function(beg, end) {
     stopifnot(is.integer(beg) && is.integer(end) && (end >= beg))
-    data.frame(orgid = orgid, variant = "pub", year_beg = beg:end, year_end = beg:end) #year_beg = beg:(end -1), year_end = (beg + 1):end)
+    data.frame(
+      orgid = orgid, variant = "pub",
+      year_beg = beg:end, year_end = beg:end,
+      portal = diva_portal
+    ) #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
 
   all_years <-
@@ -588,11 +614,12 @@ diva_download_pub <- function(
 #' @param year_beg first year in a range of years, default 2013
 #' @param year_end last year in a range of years, default 2022
 #' @param sync logical to indicate if sync should be made to s3 (default: FALSE)
+#' @param portal base url for links to portal, by default diva_config()$portal
 #' @export
 diva_download <- function(
   set = c("pub", "aut"), org_id = diva_config()$id,
   year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
-  sync = FALSE) {
+  sync = FALSE, portal = diva_config$portal) {
 
   stopifnot(has_sysreqs(c("curl", "awk")))
   if (sync) stopifnot(has_sysreqs("mc"))
@@ -603,9 +630,9 @@ diva_download <- function(
   res <- switch(
     match.arg(set),
     "aut" =
-      diva_download_aut(org_id, year_beg, year_end, sync = sync),
+      diva_download_aut(org_id, year_beg, year_end, sync = sync, diva_portal = portal),
     "pub" =
-      diva_download_pub(org_id, year_beg, year_end, sync = sync)
+      diva_download_pub(org_id, year_beg, year_end, sync = sync, diva_portal = portal)
   )
 
   t2 <- Sys.time()
@@ -621,11 +648,10 @@ has_sysreqs <- function(utils)
 #' Configuration to use for DiVA client calls
 #'
 #' By default the configuration uses settings for KTH.
-#'
 #' Settings include the full base url to the DiVA portal for the institution,
 #' the organisation id in DiVA (for example "177"), the organisation abbreviation
 #' (for example "kth") and ybeg (2013), yend (2022) - the range of data to include.
-#'
+#' @return list with slots for settings
 #' @export
 diva_config <- function() {
   list(

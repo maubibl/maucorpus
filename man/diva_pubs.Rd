@@ -4,7 +4,13 @@
 \alias{diva_pubs}
 \title{Retrieve DiVA publications for the default org from the DiVA portal}
 \usage{
-diva_pubs()
+diva_pubs(config = diva_config())
+}
+\arguments{
+\item{config}{settings for DiVA client, by default using diva_config()}
+}
+\value{
+data frame with results
 }
 \description{
 This function sends a request to te DiVA portal from a CSV data export

@@ -9,7 +9,8 @@ diva_download(
   org_id = diva_config()$id,
   year_beg = diva_config()$ybeg,
   year_end = diva_config()$yend,
-  sync = FALSE
+  sync = FALSE,
+  portal = diva_config$portal
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ diva_download(
 \item{year_end}{last year in a range of years, default 2022}
 
 \item{sync}{logical to indicate if sync should be made to s3 (default: FALSE)}
+
+\item{portal}{base url for links to portal, by default diva_config()$portal}
 }
 \description{
 Download publication or author data from DiVA

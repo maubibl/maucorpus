@@ -4,12 +4,14 @@
 \alias{diva_checks}
 \title{Data quality checks for DiVA publication data}
 \usage{
-diva_checks(authors, pubs)
+diva_checks(authors, pubs, config = diva_config())
 }
 \arguments{
 \item{authors}{a data frame with authors (from diva_download)}
 
 \item{pubs}{a data frame with pubs (from diva_download)}
+
+\item{config}{DiVA settings configuration, by default diva_config}
 }
 \value{
 a list with slots for data frames with check results

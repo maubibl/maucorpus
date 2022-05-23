@@ -786,8 +786,9 @@ kth_diva_checks <- function() {
 #' @return a list with slots for data frames with check results
 #' @param authors a data frame with authors (from diva_download)
 #' @param pubs a data frame with pubs (from diva_download)
+#' @param config DiVA settings configuration, by default diva_config
 #' @export
-diva_checks <- function(authors, pubs) {
+diva_checks <- function(authors, pubs, config = diva_config()) {
 
   checks <- list(
     #article_title_multiplettes = check_multiplettes_article_title(pubs),
@@ -810,7 +811,7 @@ diva_checks <- function(authors, pubs) {
     multiplettes_scopusid = check_multiplettes_scopusid(pubs),
     multiplettes_DOI = check_multiplettes_DOI(pubs),
     multiplettes_ISI = check_multiplettes_ISI(pubs),
-    swepub = swepub_checks(diva_config()$org, diva_config()$ybeg, diva_config()$yend)
+    swepub = swepub_checks(config)
   )
 
   stats <-

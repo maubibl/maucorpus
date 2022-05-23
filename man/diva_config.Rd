@@ -6,10 +6,11 @@
 \usage{
 diva_config()
 }
+\value{
+list with slots for settings
+}
 \description{
 By default the configuration uses settings for KTH.
-}
-\details{
 Settings include the full base url to the DiVA portal for the institution,
 the organisation id in DiVA (for example "177"), the organisation abbreviation
 (for example "kth") and ybeg (2013), yend (2022) - the range of data to include.

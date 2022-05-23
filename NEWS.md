@@ -1,5 +1,10 @@
 # kthcorpus
 
+## kthcorpus 0.2.2
+
+* Introduced diva_config() to be able to use non-default org for DiVA client
+* Fix to accommodate changed response format from SwePub
+
 ## kthcorpus 0.2.1
 
 * Changed check_multiplettes_title to catch more variations of "not duplicate with"

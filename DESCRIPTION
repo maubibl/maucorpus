@@ -1,6 +1,6 @@
 Package: kthcorpus
 Title: Swedish Research Publications Data from KTH
-Version: 0.2.1
+Version: 0.2.2
 Authors@R: 
     person(given = "Markus",
            family = "Skyttner",

@@ -4,7 +4,10 @@
 \alias{diva_authors}
 \title{Retrieve DiVA authors for the default org from the DiVA portal}
 \usage{
-diva_authors()
+diva_authors(config = diva_config())
+}
+\arguments{
+\item{config}{settings for DiVA client, by default using diva_config()}
 }
 \value{
 data frame with results

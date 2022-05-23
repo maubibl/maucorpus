@@ -10,7 +10,7 @@ diva_download(
   year_beg = diva_config()$ybeg,
   year_end = diva_config()$yend,
   sync = FALSE,
-  portal = diva_config$portal
+  portal = diva_config()$portal
 )
 }
 \arguments{

@@ -1,5 +1,13 @@
 # kthcorpus
 
+## kthcorpus 0.2.3
+
+* add a check for identifiers that contain unicode (for example invisible blankspace characters) and fix some warnings for link_*-functions for vector inputs
+* only include publications which have "QC" in Notes field
+* add user agent to parallel curl download call
+* no longer read FridaLevel as double due to "deprecated".
+* by default show swepub issues from the current year only
+
 ## kthcorpus 0.2.2
 
 * Introduced diva_config() to be able to use non-default org for DiVA client

@@ -2,8 +2,8 @@
 #' This function calls an API at SwePub for KTH data in a specific time period
 #' @return tibble with results
 #' @param config the configuration to use, by default diva_config (w org "kth")
-#' @param year_beg the beginning year, default 1900
-#' @param year_end the ending year, default is the current year
+#' @param year_beg the beginning year, default is the yend value from diva_config
+#' @param year_end the ending year, default is the yend value from diva_config
 #' @examples
 #' \dontrun{
 #' if(interactive()){
@@ -16,8 +16,8 @@
 #' @importFrom dplyr mutate arrange
 swepub_checks <- function(
   config = diva_config(),
-  year_beg = 1900L,
-  year_end = lubridate::year(Sys.time())
+  year_beg = diva_config()$yend,
+  year_end = diva_config()$yend
   ) {
 
   output_type <- mods_url <- repository_url <- publication_year <-
@@ -25,20 +25,35 @@ swepub_checks <- function(
 
   org <- config$org
 
+
   url <- paste0(
       "https://bibliometri.swepub.kb.se/api/v1/process/",
-      sprintf("%s/export?from=%s&to=%s&", org, year_beg, year_end),
-      "validation_flags=DOI_invalid,ISBN_invalid,ISSN_invalid,ORCID_invalid"
+      sprintf("%s/export?from=%s&to=%s", org, year_beg, year_end),
+      "&enrichment_flags=DOI_enriched,ISSN_enriched,ORCID_enriched",
+      "&validation_flags=DOI_invalid,ISBN_invalid,ISSN_invalid,ORCID_invalid",
+      "&audit_flags=creator_count_check_invalid"
+#      "&audit_flags=UKA_comprehensive_check_invalid,creator_count_check_invalid"
     )
+
 
   tsv <-
     url %>%
     httr::GET(config = httr::add_headers("Accept" = "text/tab-separated-values")) %>%
     content(type = "text", encoding = "UTF-8")
 
+  # json <-
+  #   url %>%
+  #   httr::GET(config = httr::add_headers("content-type" = "application/json")) %>%
+  #   content(type = "text", encoding = "UTF-8")
+  #
+  #
+  # RcppSimdJson::fparse(json)
+
+
   # introduced due to API change - new response format omitting column headers
   # Mon 23 May 2022
   # curl -H "Accept: text/tab-separated-values" https://bibliometri.swepub.kb.se/api/v1/process/kth/export?from=1900&to=2022&validation_flags=DOI_invalid,ISBN_invalid,ISSN_invalid,ORCID_invalid" | head -1
+
 
   colz <-
     readr::read_lines(

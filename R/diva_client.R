@@ -80,7 +80,7 @@ kth_diva_pubs_deprecated <- function(orgid = "177", year_beg = "2013", year_end 
     LastUpdated = col_date(format = ""),
     NumberOfAuthors = col_double(),
     ExternalCooperation = col_logical(),
-    FridaLevel = col_double(),
+#    FridaLevel = col_double(),
     Term = col_logical(),
     Reviewed = col_logical(),
     FreeFulltext = col_logical(),
@@ -274,12 +274,15 @@ kth_diva_pubs <- function(use_cache = TRUE, refresh_cache = FALSE) {
     CreatedDate = col_date(format = ""),
     PublicationDate = col_date(format = ""),
     LastUpdated = col_date(format = ""),
-    NumberOfAuthors = col_double(),
-    FridaLevel = col_double()
+    NumberOfAuthors = col_double()
   )
 
   data <-
     readr::read_csv(diva_tmp("pub.csv"), col_types = ct)
+
+  data <-
+    data %>%
+    filter(grepl("QC*", Notes))
 
   if (use_cache) readr::write_rds(data, tmp)
 
@@ -517,9 +520,12 @@ diva_download_aut <- function(
     mutate(fn = paste0("persons_", year_beg, ".csv")) %>%
     mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
 
+  curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
+  if (nchar(ua) <= 10) curl_ua <- ""
+
   script <- c(
     "#!/bin/bash",
-    "curl -Z --globoff -L \\",
+    paste0("curl -Z --globoff ", curl_ua, " -L \\"),
     all_years$curl,
     "&& (awk '(NR == 1) || (FNR > 1)' persons_*.csv > aut.csv && rm persons_*.csv)"
   )
@@ -573,9 +579,12 @@ diva_download_pub <- function(
     mutate(fn = paste0("pubs_", year_beg, ".csv")) %>%
     mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
 
+  curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
+  if (nchar(ua) <= 10) curl_ua <- ""
+
   script <- c(
     "#!/bin/bash",
-    "curl -Z --globoff -L \\",
+    paste0("curl -Z --globoff ", curl_ua, " -L \\"),
     all_years$curl,
     "&& awk '(NR == 1) || (FNR > 1)' pubs_*.csv > pub.csv && rm pubs_*.csv"
   )
@@ -590,6 +599,8 @@ diva_download_pub <- function(
     diva_upload_s3("/tmp/pub.csv")
 
   # parse and return content
+  # Note: on Tue 5 Jul 2022, it was discovered that col 59 (FridaLevel) is
+  # not a double but contains the value "deprecated"
   ct <- readr::cols(
     .default = col_character(),
     PID = col_double(),
@@ -598,8 +609,7 @@ diva_download_pub <- function(
     CreatedDate = col_date(format = ""),
     PublicationDate = col_date(format = ""),
     LastUpdated = col_date(format = ""),
-    NumberOfAuthors = col_double(),
-    FridaLevel = col_double()
+    NumberOfAuthors = col_double()
   )
 
   #on.exit(unlink("/tmp/pub.csv"))

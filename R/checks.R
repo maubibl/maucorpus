@@ -991,6 +991,8 @@ extract_unicode <- function(x) {
 #' @importFrom dplyr left_join mutate select
 check_identifiers_with_unicode <- function(pub = kth_diva_pubs(), aut = kth_diva_authors()) {
 
+  dataset <- field <- issue <- ua <- NULL
+
   check_field <- function(data, f) {
     which(contains_unicode(getElement(data, f)))
   }

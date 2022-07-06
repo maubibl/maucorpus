@@ -521,7 +521,7 @@ diva_download_aut <- function(
     mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
 
   curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
-  if (nchar(ua) <= 10) curl_ua <- ""
+  if (nchar(curl_ua) <= 10) curl_ua <- ""
 
   script <- c(
     "#!/bin/bash",
@@ -580,7 +580,7 @@ diva_download_pub <- function(
     mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
 
   curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
-  if (nchar(ua) <= 10) curl_ua <- ""
+  if (nchar(curl_ua) <= 10) curl_ua <- ""
 
   script <- c(
     "#!/bin/bash",

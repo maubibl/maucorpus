@@ -282,7 +282,7 @@ kth_diva_pubs <- function(use_cache = TRUE, refresh_cache = FALSE) {
 
   data <-
     data %>%
-    filter(grepl("QC*", Notes))
+    filter(grepl("QC", Notes))
 
   if (use_cache) readr::write_rds(data, tmp)
 

@@ -195,21 +195,21 @@ linkify <- function(href, text = shorten(href), title = href, target =
 }
 
 link_diva <- function(href, text) {
-  if (!nzchar(href) || !nzchar(text))
+  if ((length(href) == 1 || length(text) == 1) && all(!nzchar(href) | !nzchar(text)))
     return (NA_character_)
   paste0(paste0("<a href='", diva_config()$portal, "/smash/record.jsf?dswid=-310&pid=diva2%3A"),
          href, "' target='_blank' rel='noopener noreferrer' title='", text, "'>", shorten(text), "</a>")
 }
 
 link_DOI <- function(href, text) {
-  if (!nzchar(href) || !nzchar(text))
+  if ((length(href) == 1 || length(text) == 1) && all(!nzchar(href) | !nzchar(text)))
     return (NA_character_)
   paste0("<a href='https://doi.org/", href,
      "' target='_blank' rel='noopener noreferrer' title='", text, "'>", shorten(text), "</a>")
 }
 
 link_ScopusID <- function(href, text) {
-  if (!nzchar(href) || !nzchar(text))
+  if ((length(href) == 1 || length(text) == 1) && all(!nzchar(href) | !nzchar(text)))
     return (NA_character_)
   paste0("<a href='https://www.scopus.com/record/display.url?origin=inward&partnerID=40&eid=", href,
          "' target='_blank' rel='noopener noreferrer' title='", text, "'>", shorten(text), "</a>")
@@ -220,7 +220,7 @@ link_titlesearch <- function(title, text) {
 
   if (missing(text)) text <- title
 
-  if (!nzchar(title) || !nzchar(text))
+  if ((length(title) == 1 || length(text) == 1) && all(!nzchar(title) | !nzchar(text)))
     return (NA_character_)
 
   title_search <- function(term)
@@ -972,4 +972,48 @@ checks_upload_report <- function(path, dest = "kthb/kthcorpus") {
   if (res != 0) stop("Error when using minio client to upload file, error code: ", res)
 
   return (res)
+}
+
+#' @importFrom stringi stri_escape_unicode
+contains_unicode <- function(x) {
+  grepl("\\\\u[0-9a-e]{4,}", stringi::stri_escape_unicode(x), perl = TRUE)
+}
+
+#' @importFrom stringi stri_escape_unicode stri_extract_all
+#' @importFrom purrr map_chr
+extract_unicode <- function(x) {
+  purrr::map_chr(stringr::str_extract_all(stringi::stri_escape_unicode(x),
+    "\\\\u[0-9a-e]{4,}"), .f = function(x)
+      ifelse(length(x) == 0 || all(is.na(x)), NA_character_, paste0(x, collapse = " ")))
+}
+
+#' @importFrom tibble tibble
+#' @importFrom dplyr left_join mutate select
+check_identifiers_with_unicode <- function(pub = kth_diva_pubs(), aut = kth_diva_authors()) {
+
+  check_field <- function(data, f) {
+    which(contains_unicode(getElement(data, f)))
+  }
+
+  report_issue <- function(data, f, label) {
+    tibble(rowid = check_field(data, f), field = f, dataset = label) %>%
+      left_join(data %>% mutate(rowid = as.numeric(1:nrow(data))), by = "rowid") %>%
+      mutate(issue = extract_unicode(getElement(., f))) %>%
+      select(PID, dataset, field, unicode_issue=issue)
+  }
+
+
+  report_issues <- function(data, fields, label)
+    purrr::map_df(fields, function(x) report_issue(data, x, label = label))
+
+  issues <-
+    bind_rows(
+      report_issues(aut, label = "authors",
+        fields = c("kthid", "orcid", "DOI", "ScopusId")),
+      report_issues(pub, label = "publications",
+        fields = c("JournalISSN", "JournalEISSN", "SeriesISSN", "JournalEISSN", "ISBN", "ISI", "PMID")
+      )
+    )
+
+  issues %>% mutate(PID = linkify(PID, target = "PID"))
 }

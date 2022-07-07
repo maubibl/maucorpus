@@ -82,12 +82,15 @@ swepub_checks <- function(
       col_names = colz,
       locale = readr::locale(encoding = "UTF-8")
     ) %>%
-    mutate(output_type = linkify(output_type)) %>%
+    mutate(output_type = linkify(gsub("term/swepub", "term/swepub/output", output_type))) %>%
+    mutate(PID = stringr::str_extract(repository_url, "[^-]\\d+$")) %>%
+    mutate(PID = link_diva(PID, PID)) %>%
     mutate(mods_url = linkify(mods_url)) %>%
     mutate(repository_url = linkify(repository_url)) %>%
     rowwise() %>%
     mutate(value = linkify(value, target = flag_type)) %>%
-    arrange(desc(publication_year))
+    arrange(desc(publication_year)) %>%
+    select(PID, mods_url, repository_url, everything())
 
 }
 

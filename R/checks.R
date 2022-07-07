@@ -387,14 +387,15 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     group_by(PID) %>%
     summarise(initials = paste0(collapse = "", substr(last_name, 1, 1)))
 
+  # NOTE: using non ascii characters here -> stringi::stri_escape_unicode can help!
   exceptions <- trimws(readr::read_lines(
     "Background
     Commentary
     Conclusions
     Editorial
-    Editor’s foreword
+    Editor's foreword
     Foreword
-    Förord
+    F\u00f6rord
     Guest editorial
     Introduction
     Message from the chairs

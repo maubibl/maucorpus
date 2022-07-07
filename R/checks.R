@@ -478,7 +478,7 @@ check_missing_journals_identifiers <- function(pubs = kth_diva_pubs()) {
     collect()
 
   step %>%
-    mutate(PID = link_diva(PID, Title)) %>%
+    mutate(PID = link_diva(PID, PID)) %>%
     mutate(Title = linkify(Title, target = "titlesearch")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
     mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%

@@ -387,6 +387,21 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     group_by(PID) %>%
     summarise(initials = paste0(collapse = "", substr(last_name, 1, 1)))
 
+  exceptions <- trimws(readr::read_lines(
+    "Background
+    Commentary
+    Conclusions
+    Editorial
+    Editor’s foreword
+    Foreword
+    Förord
+    Guest editorial
+    Introduction
+    Message from the chairs
+    Preface
+    Preview
+    Untitled")) %>% paste0(collapse  = "|")
+
   tm %>%
     inner_join(a, by = "PID") %>%
     mutate(check_key = paste0(initials, "_", Year)) %>%
@@ -395,6 +410,7 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     add_count(check_key, sort = TRUE, name = "n_check") %>%
     arrange(desc(n_check), desc(check_key), desc(LastUpdated), desc(Title)) %>%
     ungroup() %>%
+    filter(!grepl(exceptions, Title)) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(Title = linkify(Title, target = "titlesearch")) %>%
     collect() %>%

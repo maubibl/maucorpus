@@ -392,13 +392,15 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     "Background
     Commentary
     Conclusions
+    Conclusion
     Editorial
     Editor's foreword
+    Editors' foreword
     Foreword
     F\u00f6rord
     Guest editorial
     Introduction
-    Message from the chairs
+    Message from the [Cc]hairs
     Preface
     Preview
     Untitled")) %>% paste0(collapse  = "|")
@@ -470,7 +472,7 @@ check_missing_date <- function(pubs = kth_diva_pubs()) {
 
 check_missing_journals_identifiers <- function(pubs = kth_diva_pubs()) {
 
-  ScopusId <- Journal <- LastUpdated <- NULL
+  ScopusId <- Journal <- LastUpdated <- clean_notes <- NULL
 
   step <-
     pubs %>%
@@ -485,7 +487,9 @@ check_missing_journals_identifiers <- function(pubs = kth_diva_pubs()) {
     mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
     mutate(Name = linkify(Name, target = "freetextsearch")) %>%
     mutate(Journal = linkify(Journal, target = "freetextsearch")) %>%
-    select(PID, Title, LastUpdated, starts_with("Journal"), DOI, ScopusId, Name)
+    mutate(clean_notes = map_chr(Notes, tidy_html)) %>%
+    filter(!grepl("No ISSN", clean_notes)) %>%
+    select(PID, Title, LastUpdated, starts_with("Journal"), DOI, ScopusId, Name, clean_notes)
 }
 
 check_titles_book_chapters <- function(pubs = kth_diva_pubs()) {

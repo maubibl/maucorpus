@@ -7,6 +7,8 @@
 * add user agent to parallel curl download call
 * no longer read FridaLevel as double due to "deprecated".
 * by default show swepub issues from the current year only
+* change check for missing journal identifiers to exclude records with "No ISSN" in Notes field, and add some more exceptions in the check for multiplettes title
+* fix link to terms in swepub checks
 
 ## kthcorpus 0.2.2
 

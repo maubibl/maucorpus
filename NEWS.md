@@ -1,5 +1,9 @@
 # kthcorpus
 
+## kthcorpus 0.2.4
+
+* add scopus client for making calls against the Elsevier Scopus API when monitoring publications from KTH - Royal Institute of Technology - by default with load dates from the previous fortnight
+
 ## kthcorpus 0.2.3
 
 * add a check for identifiers that contain unicode (for example invisible blankspace characters) and fix some warnings for link_*-functions for vector inputs

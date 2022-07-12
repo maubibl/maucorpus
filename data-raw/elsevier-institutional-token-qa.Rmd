@@ -1,0 +1,73 @@
+---
+title: "Elsevier Institutional Token Q&A"
+author: "Markus Skyttner"
+date: '2022-07-04'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Questions
+
+TLDR: In order to be able to schedule a daily request against the Scopus API for publications related to KTH - The Royal Institute of Technology in a GitHub Action, we need an institutional token. The reason for this is that the regular API key can only be used from KTH IPs and the GitHub Action runner runs in the cloud (and therefore do not expose IPs in KTHs internal range of IPs). The use case we have is data curation and monitoring of publications from our institution.
+
+## How much data do you need?
+
+The plan is to schedule at least a daily request (may be more frequent) which gets a fortnight worth of the latest loaddate publications for our institution (KTH - The Royal Institute of Technology).
+
+Currently this means fetching 61 hits in 4 pages each w at most 25 entries.
+
+## What specific Scopus/ ScienceDirect metadata are you looking to use?
+
+Here is a complete example with all fields listed:
+
+```{r}
+
+library(kurathor)
+library(dplyr)
+
+fortnight_kth <- 
+  scopus_search_pubs_kth()
+
+fortnight_kth$publications
+fortnight_kth$authors
+fortnight_kth$affiliations
+
+```
+
+## Are you only looking at data for your institution or will it include other institutions?
+
+Presently the plan is to fetch data for KTH - The Royal Institute of Technology.
+
+Therefore the specific search criteria is:
+
+```{r eval=FALSE}
+
+  criteria <- glue::glue(
+    'AFFIL(((kth*) OR (roy* AND inst* AND tech*) OR ("Roy. Inst. T") OR ',
+    '(alfven) OR (kung* AND tek* AND hog*) OR (kung* AND tek* AND hög*) OR ',
+    '(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
+    '(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
+    'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
+    'orig-load-date aft {beg_loaddate} AND pubyear aft {beg_pubyear}'
+  )
+
+```
+
+## How do you plan to manipulate it for your research? 
+
+In most cases no manipulation at all. But monitoring and if necessary performing quality assurance processing. 
+
+For example making a correction if/when a publication from the institution is incorrectly affiliated to an internal department.
+
+## What is the output of your research? Is it a paper or is it a web application?
+
+Neither, it is an internal tool for quality checks. 
+
+It produces a simple HTML document generated from R markdown through a GitHub Action. 
+
+This is displayed internally at KTH for quality assurance / control purposes. 
+
+A team is monitoring publications from KTH - The Royal Institute of Technology to verify that no data entry errors appear in the metadata for publication (for example with regards to internal affiliation - where a researcher states that a paper has been published within a specific institution/department at KTH)

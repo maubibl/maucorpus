@@ -311,3 +311,24 @@ scopus_search_aut_kth <- function() {
     dplyr::rename(sid = `dc:identifier`), by = c("sid"))
 }
 
+#' Upload Scopus API search results to S3/minio bucket
+#' @export
+#' @importFrom purrr map2 map
+#' @importFrom readr write_csv
+scopus_upload <- function() {
+
+  s <- scopus_search_pubs_kth()
+
+  message("Uploading Scopus data to S3 bucket")
+
+  filez <- file.path(tempdir(), sprintf("scopus-%s.csv",
+    c("publications", "affiliations", "authors"))
+  )
+
+  on.exit(unlink(filez))
+
+  write <- purrr::map2(s, filez, function(x, y) readr::write_csv(x, file = y))
+  upload <- purrr::map(filez, function(x) diva_upload_s3(x))
+
+  return(invisible(TRUE))
+}

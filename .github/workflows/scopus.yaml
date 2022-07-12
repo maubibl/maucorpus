@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: '0 9 * * *' # UTC 49th min after 01th hour every day of month, month, day of week
 
-name: Generate report using latest kthcorpus container
+name: Request publications from Scopus API and upload to S3/minio
 
 jobs:
   docker:

@@ -472,7 +472,8 @@ check_missing_date <- function(pubs = kth_diva_pubs()) {
 
 check_missing_journals_identifiers <- function(pubs = kth_diva_pubs()) {
 
-  ScopusId <- Journal <- LastUpdated <- clean_notes <- NULL
+  ScopusId <- Journal <- LastUpdated <- clean_notes <-
+    Status <- PublicationType <- NULL
 
   step <-
     pubs %>%
@@ -489,7 +490,8 @@ check_missing_journals_identifiers <- function(pubs = kth_diva_pubs()) {
     mutate(Journal = linkify(Journal, target = "freetextsearch")) %>%
     mutate(clean_notes = map_chr(Notes, tidy_html)) %>%
     filter(!grepl("No ISSN", clean_notes)) %>%
-    select(PID, Title, LastUpdated, starts_with("Journal"), DOI, ScopusId, Name, clean_notes)
+    filter(!Status %in% c("submitted", "accepted")) %>%
+    select(PID, Title, LastUpdated, starts_with("Journal"), PublicationType, Status, DOI, ScopusId, Name, clean_notes)
 }
 
 check_titles_book_chapters <- function(pubs = kth_diva_pubs()) {

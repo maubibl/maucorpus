@@ -196,10 +196,8 @@ scopus_req <- function(criteria, start, count) {
       sprintf(
         "API request failed [%s]\n%s\n<%s>",
         httr::status_code(resp),
-        "boho",
-        "boho"
-        #cc$message,
-        #cc$documentation_url
+        paste0("Rate Limit quota setting:", rl_total),
+        paste0("Remaining RL quota: ", rl_remaining, " which resets at ", rl_reset_ts)
       ),
       call. = FALSE
     )
@@ -207,10 +205,6 @@ scopus_req <- function(criteria, start, count) {
 
   return (resp)
 }
-
-# X-RateLimit-Limit       <----Shows API quota setting
-# X-RateLimit-Remaining   <----Shows API remaining quota
-# X-RateLimit-Reset       1234567891 <----Date/Time in Epoch seconds when API quota resets
 
 scopus_crawl <- function(criteria, start, count) {
   #res <- httr::content(httr::GET(url, add_headers("Content-Type" = "application/xml")))
@@ -220,15 +214,8 @@ scopus_crawl <- function(criteria, start, count) {
 
 #' @noRd
 #' @importFrom readr read_lines
-#' @importFrom purrr map_chr map pluck map2_df
-#' @importFrom tibble as_tibble tibble
-#' @importFrom tidyr unnest_wider
-#' @importFrom dplyr select any_of
-parse_scopus_entries <- function(xml) {
-
-    afid <- NULL
-
-    fields <-
+#' @importFrom purrr map_chr
+scopus_fields <- function() {
       I("prism:url
       dc:identifier
       eid
@@ -255,6 +242,19 @@ parse_scopus_entries <- function(xml) {
       openaccessFlag") %>%
     readr::read_lines() %>%
     purrr::map_chr(., .f = function(x) trimws(x))
+}
+
+#' @noRd
+#' @importFrom readr read_lines
+#' @importFrom purrr map_chr map pluck map2_df
+#' @importFrom tibble as_tibble tibble
+#' @importFrom tidyr unnest_wider
+#' @importFrom dplyr select any_of
+parse_scopus_entries <- function(xml) {
+
+    afid <- NULL
+
+    fields <- scopus_fields()
 
     mylist <-
       purrr::map(fields, function(x) purrr::map_chr(xml, x, .default = NA_character_))
@@ -331,4 +331,60 @@ scopus_upload <- function() {
   upload <- purrr::map(filez, function(x) diva_upload_s3(x))
 
   return(invisible(TRUE))
+}
+
+#' Scopus API ratelimit quota information
+#'
+#' Makes a request and displays the headers containing rate limit information
+#'
+#'     X-RateLimit-Limit       <----Shows API quota setting
+#'     X-RateLimit-Remaining   <----Shows API remaining quota
+#'     X-RateLimit-Reset       1234567891 <----Date/Time in Epoch seconds when API quota resets
+#'
+#' @return a list with the information from the headers
+#' @export
+#' @importFrom glue glue
+#' @importFrom httr headers status_code
+scopus_ratelimit_quota <- function() {
+
+  # make request
+  beg_loaddate <- (Sys.Date() - 14) %>% format_date()
+  beg_pubyear <- 2019L
+  id_affiliation <- 60002014L
+
+  criteria <- glue::glue(
+    'AFFIL(((kth*) OR (roy* AND inst* AND tech*) OR ("Roy. Inst. T") OR ',
+    '(alfven) OR (kung* AND tek* AND hog*) OR (kung* AND tek* AND h\\u00f6g*) OR ',
+    '(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
+    '(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
+    'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
+    'orig-load-date aft {beg_loaddate} AND pubyear aft {beg_pubyear}'
+  )
+
+  resp <- scopus_req(criteria, 1, 1)
+
+  # Read the RateLimit headers
+
+  hh <- httr::headers(resp)
+  rl_total <- as.integer(hh$`x-ratelimit-limit`)
+  rl_remaining <- as.integer(hh$`x-ratelimit-remaining`)
+  rl_reset_ts <- as.integer(hh$`x-ratelimit-reset`)
+
+  msg <-
+    sprintf(
+      "API rate limit info: [%s]\n%s\n%s",
+      paste0("API request HTTP status: ", httr::status_code(resp)),
+      paste0("Rate Limit quota setting: ", rl_total),
+      paste0("Remaining RL quota: ", rl_remaining, " which resets at ", rl_reset_ts)
+    )
+
+  message(msg)
+  message("Reset in UTC is: ", as.POSIXct(rl_reset_ts, tz = "UTC", origin = "1970-01-01"))
+  message("  Now in UTC is: ", as.POSIXct(Sys.time(), tz = "UTC"))
+
+  list(
+    `X-RateLimit-Limit` = rl_total,
+    `X-RateLimit-Remaining` = rl_remaining,
+    `X-RateLimit-Reset` = rl_reset_ts
+  )
 }

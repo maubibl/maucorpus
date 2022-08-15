@@ -22,6 +22,6 @@ minio_ls <- function(bucket = "bibliometrics") {
 #' @importFrom dplyr filter pull
 #' @export
 minio_get <- function(file, bucket = "bibliometrics") {
-  my_file <- minio_ls() %>% filter(Key == file) %>% pull("Key")
+  my_file <- minio_ls(bucket = bucket) %>% filter(Key == file) %>% pull("Key")
   get_object(my_file, bucket, use_https = uses_https())
 }

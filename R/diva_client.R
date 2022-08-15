@@ -520,7 +520,8 @@ diva_download_aut <- function(
     mutate(fn = paste0("persons_", year_beg, ".csv")) %>%
     mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
 
-  curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
+  curl_ua <- ""
+  #curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
   if (nchar(curl_ua) <= 10) curl_ua <- ""
 
   script <- c(
@@ -579,7 +580,8 @@ diva_download_pub <- function(
     mutate(fn = paste0("pubs_", year_beg, ".csv")) %>%
     mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
 
-  curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
+  curl_ua <- ""
+  #curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
   if (nchar(curl_ua) <= 10) curl_ua <- ""
 
   script <- c(

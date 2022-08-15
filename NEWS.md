@@ -1,5 +1,12 @@
 # kthcorpus
 
+## kthcorpus 0.2.5
+
+* add scopus ratelimit quota function
+* add some updates to meilisearch API calls when uploading data to the search index
+* fix issue getting S3 data from specific buckets
+* temporarily disabled priority queueing for DiVA downloads
+
 ## kthcorpus 0.2.4
 
 * add scopus client for making calls against the Elsevier Scopus API when monitoring publications from KTH - Royal Institute of Technology - by default with load dates from the previous fortnight

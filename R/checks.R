@@ -650,19 +650,21 @@ check_invalid_orcid <- function(authors = kth_diva_authors()) {
     mutate(ScopusId = linkify(ScopusId, target = "ScopusID"))
 }
 
-check_invalid_scopusid <- function(authors = kth_diva_authors()) {
+check_invalid_scopusid <- function(pubs = kth_diva_pubs()) {
 
   re <- "2-s2\\.0-\\d{10,11}"
 
   ScopusId <- NULL
 
-  authors %>%
+  pubs %>%
     filter(!is.na(ScopusId)) %>%
     filter(!grepl(re, ScopusId)) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(ISI = linkify(ISI, target = "ISI")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
-    mutate(ScopusId = linkify(ScopusId, target = "ScopusID"))
+    mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
+    arrange(desc(Year)) %>%
+    select(Title, ScopusId, PID, ISI, DOI, Year)
 
 }
 

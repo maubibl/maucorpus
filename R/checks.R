@@ -461,6 +461,35 @@ check_missing_kthid <- function(authors = kth_diva_authors()) {
 
 }
 
+check_missing_orcids <- function(authors = kth_diva_authors()) {
+
+  kthid <- orcid <- PID <- nd <- nd_casing <- has_casing <-
+    na <- orcids <- NULL
+
+  authors %>%
+  select(kthid, orcid, PID) %>%
+  filter(!is.na(kthid), !(grepl("00000*|-", kthid))) %>%
+  group_by(kthid) %>%
+  summarise(
+    na = sum(is.na(orcid)),
+    nd = n_distinct(orcid, na.rm = TRUE),
+    nd_casing = n_distinct(toupper(orcid), na.rm = TRUE),
+    orcids = paste0(collapse = ", ", na.omit(unique(orcid))),
+  ) %>%
+  mutate(
+    has_casing = (nd != nd_casing)
+  ) %>%
+  arrange(desc(nd)) %>%
+  select(kthid, na, nd, nd_casing, has_casing, orcids) %>%
+  filter(nd == 1) %>%
+  arrange(desc(na)) %>%
+  filter(na > 25) %>%
+  mutate(cs = cumsum(na)) %>%
+  select(kthid, orcid = orcids, n_na_pubs = na) %>%
+  mutate(orcid = linkify(orcid, target = "ORCID"))
+
+}
+
 check_missing_date <- function(pubs = kth_diva_pubs()) {
   # TODO: PublicationDate may not be needed (earlier such issues are fixed)
   Year <- NULL
@@ -652,6 +681,8 @@ check_invalid_orcid <- function(authors = kth_diva_authors()) {
 
 check_invalid_scopusid <- function(pubs = kth_diva_pubs()) {
 
+  Year <- NULL
+
   re <- "2-s2\\.0-\\d{10,11}"
 
   ScopusId <- NULL
@@ -773,6 +804,7 @@ kth_diva_checks <- function() {
     title_multiplettes = check_multiplettes_title(),
     submission_status_invalid = check_invalid_submission_status(),
     missing_kthid = check_missing_kthid(),
+    missing_orcids = check_missing_orcids(),
     #missing_affiliations = check_missing_affiliations(),
     missing_confpubdate = check_missing_date(),
     missing_journal_ids = check_missing_journals_identifiers(),

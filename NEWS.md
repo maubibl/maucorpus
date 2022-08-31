@@ -1,5 +1,10 @@
 # kthcorpus
 
+## kthcorpus 0.2.6
+
+* modify check for missing ScopusID to check publications (not authors)
+* add check for missing ORCID where these identifiers can be backfilled
+
 ## kthcorpus 0.2.5
 
 * add scopus ratelimit quota function

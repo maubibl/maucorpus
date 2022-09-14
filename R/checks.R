@@ -667,7 +667,7 @@ check_invalid_kthid <- function(authors = kth_diva_authors()) {
 
 check_invalid_orcid <- function(authors = kth_diva_authors()) {
 
-  re <- "^([0-9]{4})?(-)?([0-9]{4})?(-)?([0-9]{4})?(-)?([0-9]{3}[0-9Xx]{1})$"
+  re <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
 
   ScopusId <- NULL
 

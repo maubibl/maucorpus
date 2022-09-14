@@ -483,7 +483,7 @@ check_missing_orcids <- function(authors = kth_diva_authors()) {
   select(kthid, na, nd, nd_casing, has_casing, orcids) %>%
   filter(nd == 1) %>%
   arrange(desc(na)) %>%
-  filter(na > 25) %>%
+  filter(na > 14) %>%
   mutate(cs = cumsum(na)) %>%
   select(kthid, orcid = orcids, n_na_pubs = na) %>%
   mutate(orcid = linkify(orcid, target = "ORCID"))

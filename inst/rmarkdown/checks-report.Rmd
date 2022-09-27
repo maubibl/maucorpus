@@ -318,6 +318,13 @@ myDT(checks$invalid_authorname)
 myDT(checks$missing_orcids)
 ```
 
+### Manuskript med identifierare `r stats("manuscripts_with_identifiers")`
+
+```{r}
+myDT(checks$manuscripts_with_identifiers)
+```
+
+
 Externt {data-icon="fa-university" data-width=1200}
 =============================
 
@@ -365,6 +372,8 @@ Kontroller grupperade under rubriken [saknat](#saknat-mm) identifierar saknade u
 - *Saknade ISSN*: Tidskrift som saknar ett angivet ISSN.
 - *Ogiltig publiceringsstatus*: Publikationer som t.ex. är angivna som artiklar i tidskrift, men där publiceringsstatus är "submitted". Det är inte säkert att submittade artiklar verkligen blir publicerade i den angivna tidskriften. Submittade artikelmanuskript skall ligga i publikationstypen "manuskript" även om t.ex. en doktorand har angivet "submitted to journal..." i sin avhandling.
 - *Partiellt saknad ORCID*: Publikationer vars författare har ett ORCID entydigt angivet för vissa publikationer, men där många andra publikationer inte anger detta ORCID. 
+- *Manuskript med identifierare*: Publikationer av typen "Manuskript - preprint" - som har identifierare kopplade, vilket kan kräva en närmare manuell kontroll av anledningen till detta.
+
 __Externkontrollerat__
 
 Denna rubrik rymmer just nu endast de SwePub-kontroller som även presenteras [här](https://bibliometri.swepub.kb.se/process/kth?from=1900&to=2022).

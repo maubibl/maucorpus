@@ -1,5 +1,10 @@
 # kthcorpus
 
+## kthcorpus 0.2.7
+
+* add check for manuscripts with identifiers
+* add Year to various output tables
+
 ## kthcorpus 0.2.6
 
 * modify check for missing ScopusID to check publications (not authors)

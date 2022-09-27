@@ -446,13 +446,13 @@ check_invalid_submission_status <- function(pubs = kth_diva_pubs()) {
 
 }
 
-check_missing_kthid <- function(authors = kth_diva_authors()) {
+check_missing_kthid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs()) {
 
   LastUpdated <- Year <- orgid <- ScopusId <- NULL
 
   authors %>%
     filter(!is.na(orgid) & is.na(kthid))  %>%
-    inner_join(kth_diva_pubs() %>% select(PID, LastUpdated), by = "PID") %>%
+    inner_join(pubs %>% select(PID, Year, LastUpdated), by = "PID") %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
 #    mutate(pids = linkify(pids, target = "freetextsearch")) %>%
     mutate(name = linkify(name, target = "freetextsearch")) %>%
@@ -670,18 +670,22 @@ check_invalid_kthid <- function(authors = kth_diva_authors()) {
 
 }
 
-check_invalid_orcid <- function(authors = kth_diva_authors()) {
+check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs()) {
 
   re <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
 
-  ScopusId <- NULL
+  ScopusId <- Year <- LastUpdated <- NULL
 
   authors %>%
     filter(!grepl(re, orcid) & !is.na(orcid)) %>%
+    left_join(
+      pubs %>% select(PID, Year, LastUpdated), by = "PID"
+    ) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(ISI = linkify(ISI, target = "ISI")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
-    mutate(ScopusId = linkify(ScopusId, target = "ScopusID"))
+    mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
+    select(PID, Year, everything())
 }
 
 check_invalid_scopusid <- function(pubs = kth_diva_pubs()) {
@@ -700,7 +704,7 @@ check_invalid_scopusid <- function(pubs = kth_diva_pubs()) {
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
     mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
     arrange(desc(Year)) %>%
-    select(Title, ScopusId, PID, ISI, DOI, Year)
+    select(Title, Year, ScopusId, PID, ISI, DOI, Year)
 
 }
 
@@ -712,11 +716,11 @@ check_invalid_ISSN <- function(pubs = kth_diva_pubs()) {
 
   re <- "^\\d{4}-?\\d{3}(X|x|\\d)$"
 
-  has_bad_check <- has_bad_format <- NULL
+  has_bad_check <- has_bad_format <- Year <- NULL
 
   bad_jeissn <-
     pubs %>%
-    filter(!is.na(JournalEISSN)) %>% distinct(JournalEISSN, PID) %>%
+    filter(!is.na(JournalEISSN)) %>% distinct(JournalEISSN, PID, Year) %>%
     mutate(has_bad_check = !libbib::check_issn_check_digit(JournalEISSN, allow.hyphens = TRUE, errors.as.false = TRUE)) %>%
     mutate(has_bad_format = !grepl(re, JournalEISSN)) %>%
     filter(has_bad_check | has_bad_format)
@@ -724,13 +728,13 @@ check_invalid_ISSN <- function(pubs = kth_diva_pubs()) {
   bad_jissn <-
     pubs %>%
     filter(!is.na(JournalISSN)) %>%
-    distinct(JournalISSN, PID) %>%
+    distinct(JournalISSN, PID, Year) %>%
     mutate(has_bad_check = !libbib::check_issn_check_digit(JournalISSN, allow.hyphens = TRUE, errors.as.false = TRUE)) %>%
     mutate(has_bad_format = !grepl(re, JournalISSN)) %>%
     filter(has_bad_check | has_bad_format)
 
   bind_rows(bad_jeissn, bad_jissn) %>%
-    select(PID, JournalEISSN, JournalISSN, everything()) %>%
+    select(PID, Year, JournalEISSN, JournalISSN, everything()) %>%
     mutate(PID = linkify(PID, target="PID"))
 
 }
@@ -752,10 +756,10 @@ check_invalid_ISBN <- function(pubs = kth_diva_pubs()) {
     return(FALSE)
   }
 
-  has_bad_check <- has_bad_format <- n_chars <- ISBN <- NULL
+  has_bad_check <- has_bad_format <- n_chars <- ISBN <- Year <- NULL
 
   pubs %>%
-    filter(!is.na(ISBN)) %>% distinct(PID, ISBN) %>%
+    filter(!is.na(ISBN)) %>% distinct(PID, ISBN, Year) %>%
     tidyr::separate_rows(ISBN, sep = ";") %>%
     mutate(n_chars = nchar(gsub("-", "", ISBN))) %>%
     mutate(has_bad_format = n_chars != 10 & n_chars != 13) %>%

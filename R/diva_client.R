@@ -673,7 +673,7 @@ diva_config <- function() {
     #portal = "https://his.diva-portal.org",
     #id = "81",
     #org = "his",
-    ybeg = 2013,
+    ybeg = 2011,
     yend = 2022
   )
 }
@@ -807,3 +807,4 @@ diva_refresh_trigger <- function() {
 
   return(invisible(TRUE))
 }
+

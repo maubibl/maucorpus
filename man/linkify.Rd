@@ -9,7 +9,7 @@ linkify(
   text = shorten(href),
   title = href,
   target = c("href", "PID", "titlesearch", "freetextsearch", "DOI", "ScopusID", "ISSN",
-    "ISBN", "ISI", "ORCID")
+    "ISBN", "ISI", "ORCID", "PMID")
 )
 }
 \arguments{

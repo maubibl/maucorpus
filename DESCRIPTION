@@ -19,7 +19,7 @@ Suggests:
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1
 Imports: 
     purrr,
     curl,
@@ -47,6 +47,7 @@ Imports:
     rmarkdown,
     libbib,
     glue,
-    attempt
+    attempt,
+    rrapply
 Depends: 
     R (>= 2.10)

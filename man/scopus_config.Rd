@@ -15,7 +15,9 @@ Use .Renviron to provide credentials for API access.
 }
 \details{
 Set values for SCOPUS_API_KEY and optionally for SCOPUS_API_TOKEN if making
-requests from outside of institutional IPs linked to the subscriber.\preformatted{ file.edit("~/.Renviron")
+requests from outside of institutional IPs linked to the subscriber.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{ file.edit("~/.Renviron")
  readRenviron("~/.Renviron")
-}
+}\if{html}{\out{</div>}}
 }

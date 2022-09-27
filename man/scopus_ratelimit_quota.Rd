@@ -13,8 +13,8 @@ a list with the information from the headers
 Makes a request and displays the headers containing rate limit information
 }
 \details{
-\preformatted{X-RateLimit-Limit       <----Shows API quota setting
+\if{html}{\out{<div class="sourceCode">}}\preformatted{X-RateLimit-Limit       <----Shows API quota setting
 X-RateLimit-Remaining   <----Shows API remaining quota
 X-RateLimit-Reset       1234567891 <----Date/Time in Epoch seconds when API quota resets
-}
+}\if{html}{\out{</div>}}
 }

@@ -673,7 +673,7 @@ diva_config <- function() {
     #portal = "https://his.diva-portal.org",
     #id = "81",
     #org = "his",
-    ybeg = 2011,
+    ybeg = 2010,
     yend = 2022
   )
 }

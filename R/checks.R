@@ -410,7 +410,8 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     Preview
     Untitled")) %>% paste0(collapse  = "|")
 
-  tm %>%
+  b <-
+    tm %>%
     inner_join(a, by = "PID") %>%
     mutate(check_key = paste0(initials, "_", Year)) %>%
     select(PID, Year, Title, PublicationType, LastUpdated, check_key, n, JournalISSN, JournalEISSN, clean_notes) %>%
@@ -418,7 +419,11 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     add_count(check_key, sort = TRUE, name = "n_check") %>%
     arrange(desc(n_check), desc(check_key), desc(LastUpdated), desc(Title)) %>%
     ungroup() %>%
-    filter(!grepl(exceptions, Title)) %>%
+    filter(!grepl(exceptions, Title))
+
+  stoplist <- checks_exclusions()
+
+  b %>% anti_join(stoplist, by = c("PID", "Title")) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(Title = linkify(Title, target = "titlesearch")) %>%
     collect() %>%
@@ -783,22 +788,27 @@ check_published <- function(pubs = kth_diva_pubs()) {
 
   Year <- NULL
 
-  t1 <-
+  t0 <-
     pubs %>%
-    mutate(has_notes = grepl("^QP", Notes)) %>%
+    mutate(Notes = map_chr(Notes, tidy_html))
+
+  t1 <-
+    t0 %>%
+    mutate(has_notes = grepl("QP", Notes)) %>%
     mutate(is_not_published = !is.na(Status) &
              (Status %in% c("accepted", "aheadofprint", "inPress"))) %>%
     filter(has_notes, is_not_published)
 
   t2 <-
-    pubs %>%
-    mutate(is_QSorNQC = grepl("^QC|^NQC", Notes)) %>%
+    t0 %>%
+    mutate(Notes = map_chr(Notes, tidy_html)) %>%
+    mutate(is_QCorNQC = grepl("QC|NQC", Notes)) %>%
     filter(Status == "submitted",
-           is_QSorNQC | PublicationType == "Manuskript (preprint)")
+           is_QCorNQC | PublicationType == "Manuskript (preprint)")
 
   bind_rows(t1, t2) %>%
     select(PID, Year, PublicationType, has_notes,
-           is_not_published, Notes, is_QSorNQC)  %>%
+           is_not_published, Notes, is_QCorNQC)  %>%
     collect()
 }
 
@@ -1114,4 +1124,21 @@ check_identifiers_with_unicode <- function(pub = kth_diva_pubs(), aut = kth_diva
     )
 
   issues %>% mutate(PID = linkify(PID, target = "PID"))
+}
+
+checks_exclusions_url <- function(csvfile = "exceptions_check_multiplettes_title.csv")
+  paste0("https://raw.githubusercontent.com/KTH-Library/kthcorpus/",
+    sprintf("main/inst/extdata/%s", csvfile))
+
+checks_exclusions <- function(csvfile = exclusions_url()) {
+
+  res <- csvfile %>%
+    readr::read_csv(col_types = "dc", locale = readr::locale(encoding = "UTF-8"))
+
+  is_valid <- ncol(res) == 2 & all(names(res) %in% c("PID", "Title"))
+
+  if (!is_valid)
+    stop("File ", csvfile, " is either not present or has invalid format")
+
+  return (res)
 }

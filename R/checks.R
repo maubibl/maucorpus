@@ -1130,7 +1130,7 @@ checks_exclusions_url <- function(csvfile = "exceptions_check_multiplettes_title
   paste0("https://raw.githubusercontent.com/KTH-Library/kthcorpus/",
     sprintf("main/inst/extdata/%s", csvfile))
 
-checks_exclusions <- function(csvfile = exclusions_url()) {
+checks_exclusions <- function(csvfile = check_exclusions_url()) {
 
   res <- csvfile %>%
     readr::read_csv(col_types = "dc", locale = readr::locale(encoding = "UTF-8"))

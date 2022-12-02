@@ -425,7 +425,7 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     filter(!grepl(exceptions, Title))
 
 
-  stoplist <- checks_exclusions("inst/extdata/exceptions_check_multiplettes_title.csv")
+  stoplist <- checks_exclusions()
 
   b %>% anti_join(stoplist, by = c("PID", "Title")) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%

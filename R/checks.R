@@ -401,12 +401,15 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     Editorial
     Editor's foreword
     Editors' foreword
+    Editors’ foreword
+    Examples
     Foreword
     F\u00f6rord
     Guest editorial
     Introduction
     Message from the [Cc]hairs
     Preface
+    Preliminaries
     Preview
     Untitled")) %>% paste0(collapse  = "|")
 
@@ -421,7 +424,8 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     ungroup() %>%
     filter(!grepl(exceptions, Title))
 
-  stoplist <- checks_exclusions()
+
+  stoplist <- checks_exclusions("inst/extdata/exceptions_check_multiplettes_title.csv")
 
   b %>% anti_join(stoplist, by = c("PID", "Title")) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%

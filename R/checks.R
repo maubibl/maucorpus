@@ -401,7 +401,7 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     Editorial
     Editor's foreword
     Editors' foreword
-    Editors’ foreword
+    Editors\u2019 foreword
     Examples
     Foreword
     F\u00f6rord
@@ -790,7 +790,7 @@ check_invalid_authorname <- function(authors = kth_diva_authors()) {
 
 check_published <- function(pubs = kth_diva_pubs()) {
 
-  Year <- NULL
+  Year <- is_QCorNQC <- NULL
 
   t0 <-
     pubs %>%

@@ -342,107 +342,146 @@ About {.tabset .tabset-pills .tabset-fade}
 
 ### Förklaringar
 
-## Kontroller i KuraTHor    
-Kontroller i KuraTHor omfattar endast de poster i DiVA som är kontrollerade av administratör. Dessa poster filtreras ut genom att kontrollera om strängen “QC” finns i fältet *Anmärkning/Note*. Kontrollerna av KTH-ID och ORCID görs dock även för poster som inte är QC:ade. 
-________________________________________
-### Multipletter   
-Kontroller samlade under fliken [Multipletter](https://data.bibliometrics.lib.kth.se/kthcorpus/checks-report.html#multipletter) identifierar olika förekomster av samma publikation i DiVA. Detta sker genom att hitta dubbletter, tripletter etc. med avseende på DOI, ISI, ScopusID eller titel. Om en DOI förekommer i flera poster är sannolikheten stor att så är fallet även för identifierarna ISI och ScopusID samt titel. Samma post kan alltså fångas upp i flera av nedanstående kontroller.  
+__Kontroller i KuraTHor__
 
-*DOI-multipletter*      
-KuraTHor fångar upp poster som har samma DOI. 
+Kontroller i KuraTHor omfattar endast de poster i DiVA som är kontrollerade av administratör. Dessa poster filtreras ut genom att kontrollera om strängen "QC" finns i fältet *Anmärkning/Note*. Kontrollerna av KTH-ID och ORCID görs dock även för poster som inte är QC:ade.
 
-*ISI-multipletter*   
-KuraTHor fångar upp poster som har samma ISI. 
+__Multipletter__
 
-*ScopusID-multipletter*    
-KuraTHor fångar upp poster som har samma ScopusID. 
+Kontroller samlade under fliken [Multipletter](#multipletter) identifierar olika förekomster av samma publikation i DiVA. Detta sker genom att hitta dubbletter, tripletter etc. med avseende på DOI, ISI, ScopusID eller titel.
 
-*Titelmultipletter*    
-KuraTHor fångar upp poster som har samma publikationstyp och samma titel. Det vill säga om två **artiklar** med samma titel finns, så fastnar de i kontrollen. Om det är en **artikel** som har samma titel som ett **konferensbidrag** (d.v.s. att de inte har samma publikationstyp), så fastnar de inte i kontrollen. 
+Om en DOI förekommer i flera poster är sannolikheten stor att så är fallet även för identifierarna ISI och ScopusID samt titel. Samma post kan alltså fångas upp i flera av nedanstående kontroller.
+
+*DOI-multipletter*
+
+KuraTHor fångar upp poster som har samma DOI.
+
+*ISI-multipletter*
+
+KuraTHor fångar upp poster som har samma ISI.
+
+*ScopusID-multipletter*
+
+KuraTHor fångar upp poster som har samma ScopusID.
+
+*Titelmultipletter*
+
+KuraTHor fångar upp poster som har samma publikationstyp och samma titel. Det vill säga om två **artiklar** med samma titel finns, så fastnar de i kontrollen. Om det är en **artikel** som har samma titel som ett **konferensbidrag** (d.v.s. att de inte har samma publikationstyp), så fastnar de inte i kontrollen.
+
 Publikationer i DiVA som har vanligt förekommande titlar fastnar inte i kontrollen för titelmultipletter. De titlar som för tillfället inte fastnar i kontrollen är: 
 
-* Background 
-* Commentary 
-* Conclusions 
-* Conclusion 
-* Editorial 
-* Editor's foreword 
-* Editors' foreword 
-* Editors´ foreword 
-* Examples 
-* Foreword 
-* Förord 
-* Guest editorial 
-* Introduction 
-* Message from the Chairs/Message from the chairs 
-* Preface 
-* Preliminaries 
-* Preview 
-* Untitled 
-__________________________________
-### Formatfel 
-Kontroller grupperade under fliken [Formatfel](https://data.bibliometrics.lib.kth.se/kthcorpus/checks-report.html#formatfel) identifierar ogiltigt format på diverse identifierare. Kontrollen tar inte hänsyn till om det är rätt identifierare som kopplats till publikationen utan enbart om identifieraren som angetts är giltig (d.v.s. om den har rätt format). 
+- Background 
+- Commentary 
+- Conclusions 
+- Conclusion 
+- Editorial 
+- Editor's foreword 
+- Editors' foreword 
+- Editors´ foreword 
+- Examples 
+- Foreword 
+- Förord 
+- Guest editorial 
+- Introduction 
+- Message from the Chairs/Message from the chairs 
+- Preface 
+- Preliminaries 
+- Preview 
+- Untitled 
 
-*Ogiltig DOI*     
-KuraTHor fångar upp poster med DOI som inte inleds med “10.” (siffran tio följt av en punkt).   
->Exempel på korrekt DOI: 10.1007/JHEP04(2021)165 
+__Formatfel__
 
-*Ogiltigt ISI*    
-KuraTHor fångar upp poster med ISI som: 
-* inte består av 15 tecken    
-eller 
-* inte inleds med “A1” eller “000” (tre nollor) 
+Kontroller grupperade under fliken [Formatfel](#formatfel) identifierar ogiltigt format på diverse identifierare. Kontrollen tar inte hänsyn till om det är rätt identifierare som kopplats till publikationen utan enbart om identifieraren som angetts är giltig (d.v.s. om den har rätt format).
 
->Exempel på korrekta ISI: 000642153100001 eller A1975AU56200018 
+*Ogiltig DOI*
 
-*Ogiltigt ScopusID*     
-KuraTHor fångar upp poster med ScopusID:n som: 
-* inte består av 17 eller 18 tecken  
-eller 
-* inte inleds med strängen “2-s2.0-" 
->Exempel på korrekt ScopusID: 2-s2.0-85104770225 
+KuraTHor fångar upp poster med DOI som inte inleds med `10.` (siffran tio följt av en punkt).
+
+> Exempel på korrekt DOI: `10.1007/JHEP04(2021)165`
+
+*Ogiltigt ISI*
+
+KuraTHor fångar upp poster med ISI som:
+
+* inte består av 15 tecken
+
+eller
+
+* inte inleds med `A1` eller `000` (tre nollor) 
+
+> Exempel på korrekta ISI: `000642153100001` eller `A1975AU56200018` 
+
+*Ogiltigt ScopusID*
+
+KuraTHor fångar upp poster med ScopusIDn som:
+
+* inte består av 17 eller 18 tecken
+
+eller
+
+* inte inleds med strängen `2-s2.0-`
+
+> Exempel på korrekt ScopusID: `2-s2.0-85104770225`
 
 *Ogiltigt ISSN eller EISSN*     
-KuraTHor fångar upp poster som har ogiltiga ISSN/EISSN utifrån antal tecken samt värdet på kontrollsiffran. Ett ISSN- eller EISSN-nummer ska bestå av åtta tecken (0-9), som sista tecken är även bokstaven X tillåten och representerar då siffran tio. Det sista tecknet i strängen är en kontrollsiffra. ISSN/EISSN presenteras ofta med bindestreck mellan de fyra första och de fyra sista tecknen. Kontrollen accepterar ISSN/EISSN både med och utan bindestreck mellan det fjärde och femte tecknet. 
->Exempel på korrekta ISSN/EISSN: 1126-6708, 45780012 
 
-*Ogiltigt ORCID*     
-KuraTHor fångar upp poster som har ogiltiga ORCID utifrån antal tecken samt värdet på kontrollsiffran. Ett ORCID skall innehålla fyra grupper om vardera fyra siffror (0-9) separerade med bindestreck. Som sista tecken är även bokstaven X tillåten och representerar då siffran tio. Den sista siffran i strängen är en kontrollsiffra. Kontrollen accepterar inte ORCID utan bindestreck. 
->Exempel på korrekta ORCID: 0000-0003-3455-0855 eller 0000-0003-5498-659X 
+KuraTHor fångar upp poster som har ogiltiga ISSN/EISSN utifrån antal tecken samt värdet på kontrollsiffran. Ett ISSN- eller EISSN-nummer ska bestå av åtta tecken (0-9), som sista tecken är även bokstaven X tillåten och representerar då siffran tio. Det sista tecknet i strängen är en kontrollsiffra.
 
-*Ogiltigt KTH-ID*    
-KuraTHor fångar upp poster med KTH-ID:n som: 
-* inte består av 8 tecken     
-eller    
-* inte inleds med strängen “u1"  
+ISSN/EISSN presenteras ofta med bindestreck mellan de fyra första och de fyra sista tecknen. Kontrollen accepterar ISSN/EISSN både med och utan bindestreck mellan det fjärde och femte tecknet.
+
+> Exempel på korrekta ISSN/EISSN: `1126-6708`, `45780012` 
+
+*Ogiltigt ORCID*
+
+KuraTHor fångar upp poster som har ogiltiga ORCID utifrån antal tecken samt värdet på kontrollsiffran. Ett ORCID skall innehålla fyra grupper om vardera fyra siffror (0-9) separerade med bindestreck. Som sista tecken är även bokstaven X tillåten och representerar då siffran tio. Den sista siffran i strängen är en kontrollsiffra. Kontrollen accepterar inte ORCID utan bindestreck.
+
+> Exempel på korrekta ORCID: `0000-0003-3455-0855` eller `0000-0003-5498-659X`
+
+*Ogiltigt KTH-ID*
+
+KuraTHor fångar upp poster med KTH-ID:n som:
+
+* inte består av 8 tecken
+
+eller
+
+* inte inleds med strängen `u1`
     
-Godkända tecken är gemena bokstäverna a-z samt siffrorna 0-9.     
->Exempel på korrekt KTH-ID: u13h9uqy 
+Godkända tecken är gemena bokstäverna a-z samt siffrorna 0-9.
 
-*Ogiltigt ISBN*    
-KuraTHor fångar upp poster som har ogiltiga ISBN utifrån antal tecken samt värdet på kontrollsiffran. Ett ISBN-nummer ska bestå av 10 eller 13 siffror (0-9), som sista tecken är även bokstaven X tillåten och representerar då siffran tio. Den sista siffran i strängen är en kontrollsiffra. ISBN presenteras ofta med bindestreck mellan sifferradens olika delar. Kontrollen accepterar ISBN både med och utan bindestreck. 
-_____________________________________
-### Saknat mm 
-Kontroller samlade under rubriken [Saknat mm](https://data.bibliometrics.lib.kth.se/kthcorpus/checks-report.html#saknat-mm) identifierar bland annat poster med ofullständiga uppgifter och poster med ogiltig publiceringsstatus. 
+> Exempel på korrekt KTH-ID: u13h9uqy
 
-*Saknade KTH-ID:n*     
-KuraTHor fångar upp poster med författare som affilierats till KTH men saknar KTH-ID. Författare med det temporära KTH-ID:t “PI000000” fastnar inte i kontrollen. Detta ID ges i de fall då inget KTH-ID har kunnat identifieras för författaren. 
+*Ogiltigt ISBN*
 
-*Saknade ISSN*    
-KuraTHor fångar upp poster som har publiceringstypen “Artikel i tidskrift” samt status “submitted” eller “accepted”, men där det saknas ett ISSN. De poster som har strängen “No ISSN” i fältet *Anmärkning/Note* fastnar inte i kontrollen. 
+KuraTHor fångar upp poster som har ogiltiga ISBN utifrån antal tecken samt värdet på kontrollsiffran. Ett ISBN-nummer ska bestå av 10 eller 13 siffror (0-9), som sista tecken är även bokstaven X tillåten och representerar då siffran tio. Den sista siffran i strängen är en kontrollsiffra. ISBN presenteras ofta med bindestreck mellan sifferradens olika delar. Kontrollen accepterar ISBN både med och utan bindestreck.
 
-*Ogiltig publiceringsstatus*     
-KuraTHor fångar upp poster som har publikationstypen “Article”, status “submitted” samt någon slags identifierare (DOI, ISI, ScopusID eller PubMedID). En artikel som inte är publicerad ska inte ha någon identifierare än. Om identifierare finns betyder det att publikationen har publicerats och status ska vara “published”. 
+__Saknat mm__
 
-*Partiellt saknad ORCID*     
-KuraTHor fångar upp författare med KTH-ID som i vissa publikationer har ett ORCID knutet till sig men i andra publikationer saknar detta. 
+Kontroller samlade under rubriken [Saknat mm](#saknat-mm) identifierar bland annat poster med ofullständiga uppgifter och poster med ogiltig publiceringsstatus.
 
-*Manuskript med identifierare*     
-KuraTHor fångar upp poster som har publikationstypen “Manuskript” samt har ett innehåll i något av fälten DOI, ISI, ScopusID och PubMedID. Eftersom ett manuskript är ett opublicerat material ska det inte ha någon av dessa identifierare. 
+*Saknade KTH-ID:n*
 
-*Ogiltigt författarnamn*     
-KuraTHor fångar upp författare med namn som inleds med två eller flera skiljetecken. Syftet med detta är att hitta poster där det glömts att ta bort de autogenererade “$$$” som skapas vid import från Web of Science. 
+KuraTHor fångar upp poster med författare som affilierats till KTH men saknar KTH-ID. Författare med det temporära KTH-ID:t `PI000000` fastnar inte i kontrollen. Detta ID ges i de fall då inget KTH-ID har kunnat identifieras för författaren.
 
+*Saknade ISSN*
+
+KuraTHor fångar upp poster som har publiceringstypen "Artikel i tidskrift" samt status "submitted" eller "accepted", men där det saknas ett ISSN. De poster som har strängen "No ISSN" i fältet *Anmärkning/Note* fastnar inte i kontrollen.
+
+*Ogiltig publiceringsstatus*
+
+KuraTHor fångar upp poster som har publikationstypen "Article", status "submitted" samt någon slags identifierare (DOI, ISI, ScopusID eller PubMedID). En artikel som inte är publicerad ska inte ha någon identifierare än. Om identifierare finns betyder det att publikationen har publicerats och status ska vara "published".
+
+*Partiellt saknad ORCID*
+
+KuraTHor fångar upp författare med KTH-ID som i vissa publikationer har ett ORCID knutet till sig men i andra publikationer saknar detta.
+
+*Manuskript med identifierare*
+
+KuraTHor fångar upp poster som har publikationstypen "Manuskript" samt har ett innehåll i något av fälten DOI, ISI, ScopusID och PubMedID. Eftersom ett manuskript är ett opublicerat material ska det inte ha någon av dessa identifierare. 
+
+*Ogiltigt författarnamn*
+
+KuraTHor fångar upp författare med namn som inleds med två eller flera skiljetecken. Syftet med detta är att hitta poster där det glömts att ta bort de autogenererade `$$$` som skapas vid import från Web of Science. 
 
 __Externkontrollerat__
 

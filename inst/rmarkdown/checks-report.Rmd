@@ -490,7 +490,7 @@ KuraTHor fångar upp författare med namn som inleds med två eller flera skilje
 
 *Felaktig användning av ISBN*
 
-KuraTHor fångar upp poster där publikationstypen inte bör ha ett ISBN, men där ett sådant ändå angivits. Denna kontroll görs på publikationer från de senaste åren.
+KuraTHor fångar upp poster av publikationstypen bokkapitel, konferensbidrag eller artikel som har ett ISBN inlagt i fältet för ISBN. Dessa publikationstyper ska inte ha något värde i fältet för ISBN. Istället ska i anmärkningsfältet anges ISBN på den publikation (bok, konferenshandling) som postens publikation är en del av.
 
 __Externkontrollerat__
 

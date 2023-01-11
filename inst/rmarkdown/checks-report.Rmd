@@ -324,6 +324,11 @@ myDT(checks$missing_orcids)
 myDT(checks$manuscripts_with_identifiers)
 ```
 
+### Felaktig användning av ISBN `r stats("invalid_use_isbn")`
+
+```{r}
+myDT(checks$invalid_use_isbn)
+```
 
 Externt {data-icon="fa-university" data-width=1200}
 =============================
@@ -481,7 +486,11 @@ KuraTHor fångar upp poster som har publikationstypen "Manuskript" samt har ett 
 
 *Ogiltigt författarnamn*
 
-KuraTHor fångar upp författare med namn som inleds med två eller flera skiljetecken. Syftet med detta är att hitta poster där det glömts att ta bort de autogenererade `$$$` som skapas vid import från Web of Science. 
+KuraTHor fångar upp författare med namn som inleds med två eller flera skiljetecken. Syftet med detta är att hitta poster där det glömts att ta bort de autogenererade `$$$` som skapas vid import från Web of Science.
+
+*Felaktig användning av ISBN*
+
+KuraTHor fångar upp poster där publikationstypen inte bör ha ett ISBN, men där ett sådant ändå angivits. Denna kontroll görs på publikationer från de senaste åren.
 
 __Externkontrollerat__
 

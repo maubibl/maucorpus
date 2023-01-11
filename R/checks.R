@@ -590,6 +590,7 @@ check_invalid_DOI <- function(pubs = kth_diva_pubs()) {
 
 }
 
+
 check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
 
   ScopusId <- Year <- DOI_link <- Scopus_link <- n_pids <- LastUpdated <- NULL
@@ -779,6 +780,25 @@ check_invalid_ISBN <- function(pubs = kth_diva_pubs()) {
 
 }
 
+check_invalid_use_ISBN <- function(pubs = kth_diva_pubs()) {
+
+  Year <- LastUpdated <- ISBN <- PublicationType <- NULL
+
+  pubs %>%
+    filter(!is.na(ISBN) & Year >= 2022 & PublicationType %in% c(
+      "Kapitel i bok, del av antologi",
+      "Konferensbidrag",
+      "Artikel i tidskrift")) %>%
+    select(PID, Title, Year, PublicationType, ISBN, LastUpdated) %>%
+    mutate(
+      PID = linkify(PID, target = "PID"),
+      Title = linkify(Title, target = "Title"),
+      ISBN = linkify(ISBN, target = "ISBN")
+    ) %>%
+    arrange(desc(LastUpdated))
+}
+
+
 check_invalid_authorname <- function(authors = kth_diva_authors()) {
 
   authors %>%
@@ -868,6 +888,7 @@ kth_diva_checks <- function() {
     invalid_orcid = check_invalid_orcid(),
     invalid_scopusid = check_invalid_scopusid(),
     invalid_isbn = check_invalid_ISBN(),
+    invalid_use_isbn = check_invalid_use_ISBN(),
     invalid_authorname = check_invalid_authorname(),
     uncertain_published = check_published(),
     multiplettes_scopusid = check_multiplettes_scopusid(),

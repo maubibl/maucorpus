@@ -1,5 +1,10 @@
 # kthcorpus
 
+## kthcorpus 0.2.8
+
+* add check for invalid use of ISBNs (certain publication types should not have ISBNs)
+* add function to retrieve detailed data from Scopus Extended Abstract API
+
 ## kthcorpus 0.2.7
 
 * add check for manuscripts with identifiers

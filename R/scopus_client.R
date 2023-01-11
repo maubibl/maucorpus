@@ -165,6 +165,55 @@ scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
 
 }
 
+#' Fetch abstract given Scopus ID
+#' @param sid ScopusID
+#' @param endpoint the endpoint to use for the request (default value provided)
+#' @details see https://dev.elsevier.com/documentation/AbstractRetrievalAPI.wadl
+#' @examples
+#' \dontrun{
+#'   scopus_req_abstract("SCOPUS_ID:85140569271")
+#' }
+scopus_req_abstract <- function(sid,
+  endpoint = "https://api.elsevier.com/content/abstract/scopus_id/") {
+
+  resp <- httr::GET(
+    url = sprintf(paste0(endpoint, "%s"), sid),
+    query = compact(list(
+      apiKey = scopus_config(quiet=TRUE)$apiKey,
+      insttoken = scopus_config(quiet=TRUE)$insttoken,
+      view = "FULL" #"FULL"
+    )),
+    httr::add_headers("Content-Type" = "application/xml"),
+    httr::timeout(10L)
+  )
+
+  scopus_check_status(resp)
+
+  if (httr::http_type(resp) != "application/json") {
+    stop(sprintf("API returned %s", httr::http_type(resp)), call. = FALSE)
+  }
+
+  if (httr::status_code(resp) != 200) {
+    hh <- httr::headers(resp)
+    rl_total <- as.integer(hh$`x-ratelimit-limit`)
+    rl_remaining <- as.integer(hh$`x-ratelimit-remaining`)
+    rl_reset_ts <- as.integer(hh$`x-ratelimit-reset`)
+
+    stop(
+      sprintf(
+        "API request failed [%s]\n%s\n<%s>",
+        httr::status_code(resp),
+        paste0("Rate Limit quota setting:", rl_total),
+        paste0("Remaining RL quota: ", rl_remaining, " which resets at ", rl_reset_ts)
+      ),
+      call. = FALSE
+    )
+  }
+
+  return (resp)
+}
+
+
 scopus_req <- function(criteria, start, count) {
   resp <- httr::GET("https://api.elsevier.com/content/search/scopus",
     query = compact(list(
@@ -222,6 +271,7 @@ scopus_fields <- function() {
       dc:title
       dc:creator
       prism:publicationName
+      prism:issn
       prism:eIssn
       prism:volume
       prism:issueIdentifier
@@ -279,7 +329,13 @@ parse_scopus_entries <- function(xml) {
 
     myaff <- purrr::map2_df(t1, t2, function(x, y) tibble::tibble(x, y))
 
-    list(publications = mypubs, authors = myaut, affiliations = myaff)
+    # extras <- list(
+    #   pii = xml %>% map(function(x) find_name(x, "pii")),
+    #   article_number = xml %>% map(function(x) find_name(x, "article-number")),
+    #   fund_acr = xml %>% map(function(x) find_name(x, "fund-acr"))
+    # )
+
+    list(publications = mypubs, authors = myaut, affiliations = myaff)#, object = extras)
 
 }
 
@@ -387,4 +443,184 @@ scopus_ratelimit_quota <- function() {
     `X-RateLimit-Remaining` = rl_remaining,
     `X-RateLimit-Reset` = rl_reset_ts
   )
+}
+
+#' Request extended information from Scopus Abstract API
+#'
+#' The response includes the abstract itself, associated author groups with
+#'    data including source text for affiliated organisations, and affiliated
+#' @param sid ScopusID such as "SCOPUS_ID:85140569271" or "85140569271"
+#' @return list with three slots for abstract, authorgroups and correspondence
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  mysid <- scopus$publications$`dc:identifier`[1]
+#'  scopus_abstract_extended(mysid)
+#'  }
+#' }
+#' @seealso
+#'  \code{\link[httr]{content}}
+#'  \code{\link[readr]{parse_atomic}}
+#' @export
+#' @importFrom httr content
+#' @importFrom readr parse_integer
+#' @importFrom purrr map_chr map_int pluck
+#' @importFrom dplyr bind_cols tibble
+scopus_abstract_extended <- function(sid) {
+
+  abstract <- scopus_req_abstract(sid = sid) %>% httr::content()
+
+  text <-
+    abstract$`abstracts-retrieval-response`$coredata$`dc:description`
+
+  pluck_org <- function(x) {
+
+    ce_source <-
+      pluck(x, .default = NA_character_,
+        "affiliation", "ce:source-text")
+
+    if (!is.na(ce_source))
+      return(ce_source)
+
+    pluck(x, .default = NA_character_,
+      "affiliation", "organization") %>% map_chr("$") %>%
+      paste0(collapse = ", ", .)
+  }
+
+  pluck_aut <- function(x) {
+
+    pluck(x, .default = NA_character_,
+      "author", 1
+    )
+
+  }
+
+
+  ag <-
+    abstract$`abstracts-retrieval-response`$item$bibrecord$head$`author-group`
+
+  has_unwrapped_key <- function(key)
+    all(names(map(ag, key)) %in% c("affiliation", "author"))
+
+  needs_wrap <- function(obj, key)
+    unname(map(obj, key)) %>% map_lgl(is.null) %>% all()
+
+  is_unwrapped_author <- has_unwrapped_key("author") && unname(lengths(ag)["author"]) == 1
+  is_unwrapped_aff <- has_unwrapped_key("affiliation") && unname(lengths(ag)["affiliation"]) == 1
+
+  if (needs_wrap(ag, "affiliation") | needs_wrap(ag, "author"))
+    ag <- list(ag)
+
+  raw_org <- ag %>% map(pluck_org) %>% map_dfr(.f = function(x) tibble(raw_org = x), .id = "id")
+
+  value <- NULL
+
+  aut <-
+    map(ag, "author") %>% map_dfr(tibble::enframe, .id = "id")  %>%
+    rowwise() %>%
+    mutate(value = list(as.data.frame(value))) %>%
+    ungroup() %>%
+    pmap_dfr(.f = function(id, name, value) tibble(id, name) %>% bind_cols(value)) %>%
+    rename_with(function(x) chartr(".X", "_x", x)) %>%
+    rename_with(function(x) gsub("__", "_", fixed = TRUE, x = x)) %>%
+    rename_with(function(x) gsub("x_", "", fixed = TRUE, x = x)) %>%
+    select(id, i = name, everything())
+
+#    pull(value) %>% map(as_tibble)
+#    map_dfr(1, 1, .id = "id") %>% select(-c("preferred-name")) %>% unique()
+
+  #map(ag, "affiliation") %>% map(as.data.frame) %>% map_dfr(function(x) as_tibble(x, .name_repair = "minimal"), .id = "id")
+  aff <-
+    map(ag, "affiliation") %>% map(tibble::enframe) %>%
+    map(function(x) x %>% rowwise() %>% mutate(value = paste0(collapse = " ", unique(unlist(value))))) %>%
+    map(function(x) mutate(x, name = gsub("@", "x_", name))) %>%
+    map(function(x) pivot_wider(x, names_from = "name", values_from = "value")) %>%
+    map_dfr(bind_rows, .id = "id") %>%
+    rename_with(function(x) chartr("-:", "__", x)) %>%
+    rename_with(function(x) gsub("x_country", "country3", fixed = TRUE, x = x)) %>%
+    rename_with(function(x) gsub("x_", "", fixed = TRUE, x = x)) %>%
+    left_join(raw_org, by = "id")
+
+  authorgroup <-
+    aut %>% left_join(aff, by = "id") %>%
+    dplyr::bind_cols(sid = sid) %>%
+    select(sid, everything())
+
+  # authorgroup <-
+  #   ag %>%
+  #   tibble(
+  #     # TODO: om inte ce:source-text finns, prova denna accessor
+  #     # [["affiliation"]][["organization"]][[1]][["$"]]
+  #     org_sourcetext = map_chr(., function(x) pluck_org(x)), #, "affiliation", "ce:source-text", .default = NA_character_)),
+  #     author_surname = map_chr(., function(x) pluck(x, "author", 1, "ce:surname", .default = NA_character_)),
+  #     author_initials = map_chr(., function(x) pluck(x, "author", 1, "ce:initials", .default = NA_character_)),
+  #     author_given = map_chr(., function(x) pluck(x, "author", 1, "ce:given-name", .default = NA_character_)),
+  #     author_id = map_chr(., function(x) pluck(x, "author", 1, "@auid", .default = NA_character_)),
+  #     seq = map_int(., function(x) readr::parse_integer(pluck(x, "author", 1, "@seq", .default = NA_character_)))
+  #   ) %>%
+  #   select(-1)
+
+  # relevant with respect to Article Processing Charges / APC costs
+  cor <-
+    abstract$`abstracts-retrieval-response`$item$bibrecord$head$correspondence
+
+  is_single_cor <- cor %>% pluck("person") %>% names() %>% grepl("^ce", .) %>% all()
+
+  if (needs_wrap(cor, "person"))
+    cor <- list(cor)
+
+#  if (!is_single_cor) {
+    correspondence <-
+      cor %>% map(pluck("person")) %>% map_dfr(as_tibble) %>% # %>% pluck("person")
+      rename_with(function(x) chartr("-:", "__", x)) %>%
+      dplyr::bind_cols(sid = sid) %>%
+      select(sid, everything())
+  # } else {
+  #   correspondence <- cor$person %>% as_tibble() %>%
+  #     rename_with(function(x) chartr("-:", "__", x)) %>%
+  #     dplyr::bind_cols(sid = sid) %>%
+  #     select(sid, everything())
+  # }
+
+    # cor %>%
+    # tibble(
+    #   person_surname = map_chr(., function(x) pluck(x, "person", "ce:surname", .default = NA_character_)),
+    #   person_initials = map_chr(., function(x) pluck(x, "person", "ce:initials", .default = NA_character_)),
+    #   person_given = map_chr(., function(x) pluck(x, "person", "ce:given-name", .default = NA_character_))
+    # ) %>%
+    # select(-1)
+
+  list(
+    scopus_abstract = tibble(sid = sid, `dc:description` = text),
+    scopus_authorgroup = authorgroup,
+    scopus_correspondence = correspondence #,
+#    object = abstract
+  )
+}
+
+#' Browse a Scopus electronic identifier
+#' @param eid Electronic Identifier
+#' @importFrom utils browseURL
+#' @export
+scopus_browse <- function(eid) {
+
+  id <- ifelse(grepl("SCOPUS_ID:", eid), gsub("SCOPUS_ID:", "2-s2.0-", eid), eid)
+  utils::browseURL(sprintf(
+    "http://www.scopus.com/record/display.url?origin=inward&partnerID=40&eid=%s",
+    id))
+}
+
+find_name <- function(haystack, needle) {
+  hasName <- NULL
+  if (hasName(haystack, needle)) {
+    haystack[[needle]]
+  } else if (is.list(haystack)) {
+    for (obj in haystack) {
+      ret <- Recall(obj, needle)
+      if (!is.null(ret)) return(ret)
+    }
+  } else {
+   NULL
+  }
 }

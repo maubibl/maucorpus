@@ -785,7 +785,7 @@ check_invalid_use_ISBN <- function(pubs = kth_diva_pubs()) {
   Year <- LastUpdated <- ISBN <- PublicationType <- NULL
 
   pubs %>%
-    filter(!is.na(ISBN) & Year >= 2022 & PublicationType %in% c(
+    filter(!is.na(ISBN) & Year >= 2021 & PublicationType %in% c(
       "Kapitel i bok, del av antologi",
       "Konferensbidrag",
       "Artikel i tidskrift")) %>%

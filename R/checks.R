@@ -557,11 +557,15 @@ check_titles_book_chapters <- function(pubs = kth_diva_pubs()) {
 
 check_invalid_ISI <- function(pubs = kth_diva_pubs()) {
 
+  # from kth-library/bibliutils: r'A19\d{2}[A-Z\d]{5}\d{5}|000\d{12}'
+  re <- "^A19\\d{2}[A-Z\\d]{5}\\d{5}$|^000\\d{12}$"
+
   ISI <- PID <- Year <- DOI <- ScopusId <- NULL
 
   pubs %>%
     filter(!is.na(ISI)) %>%
-    filter(nchar(ISI) != 15, !grepl("^A1", ISI), !grepl("^000", ISI))  %>%
+    #filter(nchar(ISI) != 15, !grepl("^A1", ISI), !grepl("^000", ISI))  %>%
+    filter(!grepl(re, ISI, perl = TRUE)) %>%
     collect() %>%
     select(PID, Year, ISI, DOI, ScopusId) %>%
     mutate(
@@ -701,8 +705,8 @@ check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
 check_invalid_scopusid <- function(pubs = kth_diva_pubs()) {
 
   Year <- NULL
-
-  re <- "2-s2\\.0-\\d{10,11}"
+  # from kth-library/bibliutils: r'2-s2\.0-\d{10,11}'
+  re <- "^2-s2\\.0-\\d{10,11}$"
 
   ScopusId <- NULL
 

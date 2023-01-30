@@ -281,13 +281,15 @@ shorten <- function(x, w = 25) {
 
 check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = kth_diva_authors()) {
 
-  Year <- n_check <- LastUpdated <- NULL
+  # NB: this check is not currently included in report
+  Year <- n_check <- LastUpdated <- lc_title <- NULL
 
   article_title_multiplettes <-
     pubs %>%
     filter(grepl("^Artikel", PublicationType)) %>%
-    group_by(Title) %>%
-    count(Title) %>%
+    mutate(lc_title = trimws(tolower(Title))) %>%
+    group_by(lc_title) %>%
+    count(lc_title) %>%
     arrange(desc(n)) %>%
     filter(n > 1)
 
@@ -296,9 +298,10 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = k
     left_join(
       pubs %>%
         filter(grepl("^Artikel", PublicationType)) %>%
-        select(Title, PID)
-      , by = "Title") %>%
-    group_by(Title, n) %>%
+        mutate(lc_title = trimws(tolower(Title))) %>%
+        select(Title, lc_title, PID)
+      , by = "lc_title") %>%
+    group_by(lc_title, n) %>%
     summarize(pids = paste0(collapse = " ", PID)) %>%
     arrange(desc(n)) %>%
     collect()
@@ -308,9 +311,12 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = k
   atm <-
     atm %>% tidyr::separate_rows(pids) %>%
     mutate(PID = as.double(pids)) %>%
-    inner_join(pubs, by = c("Title", "PID")) %>%
+    inner_join(
+      pubs %>% mutate(lc_title = trimws(tolower(Title)))
+      , by = c("lc_title", "PID")
+    ) %>%
     #mutate(year = lubridate::year(PublicationDate)) %>%
-    select(Title, n, PID, Year, LastUpdated)
+    select(Title, lc_title, n, PID, Year, LastUpdated)
 
   a <-
     authors %>%
@@ -322,7 +328,7 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = k
   atm %>%
     inner_join(a, by = "PID") %>%
     mutate(check_key = paste0(initials, "_", Year)) %>%
-    select(PID, Year, Title, LastUpdated, check_key, n) %>%
+    select(PID, Year, Title, lc_title, LastUpdated, check_key, n) %>%
     mutate(PID = link_diva(PID, PID)) %>%
     mutate(Title = link_titlesearch(Title, Title)) %>%
     group_by(check_key) %>%
@@ -343,7 +349,7 @@ tidy_html <- function(x)
 
 check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
 
-  Year <- LastUpdated <- clean_notes <- n_check <- NULL
+  Year <- LastUpdated <- clean_notes <- n_check <- lc_title <- NULL
 
   re <- paste0(
     "Not duplicate with|not duplicate with|Non-duplicate with|Not dublicate|No duplicate",
@@ -354,10 +360,11 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
   title_multiplettes <-
     pubs %>%
     mutate(clean_notes = map_chr(Notes, tidy_html)) %>%
+    mutate(lc_title = trimws(tolower(Title))) %>%
     filter(!grepl(re, clean_notes)) %>%
     #  filter(grepl("^Artikel", PublicationType)) %>%
-    group_by(Title, PublicationType) %>%
-    count(Title) %>%
+    group_by(lc_title, PublicationType) %>%
+    count(lc_title) %>%
     arrange(desc(n)) %>%
     filter(n > 1)
 
@@ -366,10 +373,11 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     left_join(
       pubs %>%
         mutate(clean_notes = map_chr(Notes, tidy_html)) %>%
+        mutate(lc_title = trimws(tolower(Title))) %>%
         filter(!grepl(re, clean_notes)) %>%
-        select(Title, PID, PublicationType, DOI)
-      , by = c("Title", "PublicationType")) %>%
-    group_by(Title, n, PublicationType) %>%
+        select(Title, lc_title, PID, PublicationType, DOI)
+      , by = c("lc_title", "PublicationType")) %>%
+    group_by(lc_title, n, PublicationType) %>%
     summarize(pids = paste0(collapse = " ", PID), .groups = "drop") %>%
     arrange(desc(n)) %>%
     collect()
@@ -378,7 +386,9 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     tm %>%
     tidyr::separate_rows(pids) %>%
     mutate(PID = as.double(pids)) %>%
-    inner_join(pubs, by = c("Title", "PID", "PublicationType")) %>%
+    inner_join(
+      pubs %>% mutate(lc_title = trimws(tolower(Title))),
+      by = c("lc_title", "PID", "PublicationType")) %>%
     #mutate(year = lubridate::year(PublicationDate)) %>%
     select(Title, n, PID, Year, LastUpdated, PublicationType, Notes, JournalISSN, JournalEISSN) %>%
     mutate(clean_notes = map_chr(Notes, tidy_html)) %>%
@@ -420,7 +430,7 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     select(PID, Year, Title, PublicationType, LastUpdated, check_key, n, JournalISSN, JournalEISSN, clean_notes) %>%
     group_by(check_key) %>%
     add_count(check_key, sort = TRUE, name = "n_check") %>%
-    arrange(desc(n_check), desc(check_key), desc(LastUpdated), desc(Title)) %>%
+    arrange(desc(n_check), desc(check_key), desc(Title), desc(LastUpdated)) %>%
     ungroup() %>%
     filter(!grepl(exceptions, Title))
 
@@ -789,7 +799,7 @@ check_invalid_use_ISBN <- function(pubs = kth_diva_pubs()) {
   Year <- LastUpdated <- ISBN <- PublicationType <- NULL
 
   pubs %>%
-    filter(!is.na(ISBN) & Year >= 2021 & PublicationType %in% c(
+    filter(!is.na(ISBN) & Year >= 2020 & PublicationType %in% c(
       "Kapitel i bok, del av antologi",
       "Konferensbidrag",
       "Artikel i tidskrift")) %>%
@@ -1170,4 +1180,79 @@ checks_exclusions <- function(csvfile = checks_exclusions_url()) {
     stop("File ", csvfile, " is either not present or has invalid format")
 
   return (res)
+}
+
+check_invalid_orgid <- function(aut = kth_diva_authors()) {
+
+  orgid <- is_closed <- closed_date <- n_orgs <-
+    n_pids <- alt_n_pids <- alt_n_orgs <-
+    lc_title <- NULL
+
+  diva_orgs <-
+    diva_organisations() %>%
+    mutate(orgid = as.character(orgid))
+
+  orgs_closed <-
+    diva_orgs %>%
+    filter(is_closed) %>%
+    arrange(desc(closed_date))
+
+  # authors belonging to closed diva organisation ids
+  aut_stale <-
+    aut %>%
+    inner_join(orgs_closed, by = "orgid") %>%
+    arrange(desc(closed_date)) %>%
+    group_by(name, orcid, kthid, PID, orgid) %>%
+    count() %>%
+    collect() %>%
+    ungroup()
+
+  # candidates for non-closed org belongings
+  candidate_orgs <-
+    aut %>%
+      anti_join(orgs_closed, by = "orgid") %>%
+      group_by(name, orcid, kthid, PID, orgid) %>%
+      count() %>%
+      collect() %>%
+      ungroup() %>%
+      inner_join(
+        diva_orgs %>%
+          filter(!is_closed) %>%
+          select(is_closed, closed_date, orgid),
+        by = "orgid"
+      ) %>%
+      group_by(name, orcid, kthid) %>%
+      summarise(
+        orgids = paste0(collapse = " ", unique(orgid)),
+        pids = paste0(collapse = " ", unique(PID)),
+        n_orgs = n_distinct(orgid),
+        n_pids = n_distinct(PID)
+      )
+
+  # authors with stale orgids and their corresponding valid orgids
+  recommendations <-
+    aut_stale %>%
+      group_by(name, orcid, kthid) %>%
+      summarize(
+        stale_pids = paste(collapse = " ", unique(PID)),
+        stale_orgids = paste(collapse = " ", unique(orgid))
+      ) %>%
+      left_join(
+        candidate_orgs,
+        by = c("name", "orcid", "kthid")
+      ) %>%
+      collect() %>%
+      select(
+        everything(),
+        alt_orgids = orgids,
+        alt_pids = pids,
+        alt_n_orgs = n_orgs,
+        alt_n_pids = n_pids
+      ) %>%
+      arrange(desc(alt_n_pids), -desc(alt_n_orgs), name)
+
+  # these have one other belonging that is not closed
+  # and more than 50 publications
+  recommendations %>% filter(alt_n_orgs == 1 & alt_n_pids > 50) %>%
+    select(-c("stale_pids", "alt_pids"))
 }

@@ -799,7 +799,7 @@ check_invalid_use_ISBN <- function(pubs = kth_diva_pubs()) {
   Year <- LastUpdated <- ISBN <- PublicationType <- NULL
 
   pubs %>%
-    filter(!is.na(ISBN) & Year >= 2020 & PublicationType %in% c(
+    filter(!is.na(ISBN) & Year >= 2021 & PublicationType %in% c(
       "Kapitel i bok, del av antologi",
       "Konferensbidrag",
       "Artikel i tidskrift")) %>%
@@ -956,7 +956,10 @@ diva_checks <- function(authors, pubs, config = diva_config()) {
     multiplettes_scopusid = check_multiplettes_scopusid(pubs),
     multiplettes_DOI = check_multiplettes_DOI(pubs),
     multiplettes_ISI = check_multiplettes_ISI(pubs),
-    swepub = swepub_checks(config)
+    swepub = swepub_checks(
+      year_beg = lubridate::year(Sys.Date()),
+      year_end = lubridate::year(Sys.Date())
+    )
   )
 
   stats <-
@@ -1253,6 +1256,6 @@ check_invalid_orgid <- function(aut = kth_diva_authors()) {
 
   # these have one other belonging that is not closed
   # and more than 50 publications
-  recommendations %>% filter(alt_n_orgs == 1 & alt_n_pids > 50) %>%
-    select(-c("stale_pids", "alt_pids"))
+  recommendations %>% filter(alt_n_orgs == 1 & alt_n_pids > 50) #%>%
+    #select(-c("stale_pids", "alt_pids"))
 }

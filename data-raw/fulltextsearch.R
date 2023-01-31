@@ -22,10 +22,12 @@ mypubs <- kth_diva_pubs() %>% select(-Name)
 
 myauthors <-
   kth_diva_authors() %>%
-  distinct(name, kthid, orcid, orgids, extorg, pids) %>%
-  left_join(kth_diva_aliases(), by = "kthid") %>%
-  rename(fullname = name.x, orcid = orcid.x) %>%
+  distinct(name, kthid, orcid, orgid, extorg) %>%
+  left_join(kth_diva_aliases() %>% filter(!grepl("^PI000|^-", kthid)), by = "kthid") %>%
+  rename(fullname = name.x, orcid = orcid.x, n_aliases = n) %>%
   select(-c(name.y, orcid.y)) %>%
+  unique() %>%
+  arrange(desc(n_aliases), orcid, extorg) %>%
   mutate(rowid = 1:nrow(.)) %>%
   select(rowid, everything()) #%>%
 #  mutate(image_url = paste0("https://www.kth.se/files/avatar/", username))
@@ -97,7 +99,8 @@ kdc %>%
   View()
 
 # frequent organization code combos and their affiliationstrings at KTH
-kdc %>%
+affcombos <-
+  kdc %>%
   filter(!grepl("NA", orgids)) %>%
   filter(!grepl("KTH$", unit_descrs)) %>%
   filter(!grepl(";", unit_descrs)) %>%
@@ -122,7 +125,11 @@ kdc %>%
     #grepl("^(\\d{3})?, (\\d{4})?, (\\d{5})?, (\\d{6})?$", orgids, perl = TRUE)
   ) %>%
   arrange(desc(orgids)) %>%
-  View()
+  mutate(combo_id = 1:nrow(affcombos)) %>%
+  select(combo_id, everything())
+
+
+affcombos %>% View()
 
 
 diva_orgs <- function() {
@@ -167,11 +174,12 @@ diva_orgs <- function() {
 
 # TODO: how match desc strings here to get slugs?
 diva_orgs() %>% left_join(myorgs)
-diva_orgs() -> do
+
+do <- diva_orgs()
 
 do %>% filter(is_closed)
 
-orgz <- kth_diva_orgcombos()
+orgz <- affcombos
 
 write_rds(orgz, "orgz.rds")
 
@@ -185,6 +193,18 @@ hrplus <- hr_plus()
 write_json(mypubs, file.path(mytmp, "pubs.json"))
 write_json(myauthors, file.path(mytmp, "authors.json"))
 write_json(hrplus, file.path(mytmp, "hrplus.json"))
+write_json(do, file.path(mytmp, "orgs.json"))
+write_json(affcombos, file.path(mytmp, "affs.json"))
+
+wc <- function(data, filename) {
+  write_csv(data, file.path(mytmp, filename), na = "", quote = "all", escape = "double")
+}
+
+wc(mypubs, "pubs.csv")
+wc(myauthors, "authors.csv")
+wc(hrplus, "hrplus.csv")
+wc(do, "orgs.csv")
+wc(affcombos, "affs.csv")
 
 library(readxl)
 
@@ -203,11 +223,13 @@ gvs <-
   select(rowid, everything())
 
 write_json(gvs, file.path(mytmp, "gvs.json"))
+wc(gvs, "gvs.csv")
 
 #file.edit("~/.Renviron")
 #readRenviron("~/.Renviron")
 meili_base <- "https://search.bibliometrics.lib.kth.se"
-meili_cfg <- add_headers(`X-Meili-API-Key` = Sys.getenv("MEILI_KEY"))
+#meili_cfg <- add_headers(`X-Meili-API-Key` = Sys.getenv("MEILI_KEY"))
+meili_cfg <- add_headers(`Authorization` =  paste("Bearer", Sys.getenv("MEILI_KEY")))
 
 #meili_base <- "http://localhost:7700"
 #meili_cfg <- add_headers(`X-Meili-API-Key` = "masterKey")
@@ -233,6 +255,16 @@ meili_ingest <- function(index, jsonfile) {
   content(res)
 }
 
+meili_ingest_csv <- function(index, csvfile) {
+    res <- POST(
+    url = sprintf(paste0(meili_base, "/indexes/%s/documents"), index),
+    config = meili_cfg,
+    content_type("text/csv"),
+    body = upload_file(csvfile)
+  )
+  content(res)
+}
+
 meili_status <- function(index, jobid) {
 
   res <-
@@ -244,30 +276,63 @@ meili_status <- function(index, jobid) {
   content(res)
 }
 
+meili_tasks <- function() {
+
+  res <-
+    GET(
+      url = sprintf(paste0(meili_base, "/tasks")),
+      config = meili_cfg)
+
+  res <- content(res)
+
+  purrr::map(res$results, as.data.frame) %>%
+    purrr::map_df(bind_rows) %>%
+    tibble::as_tibble()
+
+}
+
+meili_settings <- function(index) {
+
+    content(GET(
+      url = sprintf(paste0(meili_base, "/indexes/%s/settings"),
+                    index),
+      config = meili_cfg))
+
+
+}
+
+meili_document <- function(index, id) {
+      content(GET(
+      url = sprintf(paste0(meili_base, "/indexes/%s/documents/%s"),
+                    index, id),
+      config = meili_cfg))
+}
 
 # we create an index, send it json data and check the status until is "processed"
 
 meili_createindex("pubs", "PID")
-jobid <- meili_ingest("pubs", file.path(mytmp, "pubs.json"))$updateId
-meili_status("pubs", jobid)$status
+jobid <- meili_ingest_csv("pubs", file.path(mytmp, "pubs.json"))$taskUid
 
 meili_createindex("authors", idfield = "rowid")
-jobid <- meili_ingest("authors", file.path(mytmp, "authors.json"))$updateId
-meili_status("authors", jobid)$status
+meili_tasks()
+#jobid <- meili_ingest("authors", file.path(mytmp, "authors.json"))$taskUid
+jobid <- meili_ingest_csv("authors", file.path(mytmp, "authors.csv"))$taskUid
 
-meili_createindex("hrplus")
-jobid <- meili_ingest("hrplus", file.path(mytmp, "hrplus.json"))$updateId
-meili_status("hrplus", jobid)$status
+#meili_createindex("hrplus")
+jobid <- meili_ingest_csv("hrplus", file.path(mytmp, "hrplus.csv"))$taskUid
 
-meili_createindex("gvs2", idfield = "Ver.nr")
-jobid <- meili_ingest("gvs2", file.path(mytmp, "gvs.json"))$updateId
-meili_status("gvs2", jobid)$status
+meili_ingest_csv("orgs", file.path(mytmp, "orgs.csv"))$taskUid
+
+meili_ingest_csv("affs", file.path(mytmp, "affs.csv"))
+
+meili_tasks()
+meili_ingest_csv("gvs", file.path(mytmp, "gvs.csv"))
 
 
-while (meili_status("hrplus", jobid)$status != "processed") {
-  Sys.sleep(1)
-  cat(".")
-}
+# while (meili_status("hrplus", jobid)$status != "processed") {
+#   Sys.sleep(1)
+#   cat(".")
+# }
 
 # check the web ui for the search index
 browseURL(meili_base) # use masterKey
@@ -304,12 +369,16 @@ meili_search <- function(
 
   s <- content(res)
 
+  s
+
   # TODO: iterate over pages and return results as data frame?
   #purrr::map_df(s$hits, dplyr::as_tibble)
 
 }
 
 library(purrr)
+
+meili_search("authors", "Maguire")
 
 meili_search("authors", "Xuezhi")$hits %>% map_df(dplyr::as_tibble)
 meili_search("hrplus", "Xuezhi")$hits %>% map_df(dplyr::as_tibble)

@@ -11,3 +11,4 @@ Dockerfile$
 Makefile$
 rocker_scripts$
 .dockerignore$
+^\.httr-oauth$

@@ -79,7 +79,7 @@ link_general <- function(href, text) {
 #' @export
 linkify <- function(href, text = shorten(href), title = href, target =
   c("href", "PID", "titlesearch", "freetextsearch", "DOI", "ScopusID", "ISSN",
-    "ISBN", "ISI", "ORCID")) {
+    "ISBN", "ISI", "ORCID", "PMID")) {
 
   if (missing(target)) target <- "href"
 
@@ -98,9 +98,11 @@ linkify <- function(href, text = shorten(href), title = href, target =
       )
   }
 
+  portal <- diva_config()$portal
+
   p_PID <- function(x) {
     stringr::str_c(
-      "https://kth.diva-portal.org/smash/record.jsf?dswid=-310&pid=diva2%3A",
+      paste0(portal, "/smash/record.jsf?dswid=-310&pid=diva2%3A"),
       x
     )
   }
@@ -127,7 +129,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
 
   search_title <- function(term)
     stringr::str_c(
-      "https://kth.diva-portal.org/smash/resultList.jsf",
+      paste0(portal, "/smash/resultList.jsf"),
       "?aq2=%5B%5B%5D%5D&af=%5B%5D&searchType=RESEARCH",
       "&sortOrder2=title_sort_asc&language=en",
       "&aq=%5B%5B%7B%22titleAll%22%3A%22",
@@ -139,7 +141,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
 
   search_free <- function(term)
     stringr::str_c(
-      "https://kth.diva-portal.org/smash/resultList.jsf",
+      paste0(portal, "/smash/resultList.jsf"),
       "?language=en&searchType=RESEARCH&",
       "query=&af=%5B%5D&aq=%5B%5B%7B%22freeText%22%3A%22",
       utils::URLencode(term, reserved = TRUE, repeated = FALSE),
@@ -172,6 +174,10 @@ linkify <- function(href, text = shorten(href), title = href, target =
     stringr::str_c("https://orcid.org/", x)
   }
 
+  p_PMID <- function(x) {
+    stringr::str_c("https://pubmed.ncbi.nlm.nih.gov/", x)
+  }
+
   href_modified <- switch (target,
     href = href,
     PID = p_PID(href),
@@ -183,6 +189,7 @@ linkify <- function(href, text = shorten(href), title = href, target =
     ISBN = p_ISBN(href),
     ISI = p_ISI(href),
     ORCID = p_ORCID(href),
+    PMID = p_PMID(href),
     href
   )
 
@@ -193,21 +200,21 @@ linkify <- function(href, text = shorten(href), title = href, target =
 }
 
 link_diva <- function(href, text) {
-  if (!nzchar(href) || !nzchar(text))
+  if ((length(href) == 1 || length(text) == 1) && all(!nzchar(href) | !nzchar(text)))
     return (NA_character_)
-  paste0("<a href='https://kth.diva-portal.org/smash/record.jsf?dswid=-310&pid=diva2%3A",
+  paste0(paste0("<a href='", diva_config()$portal, "/smash/record.jsf?dswid=-310&pid=diva2%3A"),
          href, "' target='_blank' rel='noopener noreferrer' title='", text, "'>", shorten(text), "</a>")
 }
 
 link_DOI <- function(href, text) {
-  if (!nzchar(href) || !nzchar(text))
+  if ((length(href) == 1 || length(text) == 1) && all(!nzchar(href) | !nzchar(text)))
     return (NA_character_)
   paste0("<a href='https://doi.org/", href,
      "' target='_blank' rel='noopener noreferrer' title='", text, "'>", shorten(text), "</a>")
 }
 
 link_ScopusID <- function(href, text) {
-  if (!nzchar(href) || !nzchar(text))
+  if ((length(href) == 1 || length(text) == 1) && all(!nzchar(href) | !nzchar(text)))
     return (NA_character_)
   paste0("<a href='https://www.scopus.com/record/display.url?origin=inward&partnerID=40&eid=", href,
          "' target='_blank' rel='noopener noreferrer' title='", text, "'>", shorten(text), "</a>")
@@ -218,7 +225,7 @@ link_titlesearch <- function(title, text) {
 
   if (missing(text)) text <- title
 
-  if (!nzchar(title) || !nzchar(text))
+  if ((length(title) == 1 || length(text) == 1) && all(!nzchar(title) | !nzchar(text)))
     return (NA_character_)
 
   title_search <- function(term)
@@ -272,7 +279,7 @@ shorten <- function(x, w = 25) {
   #ifelse(nchar(x) > 20, paste0(substr(x, 1, 20), "..."), x)
 }
 
-check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
+check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = kth_diva_authors()) {
 
   Year <- n_check <- LastUpdated <- NULL
 
@@ -306,7 +313,7 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
     select(Title, n, PID, Year, LastUpdated)
 
   a <-
-    kth_diva_authors() %>%
+    authors %>%
     filter(PID %in% atm$PID) %>%
     mutate(last_name = gsub("(.+?)(,.*)", "\\1", name)) %>%
     group_by(PID) %>%
@@ -315,7 +322,7 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
   atm %>%
     inner_join(a, by = "PID") %>%
     mutate(check_key = paste0(initials, "_", Year)) %>%
-    select(PID, Title, LastUpdated, check_key, n) %>%
+    select(PID, Year, Title, LastUpdated, check_key, n) %>%
     mutate(PID = link_diva(PID, PID)) %>%
     mutate(Title = link_titlesearch(Title, Title)) %>%
     group_by(check_key) %>%
@@ -323,7 +330,7 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs()) {
     arrange(desc(LastUpdated), desc(check_key), desc(n_check), desc(Title)) %>%
     ungroup() %>%
     collect() %>%
-    select(PID, Title, check_key, n, n_check, LastUpdated)
+    select(PID, Year, Title, check_key, n, n_check, LastUpdated)
 
 }
 
@@ -385,18 +392,46 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     group_by(PID) %>%
     summarise(initials = paste0(collapse = "", substr(last_name, 1, 1)))
 
-  tm %>%
+  # NOTE: using non ascii characters here -> stringi::stri_escape_unicode can help!
+  exceptions <- trimws(readr::read_lines(
+    "Background
+    Commentary
+    Conclusions
+    Conclusion
+    Editorial
+    Editor's foreword
+    Editors' foreword
+    Editors\u2019 foreword
+    Examples
+    Foreword
+    F\u00f6rord
+    Guest editorial
+    Introduction
+    Message from the [Cc]hairs
+    Preface
+    Preliminaries
+    Preview
+    Untitled")) %>% paste0(collapse  = "|")
+
+  b <-
+    tm %>%
     inner_join(a, by = "PID") %>%
     mutate(check_key = paste0(initials, "_", Year)) %>%
-    select(PID, Title, PublicationType, LastUpdated, check_key, n, JournalISSN, JournalEISSN, clean_notes) %>%
+    select(PID, Year, Title, PublicationType, LastUpdated, check_key, n, JournalISSN, JournalEISSN, clean_notes) %>%
     group_by(check_key) %>%
     add_count(check_key, sort = TRUE, name = "n_check") %>%
     arrange(desc(n_check), desc(check_key), desc(LastUpdated), desc(Title)) %>%
     ungroup() %>%
+    filter(!grepl(exceptions, Title))
+
+
+  stoplist <- checks_exclusions()
+
+  b %>% anti_join(stoplist, by = c("PID", "Title")) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(Title = linkify(Title, target = "titlesearch")) %>%
     collect() %>%
-    select(PID, Title, PublicationType, n_check, n, LastUpdated, JournalISSN, JournalEISSN, check_key, clean_notes)
+    select(PID, Year, Title, PublicationType, n_check, n, LastUpdated, JournalISSN, JournalEISSN, check_key, clean_notes)
 
 }
 
@@ -405,12 +440,12 @@ check_invalid_submission_status <- function(pubs = kth_diva_pubs()) {
   # possibly a Zenodo DOI could exist, but in general no identifier
   # has yet been assigned if "only" submitted
 
-  ScopusId <- ISI <- DOI <- PID <- NULL
+  ScopusId <- ISI <- DOI <- PID <- Year <- NULL
 
   pubs %>%
     filter(Status == "submitted" &
         (!is.na(DOI) | !is.na(ISI) | !is.na(ScopusId))) %>%
-    select(PID, ISI, DOI, ScopusId) %>%
+    select(PID, Year, ISI, DOI, ScopusId) %>%
     mutate(
       PID = linkify(PID, target = "PID"),
       ISI = linkify(ISI, target = "ISI"),
@@ -420,23 +455,52 @@ check_invalid_submission_status <- function(pubs = kth_diva_pubs()) {
 
 }
 
-check_missing_kthid <- function(authors = kth_diva_authors()) {
+check_missing_kthid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs()) {
 
-  LastUpdated <- orgid <- ScopusId <- NULL
+  LastUpdated <- Year <- orgid <- ScopusId <- NULL
 
   authors %>%
     filter(!is.na(orgid) & is.na(kthid))  %>%
-    inner_join(kth_diva_pubs() %>% select(PID, LastUpdated), by = "PID") %>%
+    inner_join(pubs %>% select(PID, Year, LastUpdated), by = "PID") %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
 #    mutate(pids = linkify(pids, target = "freetextsearch")) %>%
     mutate(name = linkify(name, target = "freetextsearch")) %>%
     mutate(orgid = linkify(orgid, target = "freetextsearch")) %>%
     mutate(extorg = linkify(extorg, target = "freetextsearch")) %>%
     mutate(orcid = linkify(orcid, target = "ORCID")) %>%
-    mutate(ScopusId = linkify(ScopusId, target = "ScopudsID")) %>%
+    mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
     arrange(desc(LastUpdated)) %>%
-    select(PID, name, LastUpdated, kthid, orcid, DOI, ScopusId)
+    select(PID, Year, name, LastUpdated, kthid, orcid, DOI, ScopusId)
+
+}
+
+check_missing_orcids <- function(authors = kth_diva_authors()) {
+
+  kthid <- orcid <- PID <- nd <- nd_casing <- has_casing <-
+    na <- orcids <- NULL
+
+  authors %>%
+    select(kthid, orcid, PID) %>%
+    filter(!is.na(kthid), !(grepl("00000*|-", kthid))) %>%
+    group_by(kthid) %>%
+    summarise(
+      na = sum(is.na(orcid)),
+      nd = n_distinct(orcid, na.rm = TRUE),
+      nd_casing = n_distinct(toupper(orcid), na.rm = TRUE),
+      orcids = paste0(collapse = ", ", na.omit(unique(orcid))),
+    ) %>%
+    mutate(
+      has_casing = (nd != nd_casing)
+    ) %>%
+    arrange(desc(nd)) %>%
+    select(kthid, na, nd, nd_casing, has_casing, orcids) %>%
+    filter(nd == 1) %>%
+    arrange(desc(na)) %>%
+    filter(na > 9) %>%
+    mutate(cs = cumsum(na)) %>%
+    select(kthid, orcid = orcids, n_na_pubs = na) %>%
+    mutate(orcid = linkify(orcid, target = "ORCID"))
 
 }
 
@@ -451,7 +515,8 @@ check_missing_date <- function(pubs = kth_diva_pubs()) {
 
 check_missing_journals_identifiers <- function(pubs = kth_diva_pubs()) {
 
-  ScopusId <- Journal <- LastUpdated <- NULL
+  ScopusId <- Year <- Journal <- LastUpdated <- clean_notes <-
+    Status <- PublicationType <- NULL
 
   step <-
     pubs %>%
@@ -460,13 +525,16 @@ check_missing_journals_identifiers <- function(pubs = kth_diva_pubs()) {
     collect()
 
   step %>%
-    mutate(PID = link_diva(PID, Title)) %>%
+    mutate(PID = link_diva(PID, PID)) %>%
     mutate(Title = linkify(Title, target = "titlesearch")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
     mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
     mutate(Name = linkify(Name, target = "freetextsearch")) %>%
     mutate(Journal = linkify(Journal, target = "freetextsearch")) %>%
-    select(PID, Title, LastUpdated, starts_with("Journal"), DOI, ScopusId, Name)
+    mutate(clean_notes = map_chr(Notes, tidy_html)) %>%
+    filter(!grepl("No ISSN", clean_notes)) %>%
+    filter(!Status %in% c("submitted", "accepted")) %>%
+    select(PID, Year, Title, LastUpdated, starts_with("Journal"), PublicationType, Status, DOI, ScopusId, Name, clean_notes)
 }
 
 check_titles_book_chapters <- function(pubs = kth_diva_pubs()) {
@@ -489,13 +557,17 @@ check_titles_book_chapters <- function(pubs = kth_diva_pubs()) {
 
 check_invalid_ISI <- function(pubs = kth_diva_pubs()) {
 
-  ISI <- PID <- DOI <- ScopusId <- NULL
+  # from kth-library/bibliutils: r'A19\d{2}[A-Z\d]{5}\d{5}|000\d{12}'
+  re <- "^A19\\d{2}[A-Z\\d]{5}\\d{5}$|^000\\d{12}$"
+
+  ISI <- PID <- Year <- DOI <- ScopusId <- NULL
 
   pubs %>%
     filter(!is.na(ISI)) %>%
-    filter(nchar(ISI) != 15, !grepl("^A1", ISI), !grepl("^000", ISI))  %>%
+    #filter(nchar(ISI) != 15, !grepl("^A1", ISI), !grepl("^000", ISI))  %>%
+    filter(!grepl(re, ISI, perl = TRUE)) %>%
     collect() %>%
-    select(PID, ISI, DOI, ScopusId) %>%
+    select(PID, Year, ISI, DOI, ScopusId) %>%
     mutate(
       PID = linkify(PID, target = "PID"),
       ISI = linkify(ISI, target = "ISI"),
@@ -507,12 +579,12 @@ check_invalid_ISI <- function(pubs = kth_diva_pubs()) {
 
 check_invalid_DOI <- function(pubs = kth_diva_pubs()) {
 
-  ISI <- PID <- DOI <- ScopusId <- NULL
+  ISI <- PID <- Year <- DOI <- ScopusId <- NULL
 
   pubs %>%
     filter(!is.na(DOI)) %>%
     filter(!grepl("^10[.]", DOI)) %>%
-    select(PID, DOI, ISI, ScopusId)  %>%
+    select(PID, Year, DOI, ISI, ScopusId)  %>%
     mutate(
       PID = linkify(PID, target = "PID"),
       ISI = linkify(ISI, target = "ISI"),
@@ -522,9 +594,10 @@ check_invalid_DOI <- function(pubs = kth_diva_pubs()) {
 
 }
 
+
 check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
 
-  ScopusId <- DOI_link <- Scopus_link <- n_pids <- LastUpdated <- NULL
+  ScopusId <- Year <- DOI_link <- Scopus_link <- n_pids <- LastUpdated <- NULL
 
   pubs %>%
     select(PID, DOI) %>%
@@ -533,20 +606,20 @@ check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
     filter(n > 1) %>%
     arrange(desc(n)) %>%
     inner_join(pubs, by = "DOI") %>%
-    select(PID, Title, n_pids = n, DOI, ScopusId, LastUpdated, ISI) %>%
+    select(PID, Year, Title, n_pids = n, DOI, ScopusId, LastUpdated, ISI) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(Title = linkify(Title, target = "titlesearch")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
     mutate(ScopusId = linkify(ScopusId, target = "ScopusId")) %>%
     mutate(ISI = linkify(ISI, target = "ISI")) %>%
     collect() %>%
-    select(PID, Title, n_pids, DOI, ISI, ScopusId, LastUpdated) %>%
+    select(PID, Year, Title, n_pids, DOI, ISI, ScopusId, LastUpdated) %>%
     arrange(desc(n_pids), desc(DOI), desc(LastUpdated))
 }
 
 check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
 
-  ScopusId <- n_pids <- DOI_link <- ScopusId_link <- LastUpdated <-  NULL
+  ScopusId <- n_pids <- Year <- DOI_link <- ScopusId_link <- LastUpdated <-  NULL
 
   pubs %>%
     select(PID, DOI, ScopusId) %>%
@@ -555,14 +628,14 @@ check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
     filter(n > 1) %>%
     arrange(desc(n)) %>%
     inner_join(kth_diva_pubs(), by = "ScopusId") %>%
-    select(DOI, n_pids = n, PID, Title, ScopusId, ISI, LastUpdated) %>%
+    select(DOI, Year, n_pids = n, PID, Title, ScopusId, ISI, LastUpdated) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(Title = linkify(Title, target = "titlesearch")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
     mutate(ScopusId = linkify(ScopusId, target = "ScopusId")) %>%
     mutate(ISI = linkify(ISI, target = "ISI")) %>%
     collect() %>%
-    select(PID, Title, n_pids, ScopusId, DOI, ISI, LastUpdated) %>%
+    select(PID, Year, Title, n_pids, ScopusId, DOI, ISI, LastUpdated) %>%
     arrange(desc(n_pids), desc(ScopusId), desc(LastUpdated))
 }
 
@@ -570,7 +643,7 @@ check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
 
   # ISI = UT = WoS identifier
 
-  ScopusId <- n_pids <- n_scopusid <- LastUpdated <- NULL
+  ScopusId <- Year <- n_pids <- n_scopusid <- LastUpdated <- NULL
 
   pubs %>%
   select(PID, ISI, ScopusId) %>%
@@ -578,9 +651,9 @@ check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
   filter(n > 1, !is.na(ISI)) %>%
   arrange(desc(n)) %>%
   inner_join(kth_diva_pubs(), by = "ISI") %>%
-  select(ISI, n_pids = n, PID, Title, ScopusId, LastUpdated, DOI) %>%
+  select(ISI, Year, n_pids = n, PID, Title, ScopusId, LastUpdated, DOI) %>%
   collect() %>%
-  select(PID, Title, n_pids, ISI, DOI, ScopusId, LastUpdated) %>%
+  select(PID, Year, Title, n_pids, ISI, DOI, ScopusId, LastUpdated) %>%
   mutate(PID = linkify(PID, target = "PID")) %>%
   mutate(ISI = linkify(ISI, target = "ISI")) %>%
   mutate(DOI = linkify(DOI, target = "DOI")) %>%
@@ -611,33 +684,41 @@ check_invalid_kthid <- function(authors = kth_diva_authors()) {
 
 }
 
-check_invalid_orcid <- function(authors = kth_diva_authors()) {
+check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs()) {
 
-  re <- "^([0-9]{4})?(-)?([0-9]{4})?(-)?([0-9]{4})?(-)?([0-9]{3}[0-9Xx]{1})$"
+  re <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
 
-  ScopusId <- NULL
+  ScopusId <- Year <- LastUpdated <- NULL
 
   authors %>%
     filter(!grepl(re, orcid) & !is.na(orcid)) %>%
+    left_join(
+      pubs %>% select(PID, Year, LastUpdated), by = "PID"
+    ) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(ISI = linkify(ISI, target = "ISI")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
-    mutate(ScopusId = linkify(ScopusId, target = "ScopusID"))
+    mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
+    select(PID, Year, everything())
 }
 
-check_invalid_scopusid <- function(authors = kth_diva_authors()) {
+check_invalid_scopusid <- function(pubs = kth_diva_pubs()) {
 
-  re <- "2-s2\\.0-\\d{10,11}"
+  Year <- NULL
+  # from kth-library/bibliutils: r'2-s2\.0-\d{10,11}'
+  re <- "^2-s2\\.0-\\d{10,11}$"
 
   ScopusId <- NULL
 
-  authors %>%
+  pubs %>%
     filter(!is.na(ScopusId)) %>%
     filter(!grepl(re, ScopusId)) %>%
     mutate(PID = linkify(PID, target = "PID")) %>%
     mutate(ISI = linkify(ISI, target = "ISI")) %>%
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
-    mutate(ScopusId = linkify(ScopusId, target = "ScopusID"))
+    mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
+    arrange(desc(Year)) %>%
+    select(Title, Year, ScopusId, PID, ISI, DOI, Year)
 
 }
 
@@ -649,11 +730,11 @@ check_invalid_ISSN <- function(pubs = kth_diva_pubs()) {
 
   re <- "^\\d{4}-?\\d{3}(X|x|\\d)$"
 
-  has_bad_check <- has_bad_format <- NULL
+  has_bad_check <- has_bad_format <- Year <- NULL
 
   bad_jeissn <-
     pubs %>%
-    filter(!is.na(JournalEISSN)) %>% distinct(JournalEISSN, PID) %>%
+    filter(!is.na(JournalEISSN)) %>% distinct(JournalEISSN, PID, Year) %>%
     mutate(has_bad_check = !libbib::check_issn_check_digit(JournalEISSN, allow.hyphens = TRUE, errors.as.false = TRUE)) %>%
     mutate(has_bad_format = !grepl(re, JournalEISSN)) %>%
     filter(has_bad_check | has_bad_format)
@@ -661,13 +742,13 @@ check_invalid_ISSN <- function(pubs = kth_diva_pubs()) {
   bad_jissn <-
     pubs %>%
     filter(!is.na(JournalISSN)) %>%
-    distinct(JournalISSN, PID) %>%
+    distinct(JournalISSN, PID, Year) %>%
     mutate(has_bad_check = !libbib::check_issn_check_digit(JournalISSN, allow.hyphens = TRUE, errors.as.false = TRUE)) %>%
     mutate(has_bad_format = !grepl(re, JournalISSN)) %>%
     filter(has_bad_check | has_bad_format)
 
   bind_rows(bad_jeissn, bad_jissn) %>%
-    select(PID, JournalEISSN, JournalISSN, everything()) %>%
+    select(PID, Year, JournalEISSN, JournalISSN, everything()) %>%
     mutate(PID = linkify(PID, target="PID"))
 
 }
@@ -689,10 +770,10 @@ check_invalid_ISBN <- function(pubs = kth_diva_pubs()) {
     return(FALSE)
   }
 
-  has_bad_check <- has_bad_format <- n_chars <- ISBN <- NULL
+  has_bad_check <- has_bad_format <- n_chars <- ISBN <- Year <- NULL
 
   pubs %>%
-    filter(!is.na(ISBN)) %>% distinct(PID, ISBN) %>%
+    filter(!is.na(ISBN)) %>% distinct(PID, ISBN, Year) %>%
     tidyr::separate_rows(ISBN, sep = ";") %>%
     mutate(n_chars = nchar(gsub("-", "", ISBN))) %>%
     mutate(has_bad_format = n_chars != 10 & n_chars != 13) %>%
@@ -702,6 +783,25 @@ check_invalid_ISBN <- function(pubs = kth_diva_pubs()) {
     mutate(ISBN = linkify(ISBN, target = "ISBN"))
 
 }
+
+check_invalid_use_ISBN <- function(pubs = kth_diva_pubs()) {
+
+  Year <- LastUpdated <- ISBN <- PublicationType <- NULL
+
+  pubs %>%
+    filter(!is.na(ISBN) & Year >= 2021 & PublicationType %in% c(
+      "Kapitel i bok, del av antologi",
+      "Konferensbidrag",
+      "Artikel i tidskrift")) %>%
+    select(PID, Title, Year, PublicationType, ISBN, LastUpdated) %>%
+    mutate(
+      PID = linkify(PID, target = "PID"),
+      Title = linkify(Title, target = "Title"),
+      ISBN = linkify(ISBN, target = "ISBN")
+    ) %>%
+    arrange(desc(LastUpdated))
+}
+
 
 check_invalid_authorname <- function(authors = kth_diva_authors()) {
 
@@ -714,23 +814,57 @@ check_invalid_authorname <- function(authors = kth_diva_authors()) {
 
 check_published <- function(pubs = kth_diva_pubs()) {
 
-  t1 <-
+  Year <- is_QCorNQC <- NULL
+
+  t0 <-
     pubs %>%
-    mutate(has_notes = grepl("^QP", Notes)) %>%
+    mutate(Notes = map_chr(Notes, tidy_html))
+
+  t1 <-
+    t0 %>%
+    mutate(has_notes = grepl("QP", Notes)) %>%
     mutate(is_not_published = !is.na(Status) &
              (Status %in% c("accepted", "aheadofprint", "inPress"))) %>%
     filter(has_notes, is_not_published)
 
   t2 <-
-    pubs %>%
-    mutate(is_QSorNQC = grepl("^QC|^NQC", Notes)) %>%
+    t0 %>%
+    mutate(Notes = map_chr(Notes, tidy_html)) %>%
+    mutate(is_QCorNQC = grepl("QC|NQC", Notes)) %>%
     filter(Status == "submitted",
-           is_QSorNQC | PublicationType == "Manuskript (preprint)")
+           is_QCorNQC | PublicationType == "Manuskript (preprint)")
 
   bind_rows(t1, t2) %>%
-    select(PID, PublicationType, has_notes,
-           is_not_published, Notes, is_QSorNQC)  %>%
+    select(PID, Year, PublicationType, has_notes,
+           is_not_published, Notes, is_QCorNQC)  %>%
     collect()
+}
+
+check_manuscripts_with_identifiers <- function(pubs = kth_diva_pubs()) {
+
+  # DOIs are usually for published works, sometimes pre-prints provide DOIs though
+
+  # TODO: shall we suppress false positives by excluding DOIs starting with
+  # 10.1101 and 10.48550
+  # https://doi.org/10.1101/2020.08.24.252296
+  # https://doi.org/10.48550/ARXIV.2202.11577
+
+  ScopusId <- PMID <- Year <- LastUpdated <- NULL
+
+  pubs %>%
+    filter(grepl("Manuskript", PublicationType)) %>%
+    filter(!is.na(DOI) | !is.na(ISI) | !is.na(ScopusId) | !is.na(PMID)) %>%
+    select(PID, Year, Title, DOI, ISI, ScopusId, PMID, LastUpdated) %>%
+    arrange(desc(LastUpdated)) %>%
+    mutate(
+      Title = linkify(Title, target = "titlesearch"),
+      PID = linkify(PID, target = "PID"),
+      DOI = linkify(DOI, target = "DOI"),
+      ISI = linkify(ISI, target = "ISI"),
+      PMID = linkify(PMID, target = "PMID"),
+      ScopusId = linkify(ScopusId, target = "ScopusID")
+    )
+
 }
 
 #' Data quality checks for DiVA publication data
@@ -746,6 +880,7 @@ kth_diva_checks <- function() {
     title_multiplettes = check_multiplettes_title(),
     submission_status_invalid = check_invalid_submission_status(),
     missing_kthid = check_missing_kthid(),
+    missing_orcids = check_missing_orcids(),
     #missing_affiliations = check_missing_affiliations(),
     missing_confpubdate = check_missing_date(),
     missing_journal_ids = check_missing_journals_identifiers(),
@@ -757,12 +892,61 @@ kth_diva_checks <- function() {
     invalid_orcid = check_invalid_orcid(),
     invalid_scopusid = check_invalid_scopusid(),
     invalid_isbn = check_invalid_ISBN(),
+    invalid_use_isbn = check_invalid_use_ISBN(),
     invalid_authorname = check_invalid_authorname(),
     uncertain_published = check_published(),
     multiplettes_scopusid = check_multiplettes_scopusid(),
     multiplettes_DOI = check_multiplettes_DOI(),
     multiplettes_ISI = check_multiplettes_ISI(),
+    manuscripts_with_identifiers = check_manuscripts_with_identifiers(),
     swepub = swepub_checks()
+  )
+
+  stats <-
+    checks %>%
+    purrr::map(function(x) ifelse(is.null(x), NA, nrow(x))) %>%
+    tibble::as_tibble() %>%
+    tidyr::pivot_longer(cols = everything())
+
+  checks$stats <- stats
+
+  checks
+
+}
+
+#' Data quality checks for DiVA publication data
+#'
+#' This function makes a number of checks based on publications and author data
+#'
+#' @return a list with slots for data frames with check results
+#' @param authors a data frame with authors (from diva_download)
+#' @param pubs a data frame with pubs (from diva_download)
+#' @param config DiVA settings configuration, by default diva_config
+#' @export
+diva_checks <- function(authors, pubs, config = diva_config()) {
+
+  checks <- list(
+    #article_title_multiplettes = check_multiplettes_article_title(pubs),
+    title_multiplettes = check_multiplettes_title(pubs),
+    submission_status_invalid = check_invalid_submission_status(pubs),
+    missing_kthid = check_missing_kthid(authors),
+    #missing_affiliations = check_missing_affiliations(),
+    missing_confpubdate = check_missing_date(pubs),
+    missing_journal_ids = check_missing_journals_identifiers(pubs),
+    odd_book_chapters = check_titles_book_chapters(pubs),
+    invalid_ISI = check_invalid_ISI(pubs),
+    invalid_DOI = check_invalid_DOI(pubs),
+    invalid_ISSN = check_invalid_ISSN(pubs),
+    invalid_kthid = check_invalid_kthid(authors),
+    invalid_orcid = check_invalid_orcid(authors),
+    invalid_scopusid = check_invalid_scopusid(authors),
+    invalid_isbn = check_invalid_ISBN(pubs),
+    invalid_authorname = check_invalid_authorname(authors),
+    uncertain_published = check_published(pubs),
+    multiplettes_scopusid = check_multiplettes_scopusid(pubs),
+    multiplettes_DOI = check_multiplettes_DOI(pubs),
+    multiplettes_ISI = check_multiplettes_ISI(pubs),
+    swepub = swepub_checks(config)
   )
 
   stats <-
@@ -921,6 +1105,69 @@ checks_upload_report <- function(path, dest = "kthb/kthcorpus") {
 
   if (res == 124) stop("Time out when uploading file ", path)
   if (res != 0) stop("Error when using minio client to upload file, error code: ", res)
+
+  return (res)
+}
+
+#' @importFrom stringi stri_escape_unicode
+contains_unicode <- function(x) {
+  grepl("\\\\u[0-9a-e]{4,}", stringi::stri_escape_unicode(x), perl = TRUE)
+}
+
+#' @importFrom stringi stri_escape_unicode stri_extract_all
+#' @importFrom purrr map_chr
+extract_unicode <- function(x) {
+  purrr::map_chr(stringr::str_extract_all(stringi::stri_escape_unicode(x),
+    "\\\\u[0-9a-e]{4,}"), .f = function(x)
+      ifelse(length(x) == 0 || all(is.na(x)), NA_character_, paste0(x, collapse = " ")))
+}
+
+#' @importFrom tibble tibble
+#' @importFrom dplyr left_join mutate select
+check_identifiers_with_unicode <- function(pub = kth_diva_pubs(), aut = kth_diva_authors()) {
+
+  dataset <- field <- issue <- ua <- NULL
+
+  check_field <- function(data, f) {
+    which(contains_unicode(getElement(data, f)))
+  }
+
+  report_issue <- function(data, f, label) {
+    tibble(rowid = check_field(data, f), field = f, dataset = label) %>%
+      left_join(data %>% mutate(rowid = as.numeric(1:nrow(data))), by = "rowid") %>%
+      mutate(issue = extract_unicode(getElement(., f))) %>%
+      select(PID, dataset, field, unicode_issue=issue)
+  }
+
+
+  report_issues <- function(data, fields, label)
+    purrr::map_df(fields, function(x) report_issue(data, x, label = label))
+
+  issues <-
+    bind_rows(
+      report_issues(aut, label = "authors",
+        fields = c("kthid", "orcid", "DOI", "ScopusId")),
+      report_issues(pub, label = "publications",
+        fields = c("JournalISSN", "JournalEISSN", "SeriesISSN", "JournalEISSN", "ISBN", "ISI", "PMID")
+      )
+    )
+
+  issues %>% mutate(PID = linkify(PID, target = "PID"))
+}
+
+checks_exclusions_url <- function(csvfile = "exceptions_check_multiplettes_title.csv")
+  paste0("https://raw.githubusercontent.com/KTH-Library/kthcorpus/",
+    sprintf("main/inst/extdata/%s", csvfile))
+
+checks_exclusions <- function(csvfile = checks_exclusions_url()) {
+
+  res <- csvfile %>%
+    readr::read_csv(col_types = "dc", locale = readr::locale(encoding = "UTF-8"))
+
+  is_valid <- ncol(res) == 2 & all(names(res) %in% c("PID", "Title"))
+
+  if (!is_valid)
+    stop("File ", csvfile, " is either not present or has invalid format")
 
   return (res)
 }

@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 20
     env:
       MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
+      TZ: Europe/Stockholm
     steps:
       - run: |
           R -e 'library(kthcorpus); diva_refresh_trigger();'

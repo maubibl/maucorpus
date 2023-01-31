@@ -41,7 +41,7 @@ kth_diva_pubs_deprecated <- function(orgid = "177", year_beg = "2013", year_end 
     )) %>% jsonlite::toJSON(auto_unbox = TRUE)
   }
 
-  smash_url <- httr::parse_url("https://kth.diva-portal.org/smash/export.jsf")
+  smash_url <- httr::parse_url(paste0(config$portal, "/smash/export.jsf"))
 
   # add any params? "language=en&searchType=RESEARCH&query=&af=[]&onlyFullText=false&sf=all"
   smash_url$query <- list(
@@ -80,7 +80,7 @@ kth_diva_pubs_deprecated <- function(orgid = "177", year_beg = "2013", year_end 
     LastUpdated = col_date(format = ""),
     NumberOfAuthors = col_double(),
     ExternalCooperation = col_logical(),
-    FridaLevel = col_double(),
+#    FridaLevel = col_double(),
     Term = col_logical(),
     Reviewed = col_logical(),
     FreeFulltext = col_logical(),
@@ -184,6 +184,59 @@ kth_diva_authors <- function(use_cache = TRUE, refresh_cache = FALSE) {
 
 }
 
+#' Retrieve DiVA authors for the default org from the DiVA portal
+#'
+#' This function returns parsed author information from DiVA data
+#' @param config settings for DiVA client, by default using diva_config()
+#' @return data frame with results
+#' @export
+diva_authors <- function(config = diva_config()) {
+
+  AuthorityPid <- FirstName <- LastName <- LocalId <- ORCID <- OrganisationId <-
+    ResearchGroup <- Role <- UncontrolledOrganisation <- orgid <- pos <- NULL
+
+  diva_download(
+    "aut",
+    org_id = config$id,
+    year_beg = config$ybeg,
+    year_end = config$yend,
+    portal = config$portal
+  ) %>%
+  mutate(name = paste0(LastName, ", ", FirstName)) %>%
+  rename(
+    kthid = LocalId,
+    orcid = ORCID,
+    orgid = OrganisationId,
+    autid = AuthorityPid,
+    extorg = UncontrolledOrganisation,
+    pos = Position,
+    group = ResearchGroup,
+    role = Role
+  ) %>%
+  select(-c(FirstName, LastName)) %>% #, DOI, ISI, ISRN, NBN, PMID, ScopusId)) %>%
+  select(PID, name, kthid, orcid, orgid, extorg, pos, everything()) %>%
+  mutate(uses_etal = NA, is_extorg = !is.na(extorg))
+}
+
+#' Retrieve DiVA publications for the default org from the DiVA portal
+#'
+#' This function sends a request to te DiVA portal from a CSV data export
+#' covering publications in the default time period.
+#'
+#' @return data frame with results
+#' @param config settings for DiVA client, by default using diva_config()
+#' @export
+diva_pubs <- function(config = diva_config()) {
+
+  diva_download(
+    "pub",
+    org_id = config$id,
+    year_beg = config$ybeg,
+    year_end = config$yend,
+    portal = config$portal
+  )
+}
+
 #' Retrieve DiVA publications for KTH from the KTH DiVA portal
 #'
 #' This function sends a request to KTH's DiVA portal from a CSV data export
@@ -221,12 +274,15 @@ kth_diva_pubs <- function(use_cache = TRUE, refresh_cache = FALSE) {
     CreatedDate = col_date(format = ""),
     PublicationDate = col_date(format = ""),
     LastUpdated = col_date(format = ""),
-    NumberOfAuthors = col_double(),
-    FridaLevel = col_double()
+    NumberOfAuthors = col_double()
   )
 
   data <-
     readr::read_csv(diva_tmp("pub.csv"), col_types = ct)
+
+  data <-
+    data %>%
+    filter(grepl("QC", Notes))
 
   if (use_cache) readr::write_rds(data, tmp)
 
@@ -358,7 +414,7 @@ diva_download_s3 <- function(files, destination, source = "kthb/kthcorpus", opti
 
   # options can be "--newer-than 7d10h"
   cmd <- sprintf("mc cp %s %s %s", options, paths, destination)
-  res <- system(cmd, timeout = 60)
+  res <- system(cmd, timeout = 300)
   #res <- cmd
 
   if (res == 124)
@@ -388,8 +444,9 @@ diva_meta <- function() {
 }
 
 diva_url <- function(
-  orgid = "177", year_beg = "2013", year_end = "2022",
-  variant = c("pub", "aut")) {
+  orgid = diva_config()$id,
+  year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
+  variant = c("pub", "aut"), portal = diva_config()$portal) {
 
   pubtypes <- function() {
     c(
@@ -409,7 +466,7 @@ diva_url <- function(
     )) %>% jsonlite::toJSON(auto_unbox = TRUE)
   }
 
-  smash_url <- httr::parse_url("https://kth.diva-portal.org/smash/export.jsf")
+  smash_url <- httr::parse_url(paste0(portal, "/smash/export.jsf"))
 
   # TODO: add any params? "language=en&searchType=RESEARCH&query=&af=[]&onlyFullText=false&sf=all"
   smash_url$query <- switch(
@@ -438,7 +495,7 @@ diva_url <- function(
 
 diva_download_aut <- function(
   orgid = "177",
-  year_beg = "2013", year_end = "2022", sync = TRUE) {
+  year_beg = "2013", year_end = "2022", sync = TRUE, diva_portal = diva_config()$portal) {
 
   fn <- dl <- NULL
 
@@ -447,7 +504,11 @@ diva_download_aut <- function(
 
   be <- function(beg, end) {
     stopifnot(is.integer(beg) && is.integer(end) && (end >= beg))
-    data.frame(orgid = orgid, variant = "aut", year_beg = beg:end, year_end = beg:end)
+    data.frame(
+      orgid = orgid, variant = "aut",
+      year_beg = beg:end, year_end = beg:end,
+      portal = diva_portal
+    )
     #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
 
@@ -459,9 +520,13 @@ diva_download_aut <- function(
     mutate(fn = paste0("persons_", year_beg, ".csv")) %>%
     mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
 
+  curl_ua <- ""
+  #curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
+  if (nchar(curl_ua) <= 10) curl_ua <- ""
+
   script <- c(
     "#!/bin/bash",
-    "curl -Z --globoff -L \\",
+    paste0("curl -Z --globoff ", curl_ua, " -L \\"),
     all_years$curl,
     "&& (awk '(NR == 1) || (FNR > 1)' persons_*.csv > aut.csv && rm persons_*.csv)"
   )
@@ -489,8 +554,9 @@ diva_download_aut <- function(
 }
 
 diva_download_pub <- function(
-  orgid = "177",
-  year_beg = "2013", year_end = "2022", sync = TRUE) {
+  orgid = diva_config()$id,
+  year_beg = diva_config()$ybeg, year_end = diva_config$yend,
+  sync = TRUE, diva_portal = diva_config()$portal) {
 
   fn <- dl <- NULL
 
@@ -499,7 +565,11 @@ diva_download_pub <- function(
 
   be <- function(beg, end) {
     stopifnot(is.integer(beg) && is.integer(end) && (end >= beg))
-    data.frame(orgid = orgid, variant = "pub", year_beg = beg:end, year_end = beg:end) #year_beg = beg:(end -1), year_end = (beg + 1):end)
+    data.frame(
+      orgid = orgid, variant = "pub",
+      year_beg = beg:end, year_end = beg:end,
+      portal = diva_portal
+    ) #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
 
   all_years <-
@@ -510,9 +580,13 @@ diva_download_pub <- function(
     mutate(fn = paste0("pubs_", year_beg, ".csv")) %>%
     mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
 
+  curl_ua <- ""
+  #curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
+  if (nchar(curl_ua) <= 10) curl_ua <- ""
+
   script <- c(
     "#!/bin/bash",
-    "curl -Z --globoff -L \\",
+    paste0("curl -Z --globoff ", curl_ua, " -L \\"),
     all_years$curl,
     "&& awk '(NR == 1) || (FNR > 1)' pubs_*.csv > pub.csv && rm pubs_*.csv"
   )
@@ -527,6 +601,8 @@ diva_download_pub <- function(
     diva_upload_s3("/tmp/pub.csv")
 
   # parse and return content
+  # Note: on Tue 5 Jul 2022, it was discovered that col 59 (FridaLevel) is
+  # not a double but contains the value "deprecated"
   ct <- readr::cols(
     .default = col_character(),
     PID = col_double(),
@@ -535,8 +611,7 @@ diva_download_pub <- function(
     CreatedDate = col_date(format = ""),
     PublicationDate = col_date(format = ""),
     LastUpdated = col_date(format = ""),
-    NumberOfAuthors = col_double(),
-    FridaLevel = col_double()
+    NumberOfAuthors = col_double()
   )
 
   #on.exit(unlink("/tmp/pub.csv"))
@@ -551,10 +626,12 @@ diva_download_pub <- function(
 #' @param year_beg first year in a range of years, default 2013
 #' @param year_end last year in a range of years, default 2022
 #' @param sync logical to indicate if sync should be made to s3 (default: FALSE)
+#' @param portal base url for links to portal, by default diva_config()$portal
+#' @export
 diva_download <- function(
-  set = c("pub", "aut"), org_id = "177",
-  year_beg = 2013, year_end = 2022,
-  sync = FALSE) {
+  set = c("pub", "aut"), org_id = diva_config()$id,
+  year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
+  sync = FALSE, portal = diva_config()$portal) {
 
   stopifnot(has_sysreqs(c("curl", "awk")))
   if (sync) stopifnot(has_sysreqs("mc"))
@@ -565,9 +642,9 @@ diva_download <- function(
   res <- switch(
     match.arg(set),
     "aut" =
-      diva_download_aut(org_id, year_beg, year_end, sync = sync),
+      diva_download_aut(org_id, year_beg, year_end, sync = sync, diva_portal = portal),
     "pub" =
-      diva_download_pub(org_id, year_beg, year_end, sync = sync)
+      diva_download_pub(org_id, year_beg, year_end, sync = sync, diva_portal = portal)
   )
 
   t2 <- Sys.time()
@@ -580,9 +657,30 @@ diva_download <- function(
 has_sysreqs <- function(utils)
   all(nzchar(Sys.which(utils)))
 
-scrape_diva_organisations <- function(language = NULL) {
+#' Configuration to use for DiVA client calls
+#'
+#' By default the configuration uses settings for KTH.
+#' Settings include the full base url to the DiVA portal for the institution,
+#' the organisation id in DiVA (for example "177"), the organisation abbreviation
+#' (for example "kth") and ybeg (2013), yend (2022) - the range of data to include.
+#' @return list with slots for settings
+#' @export
+diva_config <- function() {
+  list(
+    portal = "https://kth.diva-portal.org",
+    id = "177",
+    org = "kth",
+    #portal = "https://his.diva-portal.org",
+    #id = "81",
+    #org = "his",
+    ybeg = 2010,
+    yend = 2022
+  )
+}
 
-  url <- "https://kth.diva-portal.org/smash/search.jsf?searchType=ORGANISATION"
+scrape_diva_organisations <- function(language = NULL, config = diva_config()) {
+
+  url <- paste0(config$portal, "/smash/search.jsf?searchType=ORGANISATION")
 
   re_closed <- "Closed down"
 
@@ -626,7 +724,7 @@ scrape_diva_organisations <- function(language = NULL) {
     mutate(url4 = stringr::str_extract(url3, "\\d+")) %>%
     select(unit,  !any_of(c("url2", "url3"))) %>%
     mutate(n = as.double(stringr::str_extract(n_hits, "\\d+"))) %>%
-    mutate(url = paste0("https://kth.diva-portal.org", url)) %>%
+    mutate(url = paste0(config$portal, url)) %>%
     rename(orgid = url4) %>%
     select(unit, orgid, everything()) %>%
     mutate(is_closed = grepl(re_closed, unit)) %>%
@@ -637,16 +735,16 @@ scrape_diva_organisations <- function(language = NULL) {
 
 }
 
-diva_orgs <- function() {
+diva_orgs <- function(config = diva_config()) {
 
   unit <- orgid <- rowkey <- level <- unit_sv <- is_closed <-
     closed_date <- p_rowkey <- p_orgid <- NULL
 
   en <-
-    scrape_diva_organisations(language = "en")
+    scrape_diva_organisations(language = "en", config)
 
   sv <-
-    scrape_diva_organisations(language = "sv") %>%
+    scrape_diva_organisations(language = "sv", config) %>%
     select(unit_sv = unit, orgid)
 
   combo <-
@@ -709,3 +807,4 @@ diva_refresh_trigger <- function() {
 
   return(invisible(TRUE))
 }
+

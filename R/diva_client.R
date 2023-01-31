@@ -826,6 +826,9 @@ diva_orcid_kthid_upload <- function() {
 
 diva_orcid_kthid <- function() {
 
+
+  n_kthid <- n_pubs <- n_orcid <- NULL
+
   aut <-
     kth_diva_authors() |> select(name, orcid, kthid, PID) |>
     filter(!is.na(kthid), !is.na(orcid), grepl("^u1.{6}$", kthid))

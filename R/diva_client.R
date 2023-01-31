@@ -494,8 +494,9 @@ diva_url <- function(
 }
 
 diva_download_aut <- function(
-  orgid = "177",
-  year_beg = "2013", year_end = "2022", sync = TRUE, diva_portal = diva_config()$portal) {
+  orgid = diva_config()$id,
+  year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
+  sync = TRUE, diva_portal = diva_config()$portal) {
 
   fn <- dl <- NULL
 
@@ -555,7 +556,7 @@ diva_download_aut <- function(
 
 diva_download_pub <- function(
   orgid = diva_config()$id,
-  year_beg = diva_config()$ybeg, year_end = diva_config$yend,
+  year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
   sync = TRUE, diva_portal = diva_config()$portal) {
 
   fn <- dl <- NULL
@@ -664,6 +665,7 @@ has_sysreqs <- function(utils)
 #' the organisation id in DiVA (for example "177"), the organisation abbreviation
 #' (for example "kth") and ybeg (2013), yend (2022) - the range of data to include.
 #' @return list with slots for settings
+#' @importFrom lubridate year
 #' @export
 diva_config <- function() {
   list(
@@ -674,7 +676,7 @@ diva_config <- function() {
     #id = "81",
     #org = "his",
     ybeg = 2010,
-    yend = 2022
+    yend = lubridate::year(Sys.Date())
   )
 }
 

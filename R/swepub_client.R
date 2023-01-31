@@ -2,7 +2,7 @@
 #' This function calls an API at SwePub for KTH data in a specific time period
 #' @return tibble with results
 #' @param config the configuration to use, by default diva_config (w org "kth")
-#' @param year_beg the beginning year, default is the yend value from diva_config
+#' @param year_beg the beginning year, default is the ybeg value from diva_config
 #' @param year_end the ending year, default is the yend value from diva_config
 #' @examples
 #' \dontrun{
@@ -16,7 +16,7 @@
 #' @importFrom dplyr mutate arrange
 swepub_checks <- function(
   config = diva_config(),
-  year_beg = diva_config()$yend,
+  year_beg = diva_config()$ybeg,
   year_end = diva_config()$yend
   ) {
 

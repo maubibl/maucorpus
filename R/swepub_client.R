@@ -75,13 +75,18 @@ swepub_checks <- function(
     sapply(trimws) %>%
     unname()
 
-  readr::read_tsv(
+  tsv <- readr::read_tsv(
       tsv,
       skip = 1,
       show_col_types = FALSE,
       col_names = colz,
       locale = readr::locale(encoding = "UTF-8")
-    ) %>%
+    )
+
+  if (nrow(tsv) < 1)
+    return(tsv)
+
+  tsv %>%
     mutate(output_type = linkify(gsub("term/swepub", "term/swepub/output", output_type))) %>%
     mutate(PID = stringr::str_extract(repository_url, "[^-]\\d+$")) %>%
     mutate(PID = link_diva(PID, PID)) %>%

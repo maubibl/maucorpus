@@ -799,7 +799,7 @@ check_invalid_use_ISBN <- function(pubs = kth_diva_pubs()) {
   Year <- LastUpdated <- ISBN <- PublicationType <- NULL
 
   pubs %>%
-    filter(!is.na(ISBN) & Year >= 2021 & PublicationType %in% c(
+    filter(!is.na(ISBN) & Year >= 2020 & PublicationType %in% c(
       "Kapitel i bok, del av antologi",
       "Konferensbidrag",
       "Artikel i tidskrift")) %>%
@@ -909,7 +909,10 @@ kth_diva_checks <- function() {
     multiplettes_DOI = check_multiplettes_DOI(),
     multiplettes_ISI = check_multiplettes_ISI(),
     manuscripts_with_identifiers = check_manuscripts_with_identifiers(),
-    swepub = swepub_checks()
+    swepub = swepub_checks(
+      year_beg = lubridate::year(Sys.Date()),
+      year_end = lubridate::year(Sys.Date())
+    )
   )
 
   stats <-
@@ -956,10 +959,7 @@ diva_checks <- function(authors, pubs, config = diva_config()) {
     multiplettes_scopusid = check_multiplettes_scopusid(pubs),
     multiplettes_DOI = check_multiplettes_DOI(pubs),
     multiplettes_ISI = check_multiplettes_ISI(pubs),
-    swepub = swepub_checks(
-      year_beg = lubridate::year(Sys.Date()),
-      year_end = lubridate::year(Sys.Date())
-    )
+    swepub = swepub_checks()
   )
 
   stats <-

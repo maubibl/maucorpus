@@ -910,7 +910,7 @@ kth_diva_checks <- function() {
     multiplettes_ISI = check_multiplettes_ISI(),
     manuscripts_with_identifiers = check_manuscripts_with_identifiers(),
     swepub = swepub_checks(
-      year_beg = lubridate::year(Sys.Date()),
+      year_beg = lubridate::year(Sys.Date()) - 1,
       year_end = lubridate::year(Sys.Date())
     )
   )

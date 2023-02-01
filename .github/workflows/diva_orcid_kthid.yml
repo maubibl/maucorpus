@@ -4,7 +4,7 @@ on:
     paths:
       - '.github/workflows/diva_orcid_kthid.yml'
   schedule:
-    - cron: '0 9 * * *' # UTC 49th min after 01th hour every day of month, month, day of week
+    - cron: '0 7 * * *' # [minute hour day_of_month month day_of_week], see https://crontab.guru/#0_7_*_*_*
 
 name: Upload DiVA ORCiD / kthId pairs to object storage
 

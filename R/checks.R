@@ -713,6 +713,9 @@ check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
 
   # catch swepub ORCiD checks (for authors not related to divaorg=177)
 
+  flag_class <- flag_type <- new_value <- old_value <- validation_rule <-
+    value <- NULL
+
   spc <- swepub_checks()
 
   spc |> filter(flag_type == "ORCID", flag_class == "enrichment") |>

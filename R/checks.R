@@ -700,7 +700,7 @@ check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
 
   ScopusId <- Year <- LastUpdated <- NULL
 
-  authors %>%
+  res <- authors %>%
     filter(!grepl(re, orcid) & !is.na(orcid)) %>%
     left_join(
       pubs %>% select(PID, Year, LastUpdated), by = "PID"
@@ -710,6 +710,20 @@ check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
     mutate(DOI = linkify(DOI, target = "DOI")) %>%
     mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
     select(PID, Year, everything())
+
+  # catch swepub ORCiD checks (for authors not related to divaorg=177)
+
+  spc <- swepub_checks()
+
+  spc |> filter(flag_type == "ORCID", flag_class == "enrichment") |>
+    select(PID, old_value, new_value) |>
+  right_join(by = "PID",
+    spc |> filter(flag_type == "ORCID", flag_class == "validation") |>
+      select(PID, validation_rule, orcid = value)
+  ) |>
+  bind_rows(res) |>
+  select_if(Negate(anyNA))
+
 }
 
 check_ambiguous_use_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs()) {

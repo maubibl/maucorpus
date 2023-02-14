@@ -117,7 +117,7 @@ scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
 
   hits <- as.integer(xml$`search-results`$`opensearch:totalResults`)
   page_length <- as.integer(xml$`search-results`$`opensearch:itemsPerPage`)
-  pages <- purrr::map_chr(xml$`search-results`$link, "@href")
+  pages <- purrr::map_chr(xml$`search-results`$link, .f = function(x) as.character(pluck(x, "@href")))
   res <- xml$`search-results`$entry
 
   if (length(pages) > 1) {
@@ -307,7 +307,8 @@ parse_scopus_entries <- function(xml) {
     fields <- scopus_fields()
 
     mylist <-
-      purrr::map(fields, function(x) purrr::map_chr(xml, x, .default = NA_character_))
+      purrr::map(fields, function(x)
+        purrr::map(xml, x, .default = NA_character_) |> as.character())
 
     mypubs <-
       tibble::as_tibble(setNames(mylist, nm = fields))

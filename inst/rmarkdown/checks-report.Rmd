@@ -502,7 +502,7 @@ Det finns mer att läsa om validering och berikning hos SwePub [här](https://ww
 
 __Uppdateringsfrekvens__
 
-Denna rapport tas normalt fram en *gång per dag* och publiceras då här.
+Denna rapport tas normalt fram en *gång per halvtimme* och publiceras då här.
 
 Rapportera fel eller önskemål på https://github.com/KTH-Library/kthcorpus/issues!
 

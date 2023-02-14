@@ -373,19 +373,26 @@ insert_ts <- function(file) {
 
 diva_upload_s3 <- function(path, dest = "kthb/kthcorpus", options = "") {
 
+  util <- "mc"
+
+  if (startsWith(Sys.getenv("OS"), "Windows"))
+    util <- "mc.exe"
+
+  stopifnot(nzchar(Sys.which(util)) || all(file.exists(path)))
+
   #hr_ls("kthcorpus") %>%
   # mutate(age = lubridate::as_datetime(LastModified)) %>%
   # mutate(age = lubridate::as.difftime(Sys.time() - age))
 
-  stopifnot(nzchar(Sys.which("mc")) || all(file.exists(path)))
-
+  # allow for upload of several files to the same dest bucket
   if (length(path) > 1) path <- paste0(collapse = " ", path)
 
   if (Sys.getenv("MC_HOST_kthb") == "" & !file.exists("~/.mc/config.json"))
     warning("Please see if envvar MC_HOST_kthb has been set, or that ~/.mc/config.json exists")
 
-  # options can be "--newer-than 7d10h"
-  cmd <- sprintf("mc cp %s %s %s", options, path, dest)
+  # assemble command to invoke from shell
+  # ... options can be "--newer-than 7d10h"
+  cmd <- sprintf("%s cp %s %s %s", util, options, path, dest)
   res <- system(cmd, timeout = 60 * 3)
 
   if (res == 124)
@@ -399,10 +406,15 @@ diva_upload_s3 <- function(path, dest = "kthb/kthcorpus", options = "") {
 
 diva_download_s3 <- function(files, destination, source = "kthb/kthcorpus", options = "") {
 
+  util <- "mc"
+
+  if (startsWith(Sys.getenv("OS"), "Windows"))
+    util <- "mc.exe"
+
   if (missing(destination))
     destination <- file.path(rappdirs::app_dir("kthcorpus")$config())
 
-  stopifnot(nzchar(Sys.which("mc")) || all(dir.exists(destination)))
+  stopifnot(nzchar(Sys.which(util)) || all(dir.exists(destination)))
 
   paths <- file.path(source, files)
 
@@ -413,7 +425,7 @@ diva_download_s3 <- function(files, destination, source = "kthb/kthcorpus", opti
     warning("Please see if envvar MC_HOST_kthb has been set, or that ~/.mc/config.json exists")
 
   # options can be "--newer-than 7d10h"
-  cmd <- sprintf("mc cp %s %s %s", options, paths, destination)
+  cmd <- sprintf("%s cp %s %s %s", util, options, paths, destination)
   res <- system(cmd, timeout = 300)
   #res <- cmd
 
@@ -458,34 +470,55 @@ diva_url <- function(
     )
   }
 
-  queryparam_aq2 <- function(.pubtypes = pubtypes()) {
-    list(list(
+  queryparam_aq2 <- function(.pubtypes = pubtypes(), use_orgid = TRUE) {
+
+    params <- list(list(
       list(dateIssued = I(list(from = year_beg, to = year_end))),
       list(organisationId = orgid, `organisationId-Xtra` = TRUE),
       list(publicationTypeCode = .pubtypes)
-    )) %>% jsonlite::toJSON(auto_unbox = TRUE)
+    ))
+
+    # remove the organisationId slot if required
+    if (!use_orgid) {
+      params[[1]][[2]]$organisationId <- NULL
+      #params[[1]][[2]]$`organisationId-Xtra` <- NULL
+      #params[[1]] <- NULL
+    }
+
+    params %>% jsonlite::toJSON(auto_unbox = TRUE)
   }
 
   smash_url <- httr::parse_url(paste0(portal, "/smash/export.jsf"))
 
-  # TODO: add any params? "language=en&searchType=RESEARCH&query=&af=[]&onlyFullText=false&sf=all"
+  # TODO: add any more params, for example...
+  # "language=en&searchType=RESEARCH&query=&af=[]&onlyFullText=false&sf=all"
   smash_url$query <- switch(
     match.arg(variant),
     "aut" = list(
-      format = "csv", addFilename = "true",
-      aq = I("[[]]"), aqe = I("[]"), aq2 = I(queryparam_aq2()),
-      onlyFullText = "false", noOfRows = as.character(5e6L),
-      sortOrder = "title_sort_asc", sortOrder2 = "title_sort_asc",
+      format = "csv",
+      addFilename = "true",
+      aq = I("[[]]"),
+      aqe = I("[]"),
+      aq2 = I(queryparam_aq2(use_orgid = TRUE)),  # since FALSE times out (> 5 min dl)
+      onlyFullText = "false",
+      noOfRows = as.character(5e6L),
+      sortOrder = "title_sort_asc",
+      sortOrder2 = "title_sort_asc",
       csvType = "person", fl = I(paste0(
         "PID,AuthorityPid,DOI,FirstName,ISI,ISRN,LastName,LocalId,",
-        "NBN,ORCID,OrganisationId,UncontrolledOrganisation,Position,",
-        "PMID,ResearchGroup,Role,ScopusId"))
+        "NBN,ORCID,OrganisationId,UncontrolledOrganisation,Position,PMID,",
+        "ResearchGroup,Role,ScopusId"))
     ),
     "pub" = smash_url$query <- list(
-      format = "csvall2", addFilename = "true",
-      aq = I("[[]]"), aqe = I("[]"), aq2 = I(queryparam_aq2()),
-      onlyFullText = "false", noOfRows = as.character(5e6L),
-      sortOrder = "title_sort_asc", sortOrder2 = "title_sort_asc"
+      format = "csvall2",
+      addFilename = "true",
+      aq = I("[[]]"),
+      aqe = I("[]"),
+      aq2 = I(queryparam_aq2()),
+      onlyFullText = "false",
+      noOfRows = as.character(5e6L),
+      sortOrder = "title_sort_asc",
+      sortOrder2 = "title_sort_asc"
     )
   )
 
@@ -513,6 +546,7 @@ diva_download_aut <- function(
     #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
 
+  # NB: the actual download command is provided through the diva_url() fcn
   all_years <-
     be(yb, ye) %>%
     purrr::pmap_chr(diva_url) %>%
@@ -543,10 +577,11 @@ diva_download_aut <- function(
 
   # parse and return content
   ct <- readr::cols(
-    .default = col_character(),
-    PID = col_integer(),
-    Position = col_integer(),
-    PMID = col_double()
+    .default = col_character()#,
+    #OrganisationId = readr::col_character()
+    #PID = col_integer(),
+    #Position = col_integer(),
+    #PMID = col_double()
   )
 
   #on.exit(unlink("/tmp/aut.csv"))
@@ -634,8 +669,13 @@ diva_download <- function(
   year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
   sync = FALSE, portal = diva_config()$portal) {
 
-  stopifnot(has_sysreqs(c("curl", "awk")))
-  if (sync) stopifnot(has_sysreqs("mc"))
+  utils <- c(curl = "curl", awk = "awk", mc = "mc")
+
+  if (startsWith(Sys.getenv("OS"), "Windows"))
+    utils <- paste0(utils, ".exe")
+
+  stopifnot(has_sysreqs(utils))
+  if (sync) stopifnot(has_sysreqs(utils["mc"]))
 
   message("Downloading ", set, " from DiVA, pls wait a couple of minutes.")
   t1 <- Sys.time()
@@ -820,56 +860,45 @@ diva_orcid_kthid_upload <- function() {
 
   # upload to bucket "kthcorpus"
   upload <- diva_orcid_kthid()
-  readr::write_csv(upload, "/tmp/diva_kthid_orcid.csv")
-  diva_upload_s3(path = "/tmp/diva_kthid_orcid.csv", "diva_kthid_orcid.csv")
+  td <- file.path(tempdir(), "diva_kthid_orcid.csv")
+  readr::write_csv(upload, td)
+  status <- diva_upload_s3(path = td, dest = "kthb/kthcorpus")
+  message("\nStatus for upload is: ", ifelse(status == 0, "OK!", "Fail!"))
+  return(invisible(status == 0))
 }
 
 diva_orcid_kthid <- function() {
 
-
   n_kthid <- n_pubs <- n_orcid <- NULL
+
+  re_orcid <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
+  re_kthid <- "^u1[a-z0-9]{6}$"
 
   aut <-
     kth_diva_authors() |> select(name, orcid, kthid, PID) |>
-    filter(!is.na(kthid), !is.na(orcid), grepl("^u1.{6}$", kthid))
-
-  # orcids with one or more kthids
-  diva_orcid_kthids <-
-    aut |> group_by(orcid) |>
-    summarize(.groups = "rowwise",
-      kthid = unique(kthid),
-      author = paste(collapse = "|", unique(trimws(name))),
-      n_kthid = n_distinct(kthid),
-      n_pubs = n_distinct(PID)
-    ) |>
-    arrange(desc(n_kthid), desc(n_pubs), orcid)
+    filter(grepl(re_kthid, kthid), grepl(re_orcid, orcid))
 
   # kthids with one or more orcids
   diva_kthid_orcids <-
     aut |> group_by(kthid) |>
-    summarize(.groups = "rowwise",
-      orcid = unique(orcid),
-      author = paste(collapse = "|", unique(trimws(name))),
-      n_orcid = n_distinct(orcid),
-      n_pubs = n_distinct(PID)
+    summarize(
+      author = paste(collapse = "|", unique(trimws(na.omit(name)))),
+      n_orcid = n_distinct(orcid, na.rm = TRUE),
+      n_pubs = n_distinct(PID, na.rm = TRUE)
     ) |>
     arrange(desc(n_orcid), desc(n_pubs), kthid)
 
-  # NB: if we look for kthids with more than 1 orcids, we get 397 rows
-  #diva_kthid_orcids |> filter(n_orcid > 1)
-
-  # NB: if we look for orcids with more than 1 kthids, we get 114 rows
-  #diva_orcid_kthids |> filter(n_kthid > 1)
-
-  # kthid and orcid pairs with one-to-one relationships
+  # kthid and orcid pairs (where there is a one-to-one association)
   res <-
-      diva_kthid_orcids |> filter(n_orcid == 1) |>
-      inner_join(by = c("kthid", "orcid", "author", "n_pubs"),
-        diva_orcid_kthids |> filter(n_kthid == 1)
-      ) |>
-      select(orcid, kthid, n_pubs)
+    diva_kthid_orcids |>
+    filter(n_orcid == 1) |>
+    select(kthid, n_pubs) |>
+    left_join(by = c("kthid"), #, "orcid", author", "n_pubs"),
+#      diva_orcid_kthids |> filter(n_kthid == 1)
+      aut |> distinct(kthid, orcid)
+    ) |>
+    select(kthid, orcid, n_pubs)
 
   return(res)
-
 
 }

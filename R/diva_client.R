@@ -860,56 +860,45 @@ diva_orcid_kthid_upload <- function() {
 
   # upload to bucket "kthcorpus"
   upload <- diva_orcid_kthid()
-  readr::write_csv(upload, "/tmp/diva_kthid_orcid.csv")
-  diva_upload_s3(path = "/tmp/diva_kthid_orcid.csv")
+  td <- file.path(tempdir(), "diva_kthid_orcid.csv")
+  readr::write_csv(upload, td)
+  status <- diva_upload_s3(path = td, dest = "kthb/kthcorpus")
+  message("\nStatus for upload is: ", ifelse(status == 0, "OK!", "Fail!"))
+  return(invisible(status == 0))
 }
 
 diva_orcid_kthid <- function() {
 
-
   n_kthid <- n_pubs <- n_orcid <- NULL
+
+  re_orcid <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
+  re_kthid <- "^u1[a-z0-9]{6}$"
 
   aut <-
     kth_diva_authors() |> select(name, orcid, kthid, PID) |>
-    filter(!is.na(kthid), !is.na(orcid), grepl("^u1.{6}$", kthid))
-
-  # orcids with one or more kthids
-  diva_orcid_kthids <-
-    aut |> group_by(orcid) |>
-    summarize(.groups = "rowwise",
-      kthid = unique(kthid),
-      author = paste(collapse = "|", unique(trimws(name))),
-      n_kthid = n_distinct(kthid),
-      n_pubs = n_distinct(PID)
-    ) |>
-    arrange(desc(n_kthid), desc(n_pubs), orcid)
+    filter(grepl(re_kthid, kthid), grepl(re_orcid, orcid))
 
   # kthids with one or more orcids
   diva_kthid_orcids <-
     aut |> group_by(kthid) |>
-    summarize(.groups = "rowwise",
-      orcid = unique(orcid),
-      author = paste(collapse = "|", unique(trimws(name))),
-      n_orcid = n_distinct(orcid),
-      n_pubs = n_distinct(PID)
+    summarize(
+      author = paste(collapse = "|", unique(trimws(na.omit(name)))),
+      n_orcid = n_distinct(orcid, na.rm = TRUE),
+      n_pubs = n_distinct(PID, na.rm = TRUE)
     ) |>
     arrange(desc(n_orcid), desc(n_pubs), kthid)
 
-  # NB: if we look for kthids with more than 1 orcids, we get 397 rows
-  #diva_kthid_orcids |> filter(n_orcid > 1)
-
-  # NB: if we look for orcids with more than 1 kthids, we get 114 rows
-  #diva_orcid_kthids |> filter(n_kthid > 1)
-
-  # kthid and orcid pairs with one-to-one relationships
+  # kthid and orcid pairs (where there is a one-to-one association)
   res <-
-      diva_kthid_orcids |> filter(n_orcid == 1) |>
-      inner_join(by = c("kthid", "orcid", "author", "n_pubs"),
-        diva_orcid_kthids |> filter(n_kthid == 1)
-      ) |>
-      select(orcid, kthid, n_pubs)
+    diva_kthid_orcids |>
+    filter(n_orcid == 1) |>
+    select(kthid, n_pubs) |>
+    left_join(by = c("kthid"), #, "orcid", author", "n_pubs"),
+#      diva_orcid_kthids |> filter(n_kthid == 1)
+      aut |> distinct(kthid, orcid)
+    ) |>
+    select(kthid, orcid, n_pubs)
 
   return(res)
-
 
 }

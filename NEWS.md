@@ -1,5 +1,13 @@
 # kthcorpus
 
+## kthcorpus 0.2.0
+
+* fix bad links for title column in check_invalid_use_ISBN() #37
+* fix warning message related to diva_orcid_kth_upload fcn and its usage of dplyr::summarise() #36
+* add a check for kthid-orcid relations with a cardinality of >1 #35 
+* Windows-friendly upload functions visavi object storage #34
+* possibility to not scope DiVA download of authors to KTHs orgid #33
+
 ## kthcorpus 0.2.8
 
 * add check for invalid use of ISBNs (certain publication types should not have ISBNs)

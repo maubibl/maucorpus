@@ -712,6 +712,45 @@ check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
     select(PID, Year, everything())
 }
 
+check_ambiguous_use_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs()) {
+
+  autid <- combo <- kthids <- n_kthid <- n_pids <- pidz <- tot_pids <- NULL
+
+  re_orcid <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
+  re_kthid <- "^u1[a-z0-9]{6}$"
+
+  many <-
+    authors |>
+    filter(!is.na(orcid)) |>
+    select(orcid, kthid, name, autid, PID) |>
+    filter(!grepl("^PI", kthid)) |>
+    group_by(orcid) |>
+    mutate(
+      n_kthid = n_distinct(kthid, na.rm = TRUE),
+      kthids =  paste(collapse = " ", unique(sort(kthid, na.last = TRUE))),
+      tot_pids = n_distinct(PID, na.rm = TRUE)
+    ) |>
+    group_by(orcid, kthid, name, autid) |>
+    mutate(
+      n_pids = n_distinct(PID, na.rm = TRUE),
+      pids = paste(collapse = " ", unique(PID))
+    ) |>
+    ungroup() |>
+    filter(n_kthid > 1) |>
+    select(-c("PID", "n_kthid")) |>
+    distinct()
+
+  many |>
+    mutate(combo = paste0(linkify(orcid, target = "ORCID"),
+      " (tot=", sprintf("%03d", tot_pids), " kthids=", kthids, ")")) |>
+    mutate(pidz = strsplit(pids, " ")) |>
+    mutate(pidz = pmap_chr(list(pidz), function(x)
+      linkify(x, target = "PID") |> head(10) |> paste(collapse = " "))) |>
+    select(combo, kthid, name, autid, n_pids, example_pids = pidz) |>
+    arrange(combo, kthid, desc(n_pids))
+
+}
+
 check_invalid_scopusid <- function(pubs = kth_diva_pubs()) {
 
   Year <- NULL
@@ -806,7 +845,7 @@ check_invalid_use_ISBN <- function(pubs = kth_diva_pubs()) {
     select(PID, Title, Year, PublicationType, ISBN, LastUpdated) %>%
     mutate(
       PID = linkify(PID, target = "PID"),
-      Title = linkify(Title, target = "Title"),
+      Title = linkify(Title, target = "titlesearch"),
       ISBN = linkify(ISBN, target = "ISBN")
     ) %>%
     arrange(desc(LastUpdated))
@@ -1107,13 +1146,17 @@ checks_render_report <- function(report = checks_report_path(), use_tmp = TRUE) 
 #' @export
 checks_upload_report <- function(path, dest = "kthb/kthcorpus") {
 
-  stopifnot(nzchar(Sys.which("mc")) || file.exists(path))
-  stopifnot(file.exists(path))
+  util <- "mc"
+
+  if (startsWith(Sys.getenv("OS"), "Windows"))
+    util <- "mc.exe"
+
+  stopifnot(nzchar(Sys.which(util)) || all(file.exists(path)))
 
   if (Sys.getenv("MC_HOST_kthb") == "" & !file.exists("~/.mc/config.json"))
     warning("Please see if envvar MC_HOST_kthb has been set, or that ~/.mc/config.json exists")
 
-  cmd <- sprintf("mc cp %s %s", path, dest)
+  cmd <- sprintf("%s cp %s %s", util, path, dest)
   res <- system(cmd, timeout = 15)
 
   if (res == 124) stop("Time out when uploading file ", path)

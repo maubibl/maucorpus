@@ -1,6 +1,13 @@
 # kthcorpus
 
-## kthcorpus 0.2.0
+## kthcorpus 0.3.0
+
+* add fcns for generating MODS for DiVA
+* add fcns to transform scopus data to DiVA MODS
+* add report for ambiguous ORCiDs
+* add report for DiVA MODS generation
+
+## kthcorpus 0.2.9
 
 * fix bad links for title column in check_invalid_use_ISBN() #37
 * fix warning message related to diva_orcid_kth_upload fcn and its usage of dplyr::summarise() #36

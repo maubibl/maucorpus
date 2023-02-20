@@ -1,6 +1,6 @@
 Package: kthcorpus
 Title: Swedish Research Publications Data from KTH
-Version: 0.2.9
+Version: 0.3.0
 Authors@R: 
     person(given = "Markus",
            family = "Skyttner",
@@ -50,6 +50,7 @@ Imports:
     attempt,
     rrapply,
     whisker,
-    xml2relational
+    xml2relational,
+    zip
 Depends: 
     R (>= 2.10)

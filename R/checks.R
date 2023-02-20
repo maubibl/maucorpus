@@ -1245,11 +1245,12 @@ checks_exclusions <- function(csvfile = checks_exclusions_url()) {
   return (res)
 }
 
-check_invalid_orgid <- function(aut = kth_diva_authors()) {
+check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()) {
 
   orgid <- is_closed <- closed_date <- n_orgs <-
     n_pids <- alt_n_pids <- alt_n_orgs <-
-    lc_title <- NULL
+    lc_title <- unit_en <- Year <- pd <- cd <-
+    overdue_days <- NULL
 
   diva_orgs <-
     diva_organisations() %>%
@@ -1265,10 +1266,23 @@ check_invalid_orgid <- function(aut = kth_diva_authors()) {
     aut %>%
     inner_join(orgs_closed, by = "orgid") %>%
     arrange(desc(closed_date)) %>%
-    group_by(name, orcid, kthid, PID, orgid) %>%
+    group_by(name, orcid, kthid, PID, orgid, unit_en) %>%
     count() %>%
     collect() %>%
     ungroup()
+
+  pubs_stale <-
+    aut_stale |>
+    left_join(pubs |> select(PID, Title, PublicationDate, Year), by = c("PID")) |>
+    left_join(by = c("orgid", "unit_en"),
+      orgs_closed |> mutate(cd = readr::parse_date(as.character(closed_date), trim_ws = TRUE))
+    ) |>
+    mutate(pd = readr::parse_date(as.character(PublicationDate, trim_ws = TRUE))) |>
+    mutate(overdue_days = difftime(pd, cd, units = "days")) |>
+    select(PID, name, orcid, kthid, Title, orgid, unit_en, pd, cd, overdue_days) |>
+    filter(overdue_days > (360 + 180)) |>
+    arrange(desc(overdue_days)) |>
+    distinct()
 
   # candidates for non-closed org belongings
   candidate_orgs <-

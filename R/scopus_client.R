@@ -353,15 +353,14 @@ pager <- function(hits, page_length = 25) {
 }
 
 #' Authors affiliated with KTH for a default search request
+#' @param scopus by default the result from scopus_search_pubs_kth()
 #' @importFrom dplyr left_join filter rename
 #' @export
-scopus_search_aut_kth <- function() {
+scopus_filter_kth_authors <- function(scopus = scopus_search_pubs_kth()) {
 
   affilname <- `dc:identifier` <- NULL
 
-  ss <- scopus_search_pubs_kth()
-
-  ss$authors %>%
+  scopus$authors %>%
     dplyr::left_join(ss$affiliations, by = c("afid", "sid")) %>%
     dplyr::filter(stringr::str_starts(affilname, "The Royal Ins")) %>%
     dplyr::left_join(ss$publications %>%
@@ -436,8 +435,12 @@ scopus_ratelimit_quota <- function() {
     )
 
   message(msg)
-  message("Reset in UTC is: ", as.POSIXct(rl_reset_ts, tz = "UTC", origin = "1970-01-01"))
-  message("  Now in UTC is: ", as.POSIXct(Sys.time(), tz = "UTC"))
+
+  utc_reset <- as.POSIXct(rl_reset_ts, tz = "UTC", origin = "1970-01-01")
+  utc_now <- as.POSIXct(Sys.time(), tz = "UTC")
+
+  message("Reset in UTC is: ", utc_reset)
+  message("  Now in UTC is: ", utc_now)
 
   list(
     `X-RateLimit-Limit` = rl_total,
@@ -470,7 +473,9 @@ scopus_ratelimit_quota <- function() {
 #' @importFrom dplyr bind_cols tibble
 scopus_abstract_extended <- function(sid) {
 
-  abstract <- scopus_req_abstract(sid = sid) %>% httr::content()
+  #sid <- sidz[1]
+
+  abstract <- scopus_req_abstract(sid = sid) |> httr::content()
 
   text <-
     abstract$`abstracts-retrieval-response`$coredata$`dc:description`
@@ -481,12 +486,15 @@ scopus_abstract_extended <- function(sid) {
       pluck(x, .default = NA_character_,
         "affiliation", "ce:source-text")
 
-    if (!is.na(ce_source))
-      return(ce_source)
+    if (!is.na(ce_source)) {
+      return(ce_source |> paste(collapse = ";"))
+    }
 
-    pluck(x, .default = NA_character_,
-      "affiliation", "organization") %>% map_chr("$") %>%
-      paste0(collapse = ", ", .)
+    org <- pluck(x, .default = NA_character_,
+      "affiliation", "organization")
+
+    if (!is.na(org)) org |> map_chr("$") |>
+      paste0(collapse = "; ")
   }
 
   pluck_aut <- function(x) {
@@ -497,107 +505,189 @@ scopus_abstract_extended <- function(sid) {
 
   }
 
-
   ag <-
     abstract$`abstracts-retrieval-response`$item$bibrecord$head$`author-group`
 
   has_unwrapped_key <- function(key)
     all(names(map(ag, key)) %in% c("affiliation", "author"))
 
-  needs_wrap <- function(obj, key)
+  needs_wrap <- function(obj, key) {
     unname(map(obj, key)) %>% map_lgl(is.null) %>% all()
+  }
 
-  is_unwrapped_author <- has_unwrapped_key("author") && unname(lengths(ag)["author"]) == 1
-  is_unwrapped_aff <- has_unwrapped_key("affiliation") && unname(lengths(ag)["affiliation"]) == 1
+  is_unwrapped_author <-
+    has_unwrapped_key("author") && unname(lengths(ag)["author"]) == 1
+
+  is_unwrapped_aff <-
+    has_unwrapped_key("affiliation") && unname(lengths(ag)["affiliation"]) == 1
 
   if (needs_wrap(ag, "affiliation") | needs_wrap(ag, "author"))
     ag <- list(ag)
 
-  raw_org <- ag %>% map(pluck_org) %>% map_dfr(.f = function(x) tibble(raw_org = x), .id = "id")
+  raw_org <-
+    ag |> map(pluck_org) |> map_dfr(.f = function(x) tibble(raw_org = x), .id = "id")
 
   value <- NULL
 
+  # fields_aut <-  strsplit(split = "\\s+",
+  #   "preferred-name @seq ce:initials @_fa @type ce:surname @auid @orcid ce:indexed-name") |>
+  #   unlist()
+  #
+  # aut <-
+  #   fields_aut |> map(function(x) rget(ag, parents = "author", x)) |> unlist() |> bind_rows()
+
   aut <-
-    map(ag, "author") %>% map_dfr(tibble::enframe, .id = "id")  %>%
-    rowwise() %>%
-    mutate(value = list(as.data.frame(value))) %>%
-    ungroup() %>%
-    pmap_dfr(.f = function(id, name, value) tibble(id, name) %>% bind_cols(value)) %>%
-    rename_with(function(x) chartr(".X", "_x", x)) %>%
-    rename_with(function(x) gsub("__", "_", fixed = TRUE, x = x)) %>%
-    rename_with(function(x) gsub("x_", "", fixed = TRUE, x = x)) %>%
+    map(ag, "author") |> compact() |> map_dfr(tibble::enframe, .id = "id")  |>
+#    slice(1) |> pull(value) |> unlist() |> bind_rows()
+    mutate(value = map(value, function(x) bind_rows(unlist(x)))) |>
+    unnest(value) |>
+#    pull(value) |> bind_rows()
+#    mutate(value = map(value, function(x) bind_cols(x, .name_repair = "minimal")))
+#    rowwise() |>
+#    mutate(value = list(as.data.frame(value))) |>
+#    ungroup() |>
+#    pmap_dfr(.f = function(id, name, value) tibble(id, name) %>% bind_cols(value)) |>
+#    rename_with(function(x) chartr(".X", "_x", x)) |>
+#    rename_with(function(x) gsub("__", "_", fixed = TRUE, x = x)) |>
+#    rename_with(function(x) gsub("x_", "", fixed = TRUE, x = x)) |>
+    rename_with(function(x) chartr(".:-", "___", x)) |>
+    rename_with(function(x) gsub("@", "", fixed = TRUE, x = x)) |>
+    rename_with(function(x) gsub("_fa", "fa", fixed = TRUE, x = x)) |>
+    #colnames()
     select(id, i = name, everything())
 
-#    pull(value) %>% map(as_tibble)
-#    map_dfr(1, 1, .id = "id") %>% select(-c("preferred-name")) %>% unique()
-
-  #map(ag, "affiliation") %>% map(as.data.frame) %>% map_dfr(function(x) as_tibble(x, .name_repair = "minimal"), .id = "id")
   aff <-
-    map(ag, "affiliation") %>% map(tibble::enframe) %>%
-    map(function(x) x %>% rowwise() %>% mutate(value = paste0(collapse = " ", unique(unlist(value))))) %>%
-    map(function(x) mutate(x, name = gsub("@", "x_", name))) %>%
-    map(function(x) pivot_wider(x, names_from = "name", values_from = "value")) %>%
-    map_dfr(bind_rows, .id = "id") %>%
-    rename_with(function(x) chartr("-:", "__", x)) %>%
-    rename_with(function(x) gsub("x_country", "country3", fixed = TRUE, x = x)) %>%
-    rename_with(function(x) gsub("x_", "", fixed = TRUE, x = x)) %>%
+    map(ag, "affiliation") %>% map(tibble::enframe) |>
+    map(function(x) x |> rowwise() |>
+      mutate(value = paste0(collapse = " ", unique(unlist(value))))) |>
+    map(function(x) mutate(x, name = gsub("@", "x_", name))) |>
+    map(function(x) pivot_wider(x, names_from = "name", values_from = "value")) |>
+    map_dfr(bind_rows, .id = "id") |>
+    rename_with(function(x) chartr("-:", "__", x)) |>
+    rename_with(function(x) gsub("x_country", "country3", fixed = TRUE, x = x)) |>
+    rename_with(function(x) gsub("x_", "", fixed = TRUE, x = x)) |>
     left_join(raw_org, by = "id")
 
   authorgroup <-
-    aut %>% left_join(aff, by = "id") %>%
-    dplyr::bind_cols(sid = sid) %>%
+    aut %>% left_join(aff, by = "id") |>
+    dplyr::bind_cols(sid = sid) |>
     select(sid, everything())
-
-  # authorgroup <-
-  #   ag %>%
-  #   tibble(
-  #     # TODO: om inte ce:source-text finns, prova denna accessor
-  #     # [["affiliation"]][["organization"]][[1]][["$"]]
-  #     org_sourcetext = map_chr(., function(x) pluck_org(x)), #, "affiliation", "ce:source-text", .default = NA_character_)),
-  #     author_surname = map_chr(., function(x) pluck(x, "author", 1, "ce:surname", .default = NA_character_)),
-  #     author_initials = map_chr(., function(x) pluck(x, "author", 1, "ce:initials", .default = NA_character_)),
-  #     author_given = map_chr(., function(x) pluck(x, "author", 1, "ce:given-name", .default = NA_character_)),
-  #     author_id = map_chr(., function(x) pluck(x, "author", 1, "@auid", .default = NA_character_)),
-  #     seq = map_int(., function(x) readr::parse_integer(pluck(x, "author", 1, "@seq", .default = NA_character_)))
-  #   ) %>%
-  #   select(-1)
 
   # relevant with respect to Article Processing Charges / APC costs
   cor <-
     abstract$`abstracts-retrieval-response`$item$bibrecord$head$correspondence
 
-  is_single_cor <- cor %>% pluck("person") %>% names() %>% grepl("^ce", .) %>% all()
+  is_single_cor <- cor |> pluck("person") |> names() |> grepl(pattern = "^ce") |> all()
 
   if (needs_wrap(cor, "person"))
     cor <- list(cor)
 
-#  if (!is_single_cor) {
-    correspondence <-
-      cor %>% map(pluck("person")) %>% map_dfr(as_tibble) %>% # %>% pluck("person")
-      rename_with(function(x) chartr("-:", "__", x)) %>%
-      dplyr::bind_cols(sid = sid) %>%
-      select(sid, everything())
-  # } else {
-  #   correspondence <- cor$person %>% as_tibble() %>%
-  #     rename_with(function(x) chartr("-:", "__", x)) %>%
-  #     dplyr::bind_cols(sid = sid) %>%
-  #     select(sid, everything())
-  # }
+  correspondence <-
+    cor |> map(pluck("person")) |> map_dfr(as_tibble) |> # %>% pluck("person")
+    rename_with(function(x) chartr("-:", "__", x)) |>
+    dplyr::bind_cols(sid = sid) |>
+    select(sid, everything())
 
-    # cor %>%
-    # tibble(
-    #   person_surname = map_chr(., function(x) pluck(x, "person", "ce:surname", .default = NA_character_)),
-    #   person_initials = map_chr(., function(x) pluck(x, "person", "ce:initials", .default = NA_character_)),
-    #   person_given = map_chr(., function(x) pluck(x, "person", "ce:given-name", .default = NA_character_))
-    # ) %>%
-    # select(-1)
+  a <- abstract
+
+  fields <-
+    strsplit(split = "\\s+",
+      "dc:publisher srctype prism:coverDate prism:aggregationType source-id
+      citedby-count prism:volume subtype openaccess prism:issn
+      prism:issueIdentifier subtypeDescription prism:publicationName openaccessFlag
+      prism:doi prism:startingPage dc:identifier") |>
+    unlist()
+
+  coredata <-
+    fields |> map(function(x) rget(a, x)) |> unlist() |> bind_rows()
+
+  coredata$lang <- a |> find_name("language") |> as.character()
+
+  keywords <-
+    a |> rget("$", parents = "author-keyword", new_name = "keywords") |>
+    pull("keywords") |> paste0(collapse = ", ")
+
+  coredata$keywords <- keywords
+
+  #a <- "85147745927" |> scopus_req_abstract() |> httr::content()
+  # coredata <- list(
+  #   a |> rget("dc:publisher"),
+  #   a |> rget("srctype"), # "j" (coredata)
+  #   a |> rget("prism:coverDate"), # "2023-01-20"
+  #   a |> rget("prism:aggregationType"), # "Journal
+  #   a |> rget("source-id"),  # 25593
+  #   a |> rget("citedby-count"), # "0"
+  #   a |> rget("prism:volume"), # "62"
+  #   a |> rget("subtype"), # ar
+  #   a |> rget("openaccess"), # "0"
+  #   a |> rget("prism:issn"), #: "21553165 1559128X",
+  #   a |> rget("prism:issueIdentifier"), # "3"
+  #   a |> rget("subtypeDescription"), # "Article"
+  #   a |> rget("prism:publicationName"), #: "Applied Optics",
+  #   a |> rget("openaccessFlag"), #: "false",
+  #   a |> rget("prism:doi"), #: "10.1364/AO.478405",
+  #   a |> rget("prism:startingPage"), #: "541",
+  #   a |> rget("dc:identifier"), #: "SCOPUS_ID:85147731960",
+  #   a |> rget("@xml:lang", parents = "language"), # : {"@xml:lang": "eng"},
+  #   a |> rget("authkeywords") #: null
+  # )
 
   list(
-    scopus_abstract = tibble(sid = sid, `dc:description` = text),
+    scopus_abstract = coredata |> bind_cols(
+      sid = sid,
+      `dc:description` = tidy_xml(text)
+    ),
     scopus_authorgroup = authorgroup,
     scopus_correspondence = correspondence #,
-#    object = abstract
   )
+}
+
+tidy_xml <- function(x, cdata = FALSE) {
+
+  if (cdata)
+    return (sprintf("<![CDATA[%s]]>", x))
+
+  chars <- tibble::tribble(
+    ~from, ~to,
+    "\"", "&quot;",
+    "'", "&apos;",
+    "<", "&lt;",
+    ">", "&gt;",
+    "&", "&amp;"
+  )
+
+  stringi::stri_replace_all_fixed(x,
+    pattern = chars$from,
+    replacement = chars$to,
+    vectorize_all = F
+  )
+
+}
+
+#' Classify subject categories given a Scopus identifier
+#' @param sid a scopus identifier
+#' @param scopus by default publication given by scopus_from_minio()
+#' @return a tibble with results from SwePubs classification API
+scopus_classify <- function(sid, scopus = scopus_from_minio()) {
+
+  my_abstract <-
+    scopus_abstract_extended(sid)$scopus_abstract |>
+    pull(`dc:description`)
+
+  my_title <-
+    scopus$publications |>
+    filter(grepl(sid, `dc:identifier`)) |>
+    pull(`dc:title`)
+
+  my_keywords <-
+    scopus$publications |>
+    filter(grepl(sid, `dc:identifier`)) |>
+    pull(authkeywords) |>
+    gsub(pattern = " [|] ", replacement = ", ")
+
+  #my_classes <- NULL
+
+  classify_swepub(my_title, my_abstract, my_keywords, level = "5")
 }
 
 #' Browse a Scopus electronic identifier
@@ -624,4 +714,34 @@ find_name <- function(haystack, needle) {
   } else {
    NULL
   }
+}
+
+rget <- function(x, field, siblings = NULL, parents = NULL, new_name = field) {
+
+  my_condition <- function(x, .xname) .xname == field
+
+  if (!is.null(siblings)) {
+    my_condition <- function(x, .xname, .xsiblings)
+      .xname == field & siblings %in% .xsiblings
+  }
+
+  if (!is.null(parents)) {
+    my_condition <- function(x, .xname, .xparents)
+      .xname == field & parents %in% .xparents
+  }
+
+  my_accessor <- function(x, .xsiblings, .xparents, .xpos) {
+    #      print("siblings are: ", as.character(.xsiblings))
+    return(x)
+  }
+
+  res <- x |> rrapply::rrapply(
+    condition = my_condition,
+    f = my_accessor,
+    how = "flatten",
+    options = list(namecols = TRUE)
+  )
+
+  if (length(res) == 1) return(res) # unname(res))
+  tibble(x = res) |> setNames(nm = new_name)
 }

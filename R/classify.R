@@ -151,7 +151,7 @@ classify_swepub <- function(title, abstract, keywords, level = 3) {
     httr::with_config(
       httr::config(ssl_verifypeer = 0L),
       httr::POST(
-        url = "https://swepub-qa.kb.se/api/v1/classify",
+        url = "https://bibliometri.swepub.kb.se/api/v1/classify",
         body = jsonlite::toJSON(json, auto_unbox = TRUE),
         httr::accept_json(),
         httr::add_headers("Content-Type" = "application/json"),

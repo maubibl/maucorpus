@@ -106,7 +106,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
         source = "kth",
         family = ce_surname, given = ce_given_name,
         role = ifelse(seq == 1 , "aut", "aut"),
-        affiliations = raw_org,
+        affiliations = raw_org |> tidy_xml(),
         descriptions = if (all(is.na(orcid))) NULL else paste0("org.orcid=", orcid))
       }
     )
@@ -135,7 +135,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   #   )
 
   title <- frag_titleInfo(
-    title = p$`dc:title`, #subtitle = "Some subtitle",
+    title = p$`dc:title` |> tidy_xml(), #subtitle = "Some subtitle",
     lang = "eng")
 
   origins <- frag_originInfo(
@@ -179,7 +179,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
       tidyr::separate("subject", into=c("lang", NA)) |>
       mutate(source = "hsv", href = unique(eng_code, swe_code)) |>
       rename(topic = value) |>
-      pmap(function(lang, source, href, topic, ...) frag_subject(lang, source, href, topic))
+      pmap(function(lang, source, href, topic, ...)
+        frag_subject(lang, source, href, topic)
+      )
   }
 
   subjects <- c(frag_subject(topic = keywords), hsv_categories)

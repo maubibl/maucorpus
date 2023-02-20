@@ -1,0 +1,195 @@
+---
+title: "Generate MODS from Scopus articles data"
+author:
+  - name: Markus Skyttner
+    orcid: 0000-0002-4649-3651
+    email: markussk@kth.se
+    affiliations:
+      - name: KTH Royal Institute of Technology 
+        address: Osquars backe 31
+        city: Stockholm
+        postal-code: 114 28
+highlight-style: pygments
+format:
+  html:
+    toc: true
+    toc-location: left
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    link-external-icon: true
+    link-external-newwindow: true
+    page-layout: article
+  pdf:
+    geometry: 
+      - top=30mm
+      - left=30mm
+  docx: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r warning=FALSE, results='hide', echo=TRUE}
+#| label: load-pkgs
+#| code-summary: "Packages"
+#| message: false
+
+pkgs <- "
+kthcorpus DT bslib htmltools dplyr downloadthis
+" 
+
+import <- function(x)
+ x |> trimws() |> strsplit("\\s+") |> unlist() |>
+  lapply(function(x) library(x, character.only = TRUE)) |> 
+  invisible()
+
+pkgs |> import()
+  
+```
+
+```{r}
+#| classes: col_wrap
+#| echo: FALSE
+#| message: FALSE
+
+bs4_card <- function(body, title) {
+  div(class = "table-responsive",
+    class = "card",
+    div(class = "card-header bg-primary", title),
+    div(class = "card-body d-flex justify-content-center", body)
+  )
+}
+
+compact_cols <- function(data) {
+  mask_keep <- colSums(!is.na(data)) > 0
+  data[, mask_keep, drop = FALSE]
+}
+
+```
+
+
+```{css, echo=FALSE}
+div.col_wrap div.bslib-column-wrap {
+  display: grid;
+}
+
+.tooltip-inner {max-width: 500px;}
+.dataTables_scrollBody {
+    max-height: 100vh !important;
+    
+.btn-default,
+.btn-default:hover,
+.btn-default:active {
+  font-size: 20px;
+  color: black;
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.btn-default:hover {
+  color: grey;
+  transition: 0.2s;
+}    
+```
+
+# Scopus data retrieval
+
+The Scopus APIs for publication search and extended abstracts data can be used to retrive metadata for Scopus publications.
+
+## Recent publications from KTH
+
+Scopus data for KTH can be retrieved from Scopus APIs. This assumes environment variables for SCOPUS_API_KEY and SCOPUS_API_INSTTOKEN are available. These need to be present in the `~/.Renviron` file. Requests counts towards a ratelimit quota, which can be checked using another function.
+
+```{r}
+#| eval: false
+scopus <- scopus_search_pubs_kth()
+scopus_ratelimit_quota()
+```
+
+Due to the quota limit and since there is already a scheduled job providing the latest data, another better approach is to request the data from object storage.
+
+```{r}
+scopus <- scopus_from_minio()
+```
+
+## Extended Abstract API data
+
+Given a specific Scopus identifier for a publication, we can use a function to retrieve additional information including for example raw affiliation strings. 
+
+```{r}
+# use the first id
+sid <- scopus$publications$`dc:identifier` |> head(1)
+scopus_abstract_extended(sid)
+```
+
+## ORCiDs versus KTH identfiers
+
+In order to automatically look up known KTH identifiers for researchers (kthids) from ORCiDs, known associations can be made available so these are known up-front.
+
+:::{.callout-note}
+Note that this is not necessary since otherwise these are looked up on article by article basis. But it can be useful to speed up the process.
+:::
+
+```{r}
+ko <- kthid_orcid()
+```
+
+## Generating MODS for articles
+
+Different publication types require sligthly different kinds of MODS file content.
+
+To work with Scopus articles, filter on the publication subtype, like so:
+
+```{r}
+# subtype == "cp" # conference paper
+# subtype == "ar" # article
+# subtype == "ch" # book chapter
+
+articles <- scopus$publications |> filter(subtype == "ar")
+```
+
+To generate MODS for a specific article, we need first its Scopus identifier
+
+```{r}
+
+sids <- articles$`dc:identifier`
+sid <- sids |> head(1)
+
+# we provide previous scopus search results and kthid_orcid pairs 
+# to avoid runtime lookups for this data
+mods <- sid |> scopus_mods(scopus = scopus, ko = ko)
+
+mods |> cat()
+
+```
+
+The function is vectorised which means it can iterate over several Scopus identifiers
+
+```{r}
+
+my_sids <- sids |> head(10)
+
+my_mods <- my_sids |> scopus_mods_crawl(scopus = scopus, ko = ko)
+
+names(my_mods)
+my_mods$`SCOPUS_ID:85147171092` |> cat()
+```
+
+A zip-file with the results can be generated, and included for download in a quarto doc.
+
+```{r}
+
+zf <- write_mods_zip(my_mods, path = "~/temp/modz")
+
+download_file(
+  path = zf,
+  output_name = "Files from downloadthis",
+  button_label = "Download files",
+  has_icon = TRUE,
+  icon = "fa fa-save",
+  self_contained = TRUE
+)
+
+```

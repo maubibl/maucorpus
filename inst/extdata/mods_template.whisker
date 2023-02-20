@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modsCollection xmlns="http://www.loc.gov/mods/v3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-2.xsd">
+	<mods xmlns="http://www.loc.gov/mods/v3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" version="3.7" xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-7.xsd">
+
+    {{#frag_genre}}
+    {{& genre}}
+    {{/frag_genre}}
+
+    {{#frag_name_personal}}
+    {{& person}}
+    {{/frag_name_personal}}
+
+		{{#frag_titleInfo}}
+    {{& title}}
+    {{/frag_titleInfo}}
+
+		{{#frag_originInfo}}
+    {{& origin}}
+    {{/frag_originInfo}}
+
+    {{#frag_physicalDescription}}
+    {{& desc}}
+    {{/frag_physicalDescription}}
+
+    {{#frag_identifier}}
+    {{& ids}}
+    {{/frag_identifier}}
+
+    {{#frag_typeOfResource}}
+    {{& resourcetype}}
+    {{/frag_typeOfResource}}
+
+    {{#frag_relatedItem_series}}
+    {{& series}}
+    {{/frag_relatedItem_series}}
+
+    {{#frag_location}}
+    {{& loc}}
+    {{/frag_location}}
+
+    {{#frag_subject}}
+    {{& subj}}
+    {{/frag_subject}}
+
+    {{#frag_abstract}}
+    {{& abstract}}
+    {{/frag_abstract}}
+
+    {{#frag_note}}
+    {{& note}}
+    {{/frag_note}}
+
+    {{#frag_subjects}}
+    {{& subj}}
+    {{/frag_subjects}}
+
+    {{#frag_relatedItem}}
+    {{& rel}}
+    {{/frag_relatedItem}}
+
+    {{#frag_recordInfo}}
+    {{& ri }}
+    {{/frag_recordInfo}}
+
+	<!--	<note type="funder">@Funder@ [@project_number_from_funder@]</note> -->
+	</mods>
+</modsCollection>

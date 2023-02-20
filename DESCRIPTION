@@ -50,6 +50,7 @@ Imports:
     attempt,
     rrapply,
     whisker,
-    xml2relational
+    xml2relational,
+    zip
 Depends: 
     R (>= 2.10)

@@ -34,11 +34,15 @@ scopus_extent_from_pagerange <- function(x) {
 #' Creates MODS for a given Scopus identifier
 #' @param scopus the result from scopus_search_pubs_kth()
 #' @param sid a scopus identifier (required for getting extended abstract reference data)
-#' @param kthid_orcid a lookuptable of orcids with a known kthid associated from kthid_orcid() fcn
+#' @param kthid_orcid_lookup a lookuptable of orcids with a known kthid associated from kthid_orcid() fcn
 #' @return an object with parameters which can be used to generate MODS with the
 #' create_diva_mods() function
 #' @export
 scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) {
+
+  `dc:identifier` <- `dc:description` <- ce_surname <-
+    ce_given_name <- raw_org <- afid <-
+    eng_code <- swe_code <- value <- NULL
 
   p <- scopus$publications %>% filter(grepl(sid, `dc:identifier`))
   aff <- scopus$affiliations %>% filter(sid == p$`dc:identifier`)
@@ -230,6 +234,8 @@ scopus_mods <- function(sid, scopus = scopus_from_minio(), ko = kthid_orcid()) {
 #' @importFrom xml2 read_xml
 scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orcid()) {
 
+  failed_ids <- NULL
+
   ids <- unique(sids)
 
   pb <- progress::progress_bar$new(total = length(ids))
@@ -282,6 +288,7 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
 #' @param zipfile name of zip file, by default mods.zip
 #' @importFrom readr write_file
 #' @importFrom purrr map2
+#' @importFrom zip zip
 #' @export
 write_mods_zip <- function(crawl_result, path = tempdir(), zipfile = "mods.zip") {
 

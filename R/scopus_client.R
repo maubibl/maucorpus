@@ -361,9 +361,9 @@ scopus_filter_kth_authors <- function(scopus = scopus_search_pubs_kth()) {
   affilname <- `dc:identifier` <- NULL
 
   scopus$authors %>%
-    dplyr::left_join(ss$affiliations, by = c("afid", "sid")) %>%
+    dplyr::left_join(scopus$affiliations, by = c("afid", "sid")) %>%
     dplyr::filter(stringr::str_starts(affilname, "The Royal Ins")) %>%
-    dplyr::left_join(ss$publications %>%
+    dplyr::left_join(scopus$publications %>%
     dplyr::rename(sid = `dc:identifier`), by = c("sid"))
 }
 
@@ -670,6 +670,9 @@ tidy_xml <- function(x, cdata = FALSE) {
 #' @return a tibble with results from SwePubs classification API
 scopus_classify <- function(sid, scopus = scopus_from_minio()) {
 
+  `dc:description`<- `dc:identifier` <- `dc:title`<-
+    authkeywords <- NULL
+
   my_abstract <-
     scopus_abstract_extended(sid)$scopus_abstract |>
     pull(`dc:description`)
@@ -718,16 +721,20 @@ find_name <- function(haystack, needle) {
 
 rget <- function(x, field, siblings = NULL, parents = NULL, new_name = field) {
 
-  my_condition <- function(x, .xname) .xname == field
+  condition_n <- function(x, .xname) .xname == field
+  condition_s <- function(x, .xname, .xsiblings)
+    .xname == field & siblings %in% .xsiblings
+  condition_p <- function(x, .xname, .xparents)
+    .xname == field & parents %in% .xparents
+
+  my_condition <- condition_n
 
   if (!is.null(siblings)) {
-    my_condition <- function(x, .xname, .xsiblings)
-      .xname == field & siblings %in% .xsiblings
+    my_condition <- condition_s
   }
 
   if (!is.null(parents)) {
-    my_condition <- function(x, .xname, .xparents)
-      .xname == field & parents %in% .xparents
+    my_condition <- condition_p
   }
 
   my_accessor <- function(x, .xsiblings, .xparents, .xpos) {

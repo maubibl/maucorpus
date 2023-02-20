@@ -4,12 +4,14 @@
 \alias{write_mods_zip}
 \title{Write a zipped MODS-file with results from a scopus mods crawl}
 \usage{
-write_mods_zip(crawl_result, path = tempdir())
+write_mods_zip(crawl_result, path = tempdir(), zipfile = "mods.zip")
 }
 \arguments{
 \item{crawl_result}{the results from scopus_mods_crawl()}
 
 \item{path}{a path to a directory on disk}
+
+\item{zipfile}{name of zip file, by default mods.zip}
 }
 \description{
 Write a zipped MODS-file with results from a scopus mods crawl

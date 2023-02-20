@@ -11,7 +11,7 @@ scopus_mods_params(scopus, sid, kthid_orcid_lookup = kthid_orcid())
 
 \item{sid}{a scopus identifier (required for getting extended abstract reference data)}
 
-\item{kthid_orcid}{a lookuptable of orcids with a known kthid associated from kthid_orcid() fcn}
+\item{kthid_orcid_lookup}{a lookuptable of orcids with a known kthid associated from kthid_orcid() fcn}
 }
 \value{
 an object with parameters which can be used to generate MODS with the

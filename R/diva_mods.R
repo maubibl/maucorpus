@@ -498,6 +498,8 @@ frag_recordInfo <- function(kthid, source, creation, change, pid) {
 #' @importFrom dplyr select mutate
 #' @importFrom tidyr unnest_longer
 read_diva_langs <- function() {
+
+  iso <- NULL
   # this site may sometimes be down:
   # "https://www.loc.gov/standards/iso639-2/ISO-639-2_8859-1.txt"
   # so use wikipedia instead

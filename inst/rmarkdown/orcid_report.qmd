@@ -1,0 +1,396 @@
+---
+title: "ORCiDs with ambiguous use in DiVA"
+author:
+  - name: Markus Skyttner
+    orcid: 0000-0002-4649-3651
+    email: markussk@kth.se
+    affiliations:
+      - name: KTH Royal Institute of Technology 
+        address: Osquars backe 31
+        city: Stockholm
+        postal-code: 114 28
+highlight-style: pygments
+format:
+  html:
+    toc: true
+    toc-location: left
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    link-external-icon: true
+    link-external-newwindow: true
+    page-layout: article
+  pdf:
+    geometry: 
+      - top=30mm
+      - left=30mm
+  docx: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r warning=FALSE, results='hide', echo=TRUE}
+#| label: load-pkgs
+#| code-summary: "Packages"
+#| message: false
+
+pkgs <- "
+kthcorpus DT bslib leaflet plotly htmltools dplyr
+" 
+
+import <- function(x)
+ x |> trimws() |> strsplit("\\s+") |> unlist() |>
+  lapply(function(x) library(x, character.only = TRUE)) |> 
+  invisible()
+
+pkgs |> import()
+  
+```
+
+```{r}
+#| classes: col_wrap
+#| echo: FALSE
+#| message: FALSE
+
+bs4_card <- function(body, title) {
+  div(class = "table-responsive",
+    class = "card",
+    div(class = "card-header bg-primary", title),
+    div(class = "card-body d-flex justify-content-center", body)
+  )
+}
+
+# plotly_widget <- plot_ly(x = diamonds$cut) %>%
+#   config(displayModeBar = FALSE) %>%
+#   layout(margin = list(t = 0, b = 0, l = 0, r = 0))
+# 
+# leaflet_widget <- leaflet() %>%
+#   addTiles()
+# 
+# layout_column_wrap(
+#   width = 1/2,
+#   navs_tab_card(
+#     height = 300, full_screen = TRUE,
+#     title = "HTML Widgets",
+#     nav(
+#       "Plotly", 
+#       card_title("A plotly plot", class = "pt-1"),
+#       card_body_fill(plotly_widget)
+#     ),
+#     nav(
+#       "Leaflet",
+#       card_title("A leaflet plot", class = "pt-1"),
+#       card_body_fill(leaflet_widget)
+#     ),
+#     nav(
+#       shiny::icon("circle-info"),
+#       "Learn more about",
+#       tags$a("htmlwidgets", href = "http://www.htmlwidgets.org/")
+#     )
+#   ),
+#   navs_tab_card(
+#     height = 300, full_screen = TRUE,
+#     title = "HTML Widgets",
+#     nav(
+#       "Plotly", 
+#       card_title("A plotly plot", class = "pt-1"),
+#       card_body_fill(plotly_widget)
+#     ),
+#     nav(
+#       "Leaflet",
+#       card_title("A leaflet plot", class = "pt-1"),
+#       card_body_fill(leaflet_widget)
+#     ),
+#     nav(
+#       shiny::icon("circle-info"),
+#       "Learn more about",
+#       tags$a("htmlwidgets", href = "http://www.htmlwidgets.org/")
+#     )
+#   )
+#)
+```
+
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| 
+options(DT.options = list(scrollY = "100vh"))
+
+myDT <- function(data) {
+  
+  if (is.null(data) || nrow(data) <= 0) 
+    return(htmltools::pre("Denna kontroll passerar utan anmärkning! 🥳"))
+
+  # remap column display names here, replace iff in map
+  displaynamez <- kthcorpus:::check_remap_colnames(colnames(data))
+  
+  header_cb <- c(
+    "function(thead, data, start, end, display){",
+    sprintf("  var tooltips = [%s];", toString(paste0("'", names(displaynamez), "'"))),
+    "  for(var i = 0; i <= tooltips.length - 1; i++){",
+    "    $('th:eq('+i+')',thead).attr('title', tooltips[i]);",
+    "  }",
+    "}"
+  )  
+  
+  
+  colnamez <- stringr::str_trunc(colnames(data), 15)
+  font_size <- "80%"
+  
+  dt <- DT::datatable(data, 
+    filter = "top",
+    escape = FALSE,
+    rownames = FALSE,
+    style = "bootstrap",
+    # see https://getbootstrap.com/docs/5.1/content/tables/
+    class = "table-borderless table-striped table-sm",
+    fillContainer = TRUE,
+    width = "100%",
+    extensions = c(
+      "Buttons",  
+      "Select",
+      "Scroller"
+    ),
+    colnames = colnamez,
+    options = list(
+      headerCallback = DT::JS(header_cb),
+      dom = "fBlrtip",  # specify content (search box, etc)
+#      dom = 'pt',
+# l - Length changing
+# f - Filtering input
+# t - The Table!
+# i - Information
+# p - Pagination
+# r - pRocessing
+      scrollX = TRUE, 
+      scrollY = "100vh",
+      #paging = FALSE,
+      #bPaginate = FALSE,
+      #deferRender = FALSE,
+      scroller = TRUE,
+      select = TRUE,
+      buttons = list(
+        I("colvis"),  
+        "csv",  
+        "excel",
+        list(
+          extend = "copy",
+          text = 'Copy to clipboard',
+          exportOptions = list(modifier = list(selected = TRUE))
+        )
+      )#,
+      #initComplete = htmlwidgets::JS(
+      #  "function(settings, json) {",
+      #  paste0("$(this.api().table().container()).css({'font-size': '", font_size, "'});"),
+      #  "}"
+      #)
+    )
+  )  
+  #NB this causes DT to not fill vertically
+  #htmltools::div(dt, style = "font-size:80%")  
+  dt
+}
+
+myTOC <- function(data) {
+  
+  if (is.null(data) || nrow(data) <= 0) 
+    return(htmltools::pre("No TOC to display"))
+  
+  font_size <- "80%"
+  
+  DT::datatable(data,
+    escape = FALSE,
+    rownames = FALSE,
+    style = "bootstrap",
+    class = "table-borderless table-sm", 
+    width = "100%",
+    options = list(
+      dom = 't',
+      searching = FALSE,
+      ordering = FALSE,
+      #scrollX = TRUE, 
+      scrollY = "80vh"
+    )
+  )  
+}
+
+
+compact_cols <- function(data) {
+  mask_keep <- colSums(!is.na(data)) > 0
+  data[, mask_keep, drop = FALSE]
+}
+
+checks <- kth_diva_checks()
+
+stats <- function(x) 
+  checks$stats %>% 
+  dplyr::filter(name == x) %>% 
+  dplyr::pull(value) %>% 
+  (function(x) ifelse(x == 0, "✅",sprintf("(%s)❗", x)))
+
+```
+
+```{css, echo=FALSE}
+div.col_wrap div.bslib-column-wrap {
+  display: grid;
+}
+.tooltip-inner {max-width: 500px;}
+.dataTables_scrollBody {
+    max-height: 100vh !important;
+```
+
+::: {.panel-tabset}
+
+## Ambiguous ORCiDs
+
+Certain ORCiDs are associated with more than one author at KTH and sometimes also with several "local authority identifiers" in DiVA.
+
+:::{.callout-note}
+Note that a KTH author may be associated with zero, one (preferably) or in some cases more than one ORCiDs. However, if more than one KTH author identifier make use of the same ORCiD identifier there are chances that an incorrect affiliation has been detected.
+:::
+
+```{r}
+#| label: tbl-orcid
+#| tbl-cap: "ORCiDs with more than one kthid"
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt <- 
+  kthcorpus:::check_ambiguous_use_orcid() |> datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt, "ORCiD Table")
+
+```
+
+## Old Code
+
+```{r}
+#| message: false
+#| eval: false
+#| echo: false
+
+re_orcid <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
+re_kthid <- "^u1[a-z0-9]{6}$"
+
+authors <- kthcorpus::kth_diva_authors()
+
+authors |> filter(!is.na(orcid)) |> select(orcid, kthid, name, autid) |> 
+  group_by(orcid, name, autid) |> 
+  mutate(n_kthid = n_distinct(kthid)) |> 
+  arrange(desc(n_kthid)) |> 
+  distinct() |> 
+  ungroup() |> 
+  filter(n_kthid > 1, !grepl("^PI", kthid)) |> 
+  left_join(
+    authors |> 
+      group_by(orcid, kthid, name, autid) |> 
+      summarise(pids = paste0(collapse=" ", unique(PID)), n_pids = n_distinct(PID)), 
+        by = c("orcid", "kthid", "name", "autid")) |> 
+      arrange(desc(orcid), n_kthid, kthid
+  )
+
+authors |> filter(!is.na(orcid)) |> 
+  group_by(orcid) |> 
+  mutate(n_kthid = n_distinct(kthid, na.rm = TRUE)) |> 
+  ungroup() |> filter(n_kthid > 1) |> distinct(orcid) |>
+  left_join(
+    authors |> filter(!is.na(orcid)) |> select(orcid, kthid, autid, name, PID) |> distinct() |>
+      group_by(orcid, kthid) |>
+      mutate(
+        n_aliases = n_distinct(name, na.rm = TRUE),
+        n_autid = n_distinct(autid, na.rm = TRUE)) |>
+      filter(n_aliases >= 1, n_autid >= 0, !grepl("^PI", kthid)) |>
+      ungroup() |>
+      group_by(orcid) |>
+      summarise(
+        pids = paste0(collapse = " ", PID),
+        autids = paste0(collapse = " ", unique(na.omit(autid))),
+        kthids = paste0(collapse = " ", unique(na.omit(kthid))),
+        n_pids = n_distinct(PID, na.rm = TRUE),
+        n_kthids = n_distinct(kthid, na.rm = TRUE)
+      ) |>
+      filter(n_kthids > 1) |>
+      arrange(desc(n_kthids)) |>
+      mutate(
+        combo = paste0(linkify(orcid, target = "ORCID"), " (", kthids, ")")
+      ) |>
+      arrange(combo) |>
+      select(combo, autids, n_pids, n_kthids, pids) |>
+      DT::datatable(escape = F)
+  )
+
+  # many |>
+  #   select(orcid, n_kthid) |> left_join(multiple = "all",
+  #   authors |>
+  #     group_by(orcid, kthid, name, autid) |>
+  #     summarise(
+  #       pids = paste0(collapse=" ", unique(PID)),
+  #       n_pids = n_distinct(PID)
+  #     ),
+  #   by = c("orcid")) |> #, "kthid", "name", "autid")) |>
+  #   arrange(desc(orcid), n_kthid, kthid)  |>
+  #   group_by(orcid) |>
+  #   mutate(combo = paste0(collapse = " ", unique(na.omit(kthid)))) |>
+  #   ungroup() |>
+  #   select(orcid, combo, kthid, everything()) |>
+  #   arrange(orcid, combo, desc(n_pids)) |>
+  #   mutate(pids = shorten(pids)) |>
+  #   #mutate(pids = paste(collapse = " ", linkify(na.omit(pids), target = "PID"))) |>
+  #   mutate(orcid = paste0(linkify(orcid, target = "ORCID"), " ", combo)) |>
+  #   select(-c("combo", "n_kthid"))
+
+  # many <-
+  #   authors |>
+  #   group_by(orcid) |>
+  #   filter(grepl(re_orcid, orcid)) |>
+  #   filter(grepl(re_kthid, kthid)) |>
+  #   summarize(
+  #     n_kthid = n_distinct(kthid),
+  #     kthids =  paste(collapse = " ", unique(kthid)),
+  #     n_pids = n_distinct(PID),
+  #     pids = paste(collapse = " ", unique(PID))
+  #   ) |>
+  #   filter(n_kthid > 1) |>
+  #   arrange(desc(n_kthid))
+  #
+  # authors |> inner_join(many, by = "orcid") |> distinct(PID, orcid, kthid) |>
+  #   group_by(orcid, kthid) |>
+  #   summarise(
+  #     pids = paste(collapse = " ", linkify(na.omit(unique(PID)[1:10]), target = "PID")),
+  #     n_pids = n_distinct(PID),
+  #     kthid = paste(collapse = " ", unique(kthid))
+  #   ) |>
+  #   group_by(orcid) |>
+  #   arrange(orcid, desc(n_pids), orcid) |>
+  #   mutate(orcid = linkify(orcid, target = "ORCID")) |>
+  #   mutate(combo = paste0(orcid, " (n=", sprintf("%03d", n_pids), ", kthid=", kthid, ")")) |>
+  #   ungroup() |>
+  #   select(combo, pids)
+
+```
+
+:::

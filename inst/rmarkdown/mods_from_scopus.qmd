@@ -14,7 +14,7 @@ format:
   html:
     toc: true
     toc-location: left
-    code-fold: true
+    code-fold: false
     html-math-method: katex
     embed-resources: true
     anchor-sections: true
@@ -161,11 +161,11 @@ sid <- sids |> head(1)
 # to avoid runtime lookups for this data
 mods <- sid |> scopus_mods(scopus = scopus, ko = ko)
 
-mods |> cat()
+mods |> xml2::read_xml() |> as.character() |> cat()
 
 ```
 
-The function is vectorised which means it can iterate over several Scopus identifiers
+The `scopus_mods_crawl()` function is vectorised which means it can iterate over several Scopus identifiers
 
 ```{r}
 
@@ -174,7 +174,9 @@ my_sids <- sids |> head(10)
 my_mods <- my_sids |> scopus_mods_crawl(scopus = scopus, ko = ko)
 
 names(my_mods)
+
 my_mods$`SCOPUS_ID:85147171092` |> cat()
+
 ```
 
 A zip-file with the results can be generated, and included for download in a quarto doc.

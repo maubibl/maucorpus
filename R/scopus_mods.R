@@ -106,7 +106,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
         source = "kth",
         family = ce_surname, given = ce_given_name,
         role = ifelse(seq == 1 , "aut", "aut"),
-        affiliations = raw_org,
+        affiliations = raw_org |> tidy_xml(cdata = TRUE),
         descriptions = if (all(is.na(orcid))) NULL else paste0("org.orcid=", orcid))
       }
     )
@@ -135,7 +135,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   #   )
 
   title <- frag_titleInfo(
-    title = p$`dc:title`, #subtitle = "Some subtitle",
+    title = p$`dc:title` |> tidy_xml(), #subtitle = "Some subtitle",
     lang = "eng")
 
   origins <- frag_originInfo(
@@ -153,7 +153,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     #frag_note("Another. @Funder@ [@project_number_from_funder@")
   )
 
-  abstract <- frag_abstract(p$`dc:description` |> tidy_xml())
+  abstract <- frag_abstract(p$`dc:description` |> tidy_xml(cdata = TRUE))
 
   # both author keywords and UKÄ classifications are MODS "subjects"
   keywords <-
@@ -179,7 +179,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
       tidyr::separate("subject", into=c("lang", NA)) |>
       mutate(source = "hsv", href = unique(eng_code, swe_code)) |>
       rename(topic = value) |>
-      pmap(function(lang, source, href, topic, ...) frag_subject(lang, source, href, topic))
+      pmap(function(lang, source, href, topic, ...)
+        frag_subject(lang, source, href, topic)
+      )
   }
 
   subjects <- c(frag_subject(topic = keywords), hsv_categories)
@@ -234,51 +236,57 @@ scopus_mods <- function(sid, scopus = scopus_from_minio(), ko = kthid_orcid()) {
 #' @importFrom xml2 read_xml
 scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orcid()) {
 
-  failed_ids <- NULL
-
   ids <- unique(sids)
 
   pb <- progress::progress_bar$new(total = length(ids))
 
   message("Generating MODS parameters for ", length(ids), " identifiers...")
-  my_params <- ids |> map(possibly(.f = function(x) {
+  my_params <-
+    ids |>
+    map(possibly(.f = function(x) {
       pb$tick()
       scopus_mods_params(scopus, x, ko)
-    }, otherwise = NULL)) |>
-    setNames(nm = ids)
+      }, otherwise = NULL)) |>
+    setNames(nm = ids) |>
+    compact()
 
-  failed_params <- ids[which(lengths(my_params) == 0)]
+  failed_params <- setdiff(ids, names(my_params))
 
   if (length(failed_params) > 0)
-    message("Failed to generate parameters for these ids: ", failed_ids)
+    message("Failed to generate parameters for these ids: ", failed_params)
 
   message("Generating MODS based on parameters...")
-  my_mods <- my_params |> purrr::map(create_diva_mods)
+  my_mods <-
+    my_params |>
+    map(create_diva_mods) |>
+    setNames(nm = ids)
+
 
   my_validations <-
     my_mods |>
     purrr::map(possibly(.f = function(x) {
       xml2::read_xml(x)
     }, otherwise = NULL)) |>
-    setNames(nm = ids)
+    setNames(nm = ids) |>
+    compact()
 
-  failed_mods <- ids[which(lengths(my_validations) == 0)]
+  failed_mods <- setdiff(names(my_mods), names(my_validations))
 
-  fails <-
-    my_validations |> map_lgl(is.null) |
-    my_params |> map_lgl(is.null)
-
-  ok <- ids[-fails]
+  if (length(failed_mods) > 0)
+    message("Failed to generate parameters for these ids: ", failed_mods)
 
   debug <- list(
     params = my_params,
     mods = my_mods,
-    fails = fails
+    fails = unique(c(failed_mods, failed_params))
   )
 
-  message("Returning ", length(ok), " MODS, failed attempts for: ", failed_mods)
+  message("Returning ", length(my_mods), " MODS")
 
-  structure(my_mods[ok], debug = invisible(debug))
+  if (length(debug$fails) > 0)
+    warning("Failed attempts for: ", debug$fails)
+
+  structure(my_mods, debug = invisible(debug))
 
 }
 

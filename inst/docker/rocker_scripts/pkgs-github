@@ -3,5 +3,6 @@ rstudio/flexdashboard
 KTH-Library/vinnova
 KTH-Library/formas
 KTH-Library/OpenAIRE
+KTH-Library/swecris
 #RinteRface/bs4Dash
 #KTH-Library/bibliotools  # requires envvars for case() and hr_plus()

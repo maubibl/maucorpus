@@ -27,7 +27,7 @@ kthid_orcid <- function() {
 
 scopus_extent_from_pagerange <- function(x) {
   x |> strsplit(split = "\\D+") |> unlist() |>
-    as.integer() |> sort() %>%
+    as.integer() |> sort() |> as.character() %>%
     list(extent_beg = .[1], extent_end = .[2])
 }
 
@@ -224,7 +224,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 scopus_mods <- function(sid, scopus = scopus_from_minio(), ko = kthid_orcid()) {
   my_params <- scopus_mods_params(scopus, sid, ko)
   my_mods <- create_diva_mods(my_params)
-  xml2::read_xml(my_mods) |> as.character()
+  res <- xml2::read_xml(my_mods) |> as.character()
+  cat(res)
+  invisible(res)
 }
 
 #' Generate MODS from several Scopus identifiers
@@ -239,41 +241,40 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
   ids <- unique(sids)
 
   pb <- progress::progress_bar$new(total = length(ids))
-
   message("Generating MODS parameters for ", length(ids), " identifiers...")
+
+  smp <- function(x) {
+    pb$tick()
+    scopus_mods_params(scopus, x, ko)
+  }
+
   my_params <-
-    ids |>
-    map(possibly(.f = function(x) {
-      pb$tick()
-      scopus_mods_params(scopus, x, ko)
-      }, otherwise = NULL)) |>
-    setNames(nm = ids) |>
-    compact()
+    ids |> map(possibly(smp)) |>
+    setNames(nm = ids) |> compact()
 
   failed_params <- setdiff(ids, names(my_params))
 
   if (length(failed_params) > 0)
-    message("Failed to generate parameters for these ids: ", failed_params)
+    message("Failed to generate parameters for these ids: ",
+      paste0(collapse = " ", sep = " ", failed_params)
+    )
 
   message("Generating MODS based on parameters...")
+
   my_mods <-
-    my_params |>
-    map(create_diva_mods) |>
-    setNames(nm = ids)
+    my_params |> map(possibly(.f = function(x)
+      create_diva_mods(x) |> xml2::read_xml() |> as.character())) |>
+    setNames(nm = ids) |> compact()
 
+  # my_validations <-
+  #   my_mods |> map(possibly(xml2::read_xml)) |>
+  #   setNames(nm = ids) |> compact()
 
-  my_validations <-
-    my_mods |>
-    purrr::map(possibly(.f = function(x) {
-      xml2::read_xml(x)
-    }, otherwise = NULL)) |>
-    setNames(nm = ids) |>
-    compact()
-
-  failed_mods <- setdiff(names(my_mods), names(my_validations))
+  failed_mods <- setdiff(names(my_mods), names(my_mods))
 
   if (length(failed_mods) > 0)
-    message("Failed to generate parameters for these ids: ", failed_mods)
+    message("Failed to generate valid MODS xml for these ids: ",
+      paste0(collapse = " ", sep = " ", failed_mods))
 
   debug <- list(
     params = my_params,
@@ -281,12 +282,13 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
     fails = unique(c(failed_mods, failed_params))
   )
 
-  message("Returning ", length(my_mods), " MODS")
+  message("Returning ", length(my_mods), " MODS invisibly")
 
   if (length(debug$fails) > 0)
-    warning("Failed attempts for: ", debug$fails)
+    warning("Failed conversion for these identifiers: ",
+      paste0(collapse = " ", sep = " ", debug$fails))
 
-  structure(my_mods, debug = invisible(debug))
+  invisible(structure(my_mods, debug = debug))
 
 }
 

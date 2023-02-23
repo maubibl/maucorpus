@@ -486,15 +486,15 @@ scopus_abstract_extended <- function(sid) {
       pluck(x, .default = NA_character_,
         "affiliation", "ce:source-text")
 
-    if (!is.na(ce_source)) {
-      return(ce_source |> paste(collapse = ";"))
+    if (!all(is.na(ce_source))) {
+      return(ce_source |> paste(collapse = ", "))
     }
 
     org <- pluck(x, .default = NA_character_,
       "affiliation", "organization")
 
-    if (!is.na(org)) org |> map_chr("$") |>
-      paste0(collapse = "; ")
+    if (!all(is.na(org))) org |> map_chr("$") |>
+      paste0(collapse = ", ")
   }
 
   pluck_aut <- function(x) {

@@ -417,7 +417,7 @@ frag_name_personal <- function(kthid, source, family, given, role, affiliations,
     <roleTerm type="code" authority="marcrelator">{role}</roleTerm>
   </role>',
   footer,
-  '</name>')
+  '</name>', .na = "")
 }
 
 frag_namepart <- function(namepart) {
@@ -563,7 +563,7 @@ frag_identifier <- function(type, identifier, displayLabel) {
   template <- '<identifier type="{type}">{identifier}</identifier>'
   if (type == "isbn")
     template <- '<identifier type="{type}" displayLabel="{displayLabel}">{identifier}</identifier>'
-  glue::glue(template)
+  glue::glue(template, .na = "")
 }
 
 frag_typeOfResource <- function(resourcetype = "text") {
@@ -651,7 +651,7 @@ frag_relatedItem_host_journal <- function(
         <end>{pub_extent_end}</end>
       </extent>
     </part>
-  </relatedItem>')
+  </relatedItem>', .na = "")
 }
 
 

@@ -255,8 +255,8 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
   failed_params <- setdiff(ids, names(my_params))
 
   if (length(failed_params) > 0)
-    message("Failed to generate parameters for these ids: ",
-      paste0(collapse = " ", sep = " ", failed_params)
+    message("Failed to generate parameters for these ids: \n",
+      paste0(collapse = "\n", sep = " ", failed_params)
     )
 
   message("Generating MODS based on parameters...")
@@ -264,17 +264,17 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
   my_mods <-
     my_params |> map(possibly(.f = function(x)
       create_diva_mods(x) |> xml2::read_xml() |> as.character())) |>
-    setNames(nm = ids) |> compact()
+    setNames(nm = names(my_params)) |> compact()
 
   # my_validations <-
   #   my_mods |> map(possibly(xml2::read_xml)) |>
   #   setNames(nm = ids) |> compact()
 
-  failed_mods <- setdiff(names(my_mods), names(my_mods))
+  failed_mods <- setdiff(ids, names(my_mods))
 
   if (length(failed_mods) > 0)
-    message("Failed to generate valid MODS xml for these ids: ",
-      paste0(collapse = " ", sep = " ", failed_mods))
+    message("Failed to generate valid MODS xml for these ids: \n",
+      paste0(collapse = "\n", sep = " ", failed_mods))
 
   debug <- list(
     params = my_params,
@@ -285,8 +285,8 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
   message("Returning ", length(my_mods), " MODS invisibly")
 
   if (length(debug$fails) > 0)
-    warning("Failed conversion for these identifiers: ",
-      paste0(collapse = " ", sep = " ", debug$fails))
+    warning("Failed conversion for these identifiers:\n",
+      paste0(collapse = "\n", sep = " ", debug$fails))
 
   invisible(structure(my_mods, debug = debug))
 
@@ -321,8 +321,10 @@ write_mods_zip <- function(crawl_result, path = tempdir(), zipfile = "mods.zip")
 
   zf <- file.path(path, zipfile)
   message("Generating zip file at ", zf)
+
   zip::zip(root = path, zipfile = zipfile,
-    files = file.path(path, dir(path, pattern = ".mods.xml"))
+    files = file.path(path, dir(path, pattern = ".mods.xml")),
+    mode = "cherry-pick"
   )
 
   unlink(fns)

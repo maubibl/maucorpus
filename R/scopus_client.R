@@ -449,6 +449,37 @@ scopus_ratelimit_quota <- function() {
   )
 }
 
+
+pluck_raw_org <- function(x) {
+
+  org <-
+    x |> rget("organization", parents = "affiliation", new_name = "org") |>
+    pull(1) |> na.omit() |> paste(collapse = ", ")
+
+  ce_source <-
+    x |> rget("ce:source-text", parents = "affiliation", new_name = "ce_source") |>
+    pull(1) |> na.omit() |> paste(collapse = ", ")
+
+  ce_text <-
+    x |> rget("ce:text", parents = "affiliation", new_name = "ce_text") |>
+    pull(1) |> na.omit() |> paste(collapse = ", ")
+
+  raw <-
+    x |> rget("$", parents = "affiliation", new_name = "raw") |>
+    pull(1) |> na.omit() |> paste(collapse = ", ")
+
+  ap <-
+    x |> rget("address-part", parents = "affiliation", new_name = "ap") |>
+    pull(1) |> na.omit() |> paste(collapse = ", ")
+
+  tibble(org = org, ce_source = ce_source, ce_text = ce_text, raw = raw, ap = ap) |>
+    mutate(across(where(is.character), .fns = function(x) na_if(x, ""))) |>
+    mutate(raw = ifelse(nzchar(ce_source) && nchar(ce_source) > nchar(raw), NA, raw)) |>
+#    mutate(ce_source = ifelse(nzchar(raw) && nchar(raw) < nchar(ce_source), NA, ce_source)) |>
+    mutate(raw_org = paste0(collapse = ", ", na.omit(c(org, ce_source, raw, ap, ce_text)))) |>
+    mutate(across(where(is.character), .fns = function(x) na_if(x, "")))
+}
+
 #' Request extended information from Scopus Abstract API
 #'
 #' The response includes the abstract itself, associated author groups with
@@ -477,55 +508,78 @@ scopus_abstract_extended <- function(sid) {
 
   abstract <- scopus_req_abstract(sid = sid) |> httr::content()
 
-  text <-
-    abstract$`abstracts-retrieval-response`$coredata$`dc:description`
+  text <- abstract$`abstracts-retrieval-response`$coredata |>
+    pluck(.default = NA_character_, "dc:description")
 
-  pluck_org <- function(x) {
-
-    ce_source <-
-      pluck(x, .default = NA_character_,
-        "affiliation", "ce:source-text")
-
-    if (!all(is.na(ce_source))) {
-      return(ce_source |> paste(collapse = ", "))
-    }
-
-    org <- pluck(x, .default = NA_character_,
-      "affiliation", "organization")
-
-    if (!all(is.na(org))) org |> map_chr("$") |>
-      paste0(collapse = ", ")
-  }
-
-  pluck_aut <- function(x) {
-
-    pluck(x, .default = NA_character_,
-      "author", 1
-    )
-
-  }
+  # pluck_org <- function(x) {
+  #
+  #   ce_source <-
+  #     pluck(x, .default = NA_character_,
+  #       "affiliation", "ce:source-text")
+  #
+  #   if (!all(is.na(ce_source))) {
+  #     return(ce_source |> paste(collapse = ", "))
+  #   }
+  #
+  #   org <- pluck(x, .default = NA_character_,
+  #     "affiliation", "organization")
+  #
+  #   if (!all(is.na(org))) org |> map_chr("$", .default = NULL) |>
+  #     paste0(collapse = ", ")
+  #
+  # }
+  #
+  # pluck_org2 <- function(x) {
+  #
+  #   if (x |> pluck_exists("affiliation", "ce:source-text")) {
+  #     ce_source <- x |> pluck("affiliation", "ce:source-text") |>
+  #       paste0(collapse = ", ")
+  #     return (ce_source)
+  #   }
+  #
+  #   if (x |> pluck_exists("affiliation", "address-part")) {
+  #     ap <- x|> pluck("affiliation", "address-part") |>
+  #       paste0(collapse = ", ")
+  #   }
+  #
+  #   if (x |> pluck_exists("affiliation", "organization", "$")) {
+  #     org <- x|> pluck("affiliation", "organization", "$")
+  #   }
+  #
+  #   paste0(collapse = ", ", c(org, ap))
+  # }
+  #
+  #
+  # pluck_aut <- function(x) {
+  #
+  #   pluck(x, .default = NA_character_,
+  #     "author", 1
+  #   )
+  #
+  # }
 
   ag <-
     abstract$`abstracts-retrieval-response`$item$bibrecord$head$`author-group`
 
-  has_unwrapped_key <- function(key)
-    all(names(map(ag, key)) %in% c("affiliation", "author"))
+  # has_unwrapped_key <- function(key)
+  #   all(names(map(ag, key)) %in% c("affiliation", "author"))
 
   needs_wrap <- function(obj, key) {
     unname(map(obj, key)) %>% map_lgl(is.null) %>% all()
   }
 
-  is_unwrapped_author <-
-    has_unwrapped_key("author") && unname(lengths(ag)["author"]) == 1
-
-  is_unwrapped_aff <-
-    has_unwrapped_key("affiliation") && unname(lengths(ag)["affiliation"]) == 1
+  # is_unwrapped_author <-
+  #   has_unwrapped_key("author") && unname(lengths(ag)["author"]) == 1
+  #
+  # is_unwrapped_aff <-
+  #   has_unwrapped_key("affiliation") && unname(lengths(ag)["affiliation"]) == 1
 
   if (needs_wrap(ag, "affiliation") | needs_wrap(ag, "author"))
     ag <- list(ag)
 
   raw_org <-
-    ag |> map(pluck_org) |> map_dfr(.f = function(x) tibble(raw_org = x), .id = "id")
+    ag |> map_dfr(pluck_raw_org, .id = "id")
+#    ag |> map(pluck_org2) |> map_dfr(.f = function(x) tibble(raw_org = x), .id = "id")
 
   value <- NULL
 
@@ -599,13 +653,29 @@ scopus_abstract_extended <- function(sid) {
     unlist()
 
   coredata <-
-    fields |> map(function(x) rget(a, x)) |> unlist() |> bind_rows()
+    fields |> map(function(x) rget(a, x)) |> bind_cols() #unlist() |> bind_rows()
+
+  # lookup publisher from crossref if not available from scopus
+  # if (is.na(coredata$`dc:publisher`)) {
+  #   doi <- coredata$`prism:doi`
+  #   if (nzchar(doi)) {
+  #     #dois <-
+  #     #scopus$publications |> filter(`dc:identifier` %in% sids) |>
+  #       #select("prism:doi") |> pull(1)
+  #     cr_publisher <-
+  #       rcrossref::cr_works(dois = doi)$data$publisher
+  #     coredata$`dc:publisher` <- cr_publisher
+  #   }
+  # }
 
   coredata$lang <- a |> find_name("language") |> as.character()
 
   keywords <-
     a |> rget("$", parents = "author-keyword", new_name = "keywords") |>
     pull("keywords") |> paste0(collapse = ", ")
+
+  if (keywords == "NA")
+    keywords <- NA_character_
 
   coredata$keywords <- keywords
 
@@ -644,8 +714,10 @@ scopus_abstract_extended <- function(sid) {
 
 tidy_xml <- function(x, cdata = FALSE) {
 
-  if (cdata)
-    return (sprintf("<![CDATA[%s]]>", x))
+  if (cdata) {
+    res <- glue::glue("<![CDATA[{x}]]>", .na = "")
+    return (res)
+  }
 
   chars <- tibble::tribble(
     ~from, ~to,
@@ -722,8 +794,10 @@ find_name <- function(haystack, needle) {
 rget <- function(x, field, siblings = NULL, parents = NULL, new_name = field) {
 
   condition_n <- function(x, .xname) .xname == field
+
   condition_s <- function(x, .xname, .xsiblings)
     .xname == field & siblings %in% .xsiblings
+
   condition_p <- function(x, .xname, .xparents)
     .xname == field & parents %in% .xparents
 
@@ -739,16 +813,20 @@ rget <- function(x, field, siblings = NULL, parents = NULL, new_name = field) {
 
   my_accessor <- function(x, .xsiblings, .xparents, .xpos) {
     #      print("siblings are: ", as.character(.xsiblings))
-    return(x)
+    res <- x
+    return (x)
   }
 
   res <- x |> rrapply::rrapply(
     condition = my_condition,
     f = my_accessor,
     how = "flatten",
-    options = list(namecols = TRUE)
+    options = list(namecols = TRUE)  # TODO: change this?
   )
 
-  if (length(res) == 1) return(res) # unname(res))
-  tibble(x = res) |> setNames(nm = new_name)
+  #if (length(res) == 1) return(res) # unname(res))
+  ret <- tibble(x = res) #|> setNames(nm = new_name)
+  if (nrow(ret) < 1) ret <- tibble(x = NA_character_)
+  colnames(ret) <- new_name
+  return (ret)
 }

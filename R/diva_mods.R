@@ -400,12 +400,12 @@ frag_name_personal <- function(kthid, source, family, given, role, affiliations,
 
   footer <- ""
 
-  if (!missing(affiliations) && !is.null(affiliations)) {
+  if (!missing(affiliations) && !is.null(affiliations) && !is.na(affiliations)) {
     f_aff <- affiliations %>% purrr::map_chr(frag_affiliation)  %>% paste0(collapse = "\n")
     footer <- paste0(footer, "\n{f_aff}")
   }
 
-  if (!(missing(descriptions)) && !is.null(descriptions)) {
+  if (!(missing(descriptions)) && !is.null(descriptions) && !is.na(descriptions)) {
     f_desc <- descriptions %>% purrr::map_chr(frag_description) %>% paste0(collapse = "\n")
     footer <- paste0(footer, "\n{f_desc}\n")
   }

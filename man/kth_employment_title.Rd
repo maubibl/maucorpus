@@ -18,6 +18,6 @@ A data frame with 61 rows and 5 variables:
 kth_employment_title
 }
 \description{
-Employment Titles have codes and descriptions in english and swedish
+Employment Titles have codes and descriptions in English and Swedish
 }
 \keyword{datasets}

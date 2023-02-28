@@ -131,10 +131,10 @@ hr_read_csv <- function(file) {
     mutate(emp_degree = parse_double(emp_degree, locale = locale(decimal_mark = ","))) %>%
     mutate(across(.cols = contains(intcols), .fns = parse_integer))
 
-  probs <- map_dfr(typed %>% select(kthid, c(intcols, dtecols)), problems)
+  probs <- map_dfr(typed %>% select(kthid, all_of(c(intcols, dtecols))), problems)
 
   if (nrow(probs) > 0) {
-    info <- hr %>% select(kthid, c(intcols, dtecols)) %>%
+    info <- hr %>% select(kthid, all_of(c(intcols, dtecols))) %>%
       slice(probs$row) %>% mutate(row = probs$row) %>%
       inner_join(probs, by = "row") %>%
       select(kthid, row, everything())

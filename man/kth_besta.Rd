@@ -16,6 +16,6 @@ A data frame with 53 rows and 3 variables:
 kth_besta
 }
 \description{
-Employment Titles have BESTA codes and descriptions in english and swedish
+Employment Titles have BESTA codes and descriptions in English and Swedish
 }
 \keyword{datasets}

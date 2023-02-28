@@ -20,6 +20,6 @@ ss_employment_title
 Employment Titles have codes and descriptions
 }
 \details{
-See \url{https://www.h6.scb.se/anstallningsbenamning/}
+See \url{https://anstallningsbenamningar.scb.se/}
 }
 \keyword{datasets}

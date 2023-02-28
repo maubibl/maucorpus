@@ -53,11 +53,11 @@ NULL
 #'   \item{\code{cat_desc}}{character staff category}
 #'   \item{\code{is_uf_ta}}{character UF denotes educational or research title, TA denotes technical or administrative}
 #'}
-#' @details See \url{https://www.h6.scb.se/anstallningsbenamning/}
+#' @details See \url{https://anstallningsbenamningar.scb.se/}
 "ss_employment_title"
 
 #' @title Employment Titles from KTH
-#' @description Employment Titles have codes and descriptions in english and swedish
+#' @description Employment Titles have codes and descriptions in English and Swedish
 #' @format A data frame with 61 rows and 5 variables:
 #' \describe{
 #'   \item{\code{emp_code_hr}}{character code for employment title}
@@ -69,7 +69,7 @@ NULL
 "kth_employment_title"
 
 #' @title Employment Titles from KTH according to BESTA
-#' @description Employment Titles have BESTA codes and descriptions in english and swedish
+#' @description Employment Titles have BESTA codes and descriptions in English and Swedish
 #' @format A data frame with 53 rows and 3 variables:
 #' \describe{
 #'   \item{\code{emp_code}}{character code for employment title}

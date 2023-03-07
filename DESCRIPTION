@@ -15,7 +15,14 @@ License: AGPL (>= 3) + file LICENSE
 URL: https://github.com/KTH-Library/kthcorpus
 BugReports: https://github.com/KTH-Library/kthcorpus/issues
 Suggests: 
-    testthat
+    testthat,
+    OpenAIRE,
+    cordis,
+    duckdb,
+    formas,
+    swecris,
+    tictoc,
+    vinnova    
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)

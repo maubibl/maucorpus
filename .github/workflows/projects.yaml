@@ -1,0 +1,20 @@
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/projects.yml'
+  schedule:
+    - cron: '0 9 * * *' # https://crontab.guru/#0_9_*_*_*
+
+name: Request KTH projects data from external sources and upload to S3/minio
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    container: ghcr.io/kth-library/kthcorpus
+    timeout-minutes: 20
+    env:
+      MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
+    steps:
+      - run: |
+          R -e 'kthcorpus:::projects_upload();'

@@ -17,7 +17,8 @@ BugReports: https://github.com/KTH-Library/kthcorpus/issues
 Suggests: 
     testthat,
     duckdb,
-    tictoc
+    tictoc,
+    quarto
 Remotes:
     KTH-Library/OpenAIRE,
     KTH-Library/cordis,

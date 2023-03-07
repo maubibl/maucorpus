@@ -11,7 +11,7 @@ kth_cordis <- function() {
 
   shortName <- projectID <- projectAcronym <- totalCost <- NULL
 
-  cordis::cordis_import()
+  cordis::cordis_import(refresh = TRUE)
 
   #cordis:::cordis_dropdb(confirm = TRUE)
   #cordis::cordis_import()

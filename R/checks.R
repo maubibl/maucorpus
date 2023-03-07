@@ -1152,6 +1152,49 @@ checks_render_report <- function(report = checks_report_path(), use_tmp = TRUE) 
   return (out)
 }
 
+checks_quarto_path <- function(report = "orcid_report.qmd") {
+  system.file(package = "kthcorpus", "rmarkdown", report)
+}
+
+#' @importFrom quarto quarto_render
+checks_render_quarto <- function(report = checks_quarto_path(), use_tmp = TRUE) {
+
+  if (!requireNamespace("quarto", quietly = TRUE)) {
+    stop(
+      "Package \"quarto\" must be installed to use this function.",
+      call. = FALSE
+    )
+  }
+
+  of <- gsub("\\.qmd", "\\.html", basename(report))
+  message("Rendering ", basename(report), " to ", of)
+
+  quarto::quarto_render(
+    input = report,
+    output_format = "html",
+#    execute_dir = "/tmp",
+#    output_file = of
+  )
+
+  stopifnot(file.exists(of))
+  out <- file.path(dirname(report), of)
+
+  if (use_tmp == TRUE) {
+    file.copy(out, "/tmp", overwrite = TRUE)
+    return(file.path("/tmp", basename(out)))
+  }
+
+  return (out)
+
+}
+
+checks_upload_quarto <- function(report = checks_quarto_path(), use_tmp = TRUE) {
+  message("Rendering ", report)
+  rp <- checks_render_quarto(report, use_tmp = use_tmp)
+  message("Uploading ", rp, " to object storage")
+  checks_upload_report(rp)
+}
+
 #' Upload file to S3
 #'
 #' @details Checks for minio client being present on the system and assumes
@@ -1250,7 +1293,8 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
   orgid <- is_closed <- closed_date <- n_orgs <-
     n_pids <- alt_n_pids <- alt_n_orgs <-
     lc_title <- unit_en <- Year <- pd <- cd <-
-    overdue_days <- NULL
+    overdue_days <-
+    alt_pids <- alt_pidz <- stale_pids <- stale_pidz <- NULL
 
   diva_orgs <-
     diva_organisations() %>%
@@ -1330,6 +1374,15 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
 
   # these have one other belonging that is not closed
   # and more than 50 publications
-  recommendations %>% filter(alt_n_orgs == 1 & alt_n_pids > 50) #%>%
+  recommendations |>
+    filter(alt_n_orgs == 1 & alt_n_pids > 50) |>
     #select(-c("stale_pids", "alt_pids"))
+    mutate(stale_pidz = strsplit(stale_pids, " ")) |>
+    mutate(stale_pidz = pmap_chr(list(stale_pidz), function(x)
+      linkify(x, target = "PID") |> paste(collapse = " "))) |>
+    mutate(alt_pidz = strsplit(alt_pids, " ")) |>
+    mutate(alt_pidz = pmap_chr(list(alt_pidz), function(x)
+      linkify(x, target = "PID") |> paste(collapse = " "))) |>
+    select(everything(), -c("stale_pids", "alt_pids"), all_of(c("stale_pidz", "alt_pidz")))
+
 }

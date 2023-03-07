@@ -169,7 +169,7 @@ The `scopus_mods_crawl()` function is vectorised which means it can iterate over
 
 ```{r}
 
-my_sids <- sids |> head(10)
+my_sids <- sids #|> head(10)
 
 my_mods <- my_sids |> scopus_mods_crawl(scopus = scopus, ko = ko)
 

@@ -1,6 +1,6 @@
 Package: kthcorpus
 Title: Swedish Research Publications Data from KTH
-Version: 0.3.0
+Version: 0.3.1
 Authors@R: 
     person(given = "Markus",
            family = "Skyttner",
@@ -15,7 +15,15 @@ License: AGPL (>= 3) + file LICENSE
 URL: https://github.com/KTH-Library/kthcorpus
 BugReports: https://github.com/KTH-Library/kthcorpus/issues
 Suggests: 
-    testthat
+    testthat,
+    duckdb,
+    tictoc
+Remotes:
+    KTH-Library/OpenAIRE,
+    KTH-Library/cordis,
+    KTH-Library/formas,
+    KTH-Library/swecris,
+    KTH-Library/vinnova
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -51,6 +59,11 @@ Imports:
     rrapply,
     whisker,
     xml2relational,
-    zip
+    zip,
+    OpenAIRE,
+    cordis,
+    formas,
+    swecris,
+    vinnova    
 Depends: 
     R (>= 2.10)

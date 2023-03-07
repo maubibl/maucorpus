@@ -40,8 +40,8 @@ test_that("generating mods for five more identifiers work", {
   scopus <- scopus_from_minio()
   ko <- kthid_orcid()
 
-  # sid <- sids[1]
-  #
+  sid <- sids[1]
+
   # abstract <- scopus_req_abstract(sid = sid) |> httr::content()
   # View(abstract)
   # abstract$`abstracts-retrieval-response`$item$`ait:process-info`
@@ -50,9 +50,9 @@ test_that("generating mods for five more identifiers work", {
   #   abstract$`abstracts-retrieval-response`$item$bibrecord$head$`author-group`
   #
   # ag |> map_dfr(pluck_raw_org, .id = "id")
-
+  #
   # TODO: exame if this info is useful
-  #abstract$`abstracts-retrieval-response`$item$`ait:process-info`
+  # abstract$`abstracts-retrieval-response`$item$`ait:process-info`
 
   mods <- scopus_mods_crawl(sids = sids, scopus = scopus, ko = ko)
 

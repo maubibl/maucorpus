@@ -1,5 +1,9 @@
 # kthcorpus
 
+## kthcorpus 0.3.1
+
+* add fcn for retrieving and uploading project data to object storage
+
 ## kthcorpus 0.3.0
 
 * add fcns for generating MODS for DiVA

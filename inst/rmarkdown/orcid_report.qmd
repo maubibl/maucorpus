@@ -286,7 +286,14 @@ bs4_card(my_dt, "ORCiD Table")
 
 ```
 
-## Old Code
+## Stale organisational units
+
+Certain authors have publications that are associated with "closed" or no longer valid organisational units at KTH. These authors also have other publications tagged with an "open" or valid organisational unit, and have more than 50 publications, so may be "low hanging fruit" for retagging.
+
+:::{.callout-note}
+Note that authors can have made some publications that were tagged with an organisational unit at KTH that is closed (or was closed, at the time, based on the publication date) and therefore is/were not valid. If such an "invalid" DiVA organisations was closed more than 1.5 years earlier compared to the publication date, there may be more recent organisational units that are better to use. Candidates for suggested valid organisational units that are associated with other publications from the same author are provided below.   
+:::
+
 
 ```{r}
 #| message: false
@@ -390,6 +397,39 @@ authors |> filter(!is.na(orcid)) |>
   #   mutate(combo = paste0(orcid, " (n=", sprintf("%03d", n_pids), ", kthid=", kthid, ")")) |>
   #   ungroup() |>
   #   select(combo, pids)
+
+```
+
+
+```{r}
+#| label: tbl-orgid
+#| tbl-cap: "Authors with stale organisational units"
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt2 <- 
+  kthcorpus:::check_invalid_orgid() |> datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    options = list(
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt2, "Stale OrgId Table")
 
 ```
 

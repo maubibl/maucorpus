@@ -16,14 +16,14 @@ URL: https://github.com/KTH-Library/kthcorpus
 BugReports: https://github.com/KTH-Library/kthcorpus/issues
 Suggests: 
     testthat,
-    duckdb
+    duckdb,
+    tictoc
 Remotes:
     KTH-Library/OpenAIRE,
     KTH-Library/cordis,
     KTH-Library/formas,
     KTH-Library/swecris,
-    KTH-Library/tictoc,
-    KTH-Library/vinnova    
+    KTH-Library/vinnova
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -59,6 +59,11 @@ Imports:
     rrapply,
     whisker,
     xml2relational,
-    zip
+    zip,
+    OpenAIRE,
+    cordis,
+    formas,
+    swecris,
+    vinnova    
 Depends: 
     R (>= 2.10)

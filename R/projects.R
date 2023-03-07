@@ -1,6 +1,13 @@
-#' @import dplyr
+#' @import dplyr cordis
 kth_cordis <- function() {
   #devtools::install_github("kth-library/cordis")
+
+  if (!requireNamespace("cordis", quietly = TRUE)) {
+    stop(
+      "Package \"cordis\" must be installed to use this function.",
+      call. = FALSE
+    )
+  }
 
   shortName <- projectID <- projectAcronym <- totalCost <- NULL
 
@@ -53,7 +60,15 @@ kth_cordis <- function() {
 
 }
 
+#' @import formas
 kth_formas <- function() {
+
+  if (!requireNamespace("formas", quietly = TRUE)) {
+    stop(
+      "Package \"formas\" must be installed to use this function.",
+      call. = FALSE
+    )
+  }
 
   tictoc::tic()
 
@@ -77,7 +92,15 @@ kth_formas <- function() {
 
 }
 
+#' @import vinnova
 kth_vinnova <- function() {
+
+  if (!requireNamespace("vinnova", quietly = TRUE)) {
+    stop(
+      "Package \"vinnova\" must be installed to use this function.",
+      call. = FALSE
+    )
+  }
 
   message("Requesting projects from Vinnova")
 
@@ -97,7 +120,15 @@ kth_vinnova <- function() {
 
 }
 
+#' @import cordis
 cordis_swe_vat <- function() {
+
+  if (!requireNamespace("cordis", quietly = TRUE)) {
+    stop(
+      "Package \"cordis\" must be installed to use this function.",
+      call. = FALSE
+    )
+  }
 
   organisationID <- vatNumber <- shortName <- name <- country <- NULL
 
@@ -117,7 +148,15 @@ cordis_swe_vat <- function() {
   return(cordis_org_vat)
 }
 
+#' @import swecris
 kth_swecris <- function() {
+
+  if (!requireNamespace("swecris", quietly = TRUE)) {
+    stop(
+      "Package \"swecris\" must be installed to use this function.",
+      call. = FALSE
+    )
+  }
 
   organisationNameSv <- organisationId <- NULL
 
@@ -140,7 +179,16 @@ kth_swecris <- function() {
 
 }
 
+#' @import OpenAIRE
 kth_openaire <- function(format = c("tsv", "xml")) {
+
+  if (!requireNamespace("OpenAIRE", quietly = TRUE)) {
+    stop(
+      "Package \"OpenAIRE\" must be installed to use this function.",
+      call. = FALSE
+    )
+  }
+
   # XML format takes longer (200x, 3+ minutes), but provides more details
   message("Requesting projects from OpenAIRE")
   tictoc::tic()

@@ -210,9 +210,9 @@ projects_upload <- function() {
   kth_vinnova <- kth_vinnova() # 441 projects, ca 4 minutes
   kth_swecris <- kth_swecris() # 5 secs
   kth_openaire <- kth_openaire() # 2 secs or 3 minutes, 813 projects
-  ko <- kthid_orcid()
 
-  ko |> readr::write_csv("/tmp/kthid_orcid.csv")
+  #ko <- kthid_orcid()
+  #ko |> readr::write_csv("/tmp/kthid_orcid.csv")
 
   kth_openaire |> readr::write_csv("/tmp/projects_openaire.csv")
   kth_cordis |> readr::write_csv("/tmp/projects_cordis.csv")
@@ -220,7 +220,7 @@ projects_upload <- function() {
   kth_formas |> readr::write_csv("/tmp/projects_formas.csv")
   kth_swecris |> readr::write_csv("/tmp/projects_swecris.csv")
 
-  diva_upload_s3("/tmp/kthid_orcid.csv")
+  #diva_upload_s3("/tmp/kthid_orcid.csv")
   diva_upload_s3("/tmp/projects_openaire.csv")
   diva_upload_s3("/tmp/projects_cordis.csv")
   diva_upload_s3("/tmp/projects_vinnova.csv")

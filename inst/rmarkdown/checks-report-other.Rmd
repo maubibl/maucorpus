@@ -157,6 +157,8 @@ mycfg$id <- "81"
 mycfg$org <- "his"
 
 authors <- diva_authors(config = mycfg)
+authors$PID <- as.double(authors$PID)
+
 pubs <- diva_pubs(config = mycfg)
 
 checks <- diva_checks(authors, pubs, mycfg)

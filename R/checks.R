@@ -347,7 +347,7 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = k
 tidy_html <- function(x)
   rvest::html_text(rvest::read_html(charToRaw(x)))
 
-check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
+check_multiplettes_title <- function(pubs = kth_diva_pubs(), aut = kth_diva_authors()) {
 
   Year <- LastUpdated <- clean_notes <- n_check <- lc_title <- NULL
 
@@ -396,7 +396,7 @@ check_multiplettes_title <- function(pubs = kth_diva_pubs()) {
     filter(JournalISSN == JournalEISSN | any(is.na(c(JournalISSN, JournalEISSN))))
 
   a <-
-    kth_diva_authors() %>%
+    aut %>%
     filter(PID %in% tm$PID) %>%
     mutate(last_name = gsub("(.+?)(,.*)", "\\1", name)) %>%
     group_by(PID) %>%
@@ -694,7 +694,7 @@ check_invalid_kthid <- function(authors = kth_diva_authors()) {
 
 }
 
-check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs()) {
+check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs(), config = diva_config()) {
 
   re <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
 
@@ -716,7 +716,7 @@ check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
   flag_class <- flag_type <- new_value <- old_value <- validation_rule <-
     value <- NULL
 
-  spc <- swepub_checks()
+  spc <- swepub_checks(config = config)
 
   spc |> filter(flag_type == "ORCID", flag_class == "enrichment") |>
     select(PID, old_value, new_value) |>
@@ -998,7 +998,7 @@ diva_checks <- function(authors, pubs, config = diva_config()) {
     #article_title_multiplettes = check_multiplettes_article_title(pubs),
     title_multiplettes = check_multiplettes_title(pubs),
     submission_status_invalid = check_invalid_submission_status(pubs),
-    missing_kthid = check_missing_kthid(authors),
+    missing_kthid = check_missing_kthid(authors, pubs),
     #missing_affiliations = check_missing_affiliations(),
     missing_confpubdate = check_missing_date(pubs),
     missing_journal_ids = check_missing_journals_identifiers(pubs),
@@ -1007,15 +1007,15 @@ diva_checks <- function(authors, pubs, config = diva_config()) {
     invalid_DOI = check_invalid_DOI(pubs),
     invalid_ISSN = check_invalid_ISSN(pubs),
     invalid_kthid = check_invalid_kthid(authors),
-    invalid_orcid = check_invalid_orcid(authors),
-    invalid_scopusid = check_invalid_scopusid(authors),
+    invalid_orcid = check_invalid_orcid(authors, pubs, config),
+#    invalid_scopusid = check_invalid_scopusid(authors),
     invalid_isbn = check_invalid_ISBN(pubs),
     invalid_authorname = check_invalid_authorname(authors),
-    uncertain_published = check_published(pubs),
+#    uncertain_published = check_published(pubs),
     multiplettes_scopusid = check_multiplettes_scopusid(pubs),
     multiplettes_DOI = check_multiplettes_DOI(pubs),
     multiplettes_ISI = check_multiplettes_ISI(pubs),
-    swepub = swepub_checks()
+    swepub = swepub_checks(config = config)
   )
 
   stats <-

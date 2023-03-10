@@ -27,8 +27,6 @@ read_funder <- function(x) {
 #' @import dplyr
 cr_funders_resolve <- function(x) {
 
-  x <- vat$name |> head(50)
-
   y <- x |> unique() |> na.omit()
   param <- utils::URLencode(y, reserved = TRUE)
 

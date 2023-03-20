@@ -1317,13 +1317,14 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
 
   pubs_stale <-
     aut_stale |>
-    left_join(pubs |> select(PID, Title, PublicationDate, Year), by = c("PID")) |>
+    left_join(pubs |> select(all_of(c("PID", "Title", "PublicationDate", "Year"))), by = c("PID")) |>
     left_join(by = c("orgid", "unit_en"),
       orgs_closed |> mutate(cd = readr::parse_date(as.character(closed_date), trim_ws = TRUE))
     ) |>
-    mutate(pd = readr::parse_date(as.character(PublicationDate, trim_ws = TRUE))) |>
-    mutate(overdue_days = difftime(pd, cd, units = "days")) |>
-    select(PID, name, orcid, kthid, Title, orgid, unit_en, pd, cd, overdue_days) |>
+    mutate(py = lubridate::ymd(ifelse(!is.na(Year), paste0(Year, "-01-01"), NA))) |>
+    mutate(overdue_days = difftime(py, cd, units = "days")) |>
+#    select(cd, py, overdue_days) |>
+    select(any_of(c("PID", "name", "orcid", "kthid", "Title", "orgid", "unit_en", "py", "cd", "overdue_days"))) |>
     filter(overdue_days > (360 + 180)) |>
     arrange(desc(overdue_days)) |>
     distinct()
@@ -1352,7 +1353,7 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
 
   # authors with stale orgids and their corresponding valid orgids
   recommendations <-
-    aut_stale %>%
+    pubs_stale %>%
       group_by(name, orcid, kthid) %>%
       summarize(
         stale_pids = paste(collapse = " ", unique(PID)),
@@ -1374,8 +1375,10 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
 
   # these have one other belonging that is not closed
   # and more than 50 publications
-  recommendations |>
-    filter(alt_n_orgs == 1 & alt_n_pids > 50) |>
+  res <-
+    recommendations |>
+    filter(alt_n_orgs == 1 & alt_n_pids > 10) |>
+    #left_join(pubs_stale |> group_by(kthid) |> summarise(stale_pidz = paste0(collapse = " ", PID)), by = "kthid") |>
     #select(-c("stale_pids", "alt_pids"))
     mutate(stale_pidz = strsplit(stale_pids, " ")) |>
     mutate(stale_pidz = pmap_chr(list(stale_pidz), function(x)
@@ -1384,5 +1387,21 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
     mutate(alt_pidz = pmap_chr(list(alt_pidz), function(x)
       linkify(x, target = "PID") |> paste(collapse = " "))) |>
     select(everything(), -c("stale_pids", "alt_pids"), all_of(c("stale_pidz", "alt_pidz")))
+
+
+  orgid_to_link <- function(x)
+    x |> strsplit(" ") |> #purrr::map(as.integer) |>
+    purrr::map(function(x) tibble::tibble(orgid = x) |>
+      dplyr::left_join(diva_orgs, by = "orgid")) |>
+    purrr::map(function(x) x |>
+      dplyr::summarise(link = paste0("<ul>",
+        paste0(collapse = "\n", "<li><a href='", url, "' target='_blank'>",
+               unit_en, "(", orgid, ", closed:", closed_date, ")", "</a></li>")), "</ul>") |>
+        pull(link)
+    )
+
+  res |>
+    mutate(stale_orgids = orgid_to_link(stale_orgids)) |>
+    mutate(alt_orgids = orgid_to_link(alt_orgids)) #|> DT::datatable(escape = F)
 
 }

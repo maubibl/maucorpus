@@ -288,10 +288,10 @@ bs4_card(my_dt, "ORCiD Table")
 
 ## Stale organisational units
 
-Certain authors have publications that are associated with "closed" or no longer valid organisational units at KTH. These authors also have other publications tagged with an "open" or valid organisational unit, and have more than 50 publications, so may be "low hanging fruit" for retagging.
+Certain authors have publications that are associated with "closed" or no longer valid organisational units at KTH. These authors also have other publications tagged with an "open" or valid organisational unit, and have more than 10 publications, so may be "low hanging fruit" for retagging.
 
 :::{.callout-note}
-Note that authors can have made some publications that were tagged with an organisational unit at KTH that is closed (or was closed, at the time, based on the publication date) and therefore is/were not valid. If such an "invalid" DiVA organisations was closed more than 1.5 years earlier compared to the publication date, there may be more recent organisational units that are better to use. Candidates for suggested valid organisational units that are associated with other publications from the same author are provided below.   
+Note that authors can have made some publications that were tagged with an organisational unit at KTH that is closed (or was closed, at the time, based on the publication year) and therefore is/were not valid. If such an "invalid" DiVA organisations was closed more than 1.5 years earlier compared to the publication year, there may be more recent organisational units that are better to use. Candidates for suggested valid organisational units that are associated with other publications from the same author are provided below.   
 :::
 
 

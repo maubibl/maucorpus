@@ -1292,8 +1292,8 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
 
   orgid <- is_closed <- closed_date <- n_orgs <-
     n_pids <- alt_n_pids <- alt_n_orgs <-
-    lc_title <- unit_en <- Year <- pd <- cd <-
-    overdue_days <-
+    lc_title <- unit_en <- Year <- py <- cd <-
+    overdue_days <- link <- stale_orgids <- alt_orgids <-
     alt_pids <- alt_pidz <- stale_pids <- stale_pidz <- NULL
 
   diva_orgs <-

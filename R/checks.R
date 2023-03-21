@@ -485,6 +485,27 @@ check_missing_kthid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
 
 }
 
+check_missing_aid <- function(authors = kth_diva_authors(), pubs = kth_diva_pubs()) {
+
+  LastUpdated <- Year <- orgid <- ScopusId <- NULL
+
+  authors %>%
+    filter(!is.na(orgid) & is.na(kthid))  %>%
+    inner_join(pubs %>% select(PID, Year, LastUpdated), by = "PID") %>%
+    mutate(PID = linkify(PID, target = "PID")) %>%
+    #    mutate(pids = linkify(pids, target = "freetextsearch")) %>%
+    mutate(name = linkify(name, target = "freetextsearch")) %>%
+    mutate(orgid = linkify(orgid, target = "freetextsearch")) %>%
+    mutate(extorg = linkify(extorg, target = "freetextsearch")) %>%
+    mutate(orcid = linkify(orcid, target = "ORCID")) %>%
+    mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
+    mutate(DOI = linkify(DOI, target = "DOI")) %>%
+    arrange(desc(LastUpdated)) %>%
+    select(PID, Year, name, LastUpdated, aid = kthid, orcid, DOI, ScopusId)
+
+}
+
+
 check_missing_orcids <- function(authors = kth_diva_authors()) {
 
   kthid <- orcid <- PID <- nd <- nd_casing <- has_casing <-
@@ -670,6 +691,26 @@ check_multiplettes_ISI <- function(pubs = kth_diva_pubs()) {
   mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
   mutate(Title = linkify(Title, target = "titlesearch")) %>%
   arrange(desc(n_pids), desc(ISI), desc(LastUpdated))
+
+}
+
+check_invalid_aid <- function(authors = kth_diva_authors()) {
+
+  # TODO: multiple same kthids in one publication?
+  # username in orcid field?
+
+  re_aid <- "^[a-z0-9]{4}$"
+
+  ScopusId <- NULL
+
+  authors %>%
+    filter(!is.na(kthid)) %>%
+    filter(!grepl(re_aid, kthid)) %>%
+    mutate(PID = linkify(PID, target = "PID")) %>%
+    mutate(ISI = linkify(ISI, target = "ISI")) %>%
+    mutate(DOI = linkify(DOI, target = "DOI")) %>%
+    mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) |>
+    select(aid = kthid, everything())
 
 }
 
@@ -998,7 +1039,7 @@ diva_checks <- function(authors, pubs, config = diva_config()) {
     #article_title_multiplettes = check_multiplettes_article_title(pubs),
     title_multiplettes = check_multiplettes_title(pubs),
     submission_status_invalid = check_invalid_submission_status(pubs),
-    missing_kthid = check_missing_kthid(authors, pubs),
+    missing_aid = check_missing_aid(authors, pubs),
     #missing_affiliations = check_missing_affiliations(),
     missing_confpubdate = check_missing_date(pubs),
     missing_journal_ids = check_missing_journals_identifiers(pubs),
@@ -1006,7 +1047,7 @@ diva_checks <- function(authors, pubs, config = diva_config()) {
     invalid_ISI = check_invalid_ISI(pubs),
     invalid_DOI = check_invalid_DOI(pubs),
     invalid_ISSN = check_invalid_ISSN(pubs),
-    invalid_kthid = check_invalid_kthid(authors),
+    invalid_aid = check_invalid_aid(authors),
     invalid_orcid = check_invalid_orcid(authors, pubs, config),
 #    invalid_scopusid = check_invalid_scopusid(authors),
     invalid_isbn = check_invalid_ISBN(pubs),

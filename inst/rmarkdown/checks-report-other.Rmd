@@ -258,10 +258,10 @@ myDT(checks$invalid_orgid)
 myDT(checks$invalid_orcid)
 ```
 
-### Ogiltigt KTH-id `r stats("invalid_kthid")`
+### Ogiltigt Författar-id `r stats("invalid_aid")`
 
 ```{r}
-myDT(checks$invalid_kthid)
+myDT(checks$invalid_aid)
 ```
 
 ### Ogiltigt Scopus-id `r stats("invalid_scopusid")`
@@ -283,10 +283,10 @@ Saknat mm {data-icon="fa-glasses"}
 Saknad och oklart mm {.tabset .tabset-pills .tabset-fade data-width=1200}
 -------------------------
 
-### Saknade kthid:n `r stats("missing_kthid")`
+### Saknade författar-id:n `r stats("missing_aid")`
 
 ```{r}
-myDT(checks$missing_kthid)
+myDT(checks$missing_aid)
 ```
 
 <!-- TODO: ska detta vara med? för alla publikationer?
@@ -360,19 +360,19 @@ Kontroller grupperade under [formatfel](#formatfel) identifierar ogiltigt format
 - *Ogiltigt ScopusId*: Ett ScopusId skall börja på "2-s" [uteckla exakta kriterier]. Exempel: `2-s2.0-85104770225`
 - *Ogiltigt ISSN eller EISSN*: Ett ISSN eller EISSN skall innehålla minst åtta tecken [utveckla!] och har en [checksiffra](https://www.loc.gov/issn/basics/basics-checkdigit.html). Exempel: `1126-6708`
 - *Ogiltigt ORCiD*: Ett ORCiD skall innehålla fyra grupper om fyra siffror separerade med ett bindestreck. Exempel: `0000-0003-3455-0855`
-- *Ogiltigt KTH-id*: Ett KTH-id skall börja på "u" och innehålla åtta tecken. Exempel: `u13h9uqy`
+- *Ogiltigt Författar-id*: Ett Författar-id kontrolleras för att innehålla 4 tecken. Exempel: `abcd`
 
 __Saknat mm__
 
 Kontroller grupperade under rubriken [saknat](#saknat-mm) identifierar saknade uppgifter eller ogiltig publiceringsstatus.
 
-- *Saknade KTH-id:n*: Alla KTH-författare skall helst identifieras med sitt KTH-id. Denna kontroll identifierar författare vilka har affilierats till KTH men där vi inte lyckats hitta deras KTH-id. Vanligen har dessa författare fått det temporära PI000000 i fältet för KTH-id för att markera detta.
+- *Saknade Författar-id:n*: Alla författare skall helst identifieras med sitt Författar-id. Denna kontroll identifierar författare vilka har affilierats till organisationen men där vi inte lyckats hitta deras lokala Författar-id.
 - *Saknade ISSN*: Tidskrift som saknar ett angivet ISSN.
 - *Ogiltig publiceringsstatus*: Publikationer som t.ex. är angivna som artiklar i tidskrift, men där publiceringsstatus är "submitted". Det är inte säkert att submittade artiklar verkligen blir publicerade i den angivna tidskriften. Submittade artikelmanuskript skall ligga i publikationstypen "manuskript" även om t.ex. en doktorand har angivet "submitted to journal..." i sin avhandling.
 
 __Externkontrollerat__
 
-Denna rubrik rymmer just nu endast de SwePub-kontroller som även presenteras [här](https://bibliometri.swepub.kb.se/process/kth?from=1900&to=2022).
+Denna rubrik rymmer just nu endast de SwePub-kontroller som även presenteras [här](https://bibliometri.swepub.kb.se/process/his?from=1900&to=2022).
 
 Det finns mer att läsa om validering och berikning hos SwePub [här](https://www.kb.se/samverkan-och-utveckling/swepub/datamodell/uppmarkningsflaggor.html).
 
@@ -388,7 +388,7 @@ Eller ta kontakt via [Slack](https://kth-infosys.slack.com/archives/CFTNEBW72){t
 
 __Tidsstämpel hos datakällor__
 
-Denna sammanställning gjordes `r Sys.time()` och innehåller resultat från kontroller gjorda på KTHs publikationsmängd som laddades ned från DiVA-portalen.
+Denna sammanställning gjordes `r Sys.time()` och innehåller resultat från kontroller gjorda på Högskolan i Skövdes publikationsmängd som laddades ned från DiVA-portalen.
 
 Datakällorna som användes vid kontrollerna har följande tidsstämplar:
 
@@ -398,8 +398,6 @@ knitr::kable(diva_meta())
 
 ```
 
-__Saknade kthid__
+__Saknade aid__
 
-Förslag till möjliga kthid kan hanteras här:
-
-https://github.com/KTH-Library/curation/issues
+Vissa publikationer kan sakna lokal identifierare för författare (aid).

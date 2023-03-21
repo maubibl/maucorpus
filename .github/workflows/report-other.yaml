@@ -8,7 +8,7 @@ on:
   schedule:
     - cron: '0 7 * * *' # https://crontab.guru/#0_7_*_*_*
 
-name: Generate report using latest kthcorpus container
+name: Generate other report
 
 jobs:
   docker:
@@ -20,7 +20,7 @@ jobs:
       TZ: Europe/Stockholm
     steps:
       - run: |
-          R -e 'checks_render_report(file.path(dirname(checks_report_path()), "checks-report-other.Rmd")); kthcorpus:::diva_upload_s3("/tmp/checks-report-other.html")'
+          R -e 'library(kthcorpus);checks_render_report(file.path(dirname(checks_report_path()), "checks-report-other.Rmd")); kthcorpus:::diva_upload_s3("/tmp/checks-report-other.html")'
 
       - name: Upload results as GitHub Artifact
         uses: actions/upload-artifact@main

@@ -4,7 +4,7 @@ test_that("generating mods for two specific scopus identifiers works", {
 
   skip_if_not(run_longrunning, "this test may become outdated soon...")
 
-  sids <- c("SCOPUS_ID:85147970587", "SCOPUS_ID:85147928526")
+  sids <- c("SCOPUS_ID:85150694011", "SCOPUS_ID:85150927217")
 
   # generate MODS for each of these identifiers
   m1 <- sids[1] |> scopus_mods()
@@ -14,18 +14,41 @@ test_that("generating mods for two specific scopus identifiers works", {
   m <- sids |> scopus_mods_crawl()
 
   # inspect results
-  m$`SCOPUS_ID:85147970587` |> cat()
-  m$`SCOPUS_ID:85147928526` |> cat()
+  m |> getElement(sids[1]) |> cat()
+  m |> getElement(sids[2]) |> cat()
 
   # confirm that results are identical
   is_valid <-
-    identical(m$`SCOPUS_ID:85147970587`, m1) &
-    identical(m$`SCOPUS_ID:85147928526`, m2)
+    identical(m |> getElement(1), m1) &
+    identical(m |> getElement(2), m2)
 
   expect_true(is_valid)
 })
 
-test_that("generating mods for five more identifiers work", {
+
+test_that("generating a mods collection for two identifiers works", {
+
+  skip_if_not(run_longrunning, "this test may become outdated soon...")
+
+  sids <- c("SCOPUS_ID:85150694011", "SCOPUS_ID:85150927217")
+
+  # generate MODS for each of these identifiers
+  m1 <- sids[1] |> scopus_mods()
+  m2 <- sids[2] |> scopus_mods()
+
+  # generate for both
+  m <- sids |> scopus_mods_crawl()
+
+  mx_a <- create_diva_modscollection(c(m1, m2)) |> xml2::read_xml() |> as.character()
+  mx_b <- create_diva_modscollection(m) |> xml2::read_xml() |> as.character()
+
+  is_valid <- mx_a == mx_b
+
+  expect_true(is_valid)
+})
+
+
+test_that("generating mods for five identifiers not in the scopus search fails", {
 
   skip_if_not(run_longrunning, "this test may not need to run each time")
 
@@ -39,8 +62,6 @@ test_that("generating mods for five more identifiers work", {
 
   scopus <- scopus_from_minio()
   ko <- kthid_orcid()
-
-  sid <- sids[1]
 
   # abstract <- scopus_req_abstract(sid = sid) |> httr::content()
   # View(abstract)
@@ -56,8 +77,8 @@ test_that("generating mods for five more identifiers work", {
 
   mods <- scopus_mods_crawl(sids = sids, scopus = scopus, ko = ko)
 
-  is_ok <- mods |> attr("debug") |> getElement("fails") |> length() == 0
-  expect_true(is_ok)
+  are_fails <- mods |> attr("debug") |> getElement("fails") |> length() == 5
+  expect_true(are_fails)
 })
 
 test_that("generating mods for all articles works", {
@@ -72,8 +93,6 @@ test_that("generating mods for all articles works", {
   is_valid <- length(attr(mods, which = c("debug"))$fails) == 0
   expect_true(is_valid)
 })
-
-
 
 test_that("author groups gets wrapped when required in scopus_extended_abstract", {
 

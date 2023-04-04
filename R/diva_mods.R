@@ -183,8 +183,9 @@ lu_genre <- function() {
         <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
         <genre authority="kev" type="publicationType" lang="eng">article</genre>'
 
+    # NB: contentTypeCode changed from science to refereed
     genre$publicationType['conferencePaper'] <- '
-        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="contentTypeCode">refereed</genre>
         <genre authority="diva" type="publicationTypeCode">conferencePaper</genre>
         <genre authority="svep" type="publicationType">kon</genre>
         <genre authority="diva" type="publicationType" lang="eng">Conference paper</genre>
@@ -812,4 +813,23 @@ create_diva_mods <- function(params = diva_mods_params()) {
     whisker::whisker.render(whiskers, values, debug = TRUE)
 
   return(txt)
+
 }
+
+create_diva_modscollection <- function(mods) {
+
+  wrapper <- readLines(system.file(package = "kthcorpus",
+    "extdata", "modsCollection_template.whisker"))
+
+  mods <- list(mods = mods)
+
+  collection <-
+    whisker::whisker.render(wrapper, mods, debug = TRUE)
+
+  # we don't mind that/if an xml declaration is added here so we can compact
+  # some whitespace by passing this through xml2::xml_read
+
+  collection |> xml2::read_xml() |> as.character()
+
+}
+

@@ -40,8 +40,10 @@ scopus_extent_from_pagerange <- function(x) {
 #' @export
 scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) {
 
-  `dc:identifier` <- `dc:description` <- ce_surname <-
-    ce_given_name <- raw_org <- afid <-
+  `dc:identifier` <- `dc:description` <-
+    `given-name` <- surname <- authid <- auid <-
+    ce_surname <- ce_given_name <-
+    raw_org <- afid <-
     eng_code <- swe_code <- value <- NULL
 
   # use info primarily from scopus Search API

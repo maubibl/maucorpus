@@ -377,9 +377,9 @@ scopus_upload <- function() {
 
   message("Uploading Scopus data to S3 bucket")
 
-  filez <- file.path(tempdir(), sprintf("scopus-%s.csv",
-    c("publications", "authors", "affiliations"))
-  )
+  filez <- file.path(tempdir(), sprintf("scopus-%s.csv", names(s)))
+    #c("publications", "authors", "affiliations"))
+  #)
 
   on.exit(unlink(filez))
 

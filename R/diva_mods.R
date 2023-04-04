@@ -183,8 +183,9 @@ lu_genre <- function() {
         <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
         <genre authority="kev" type="publicationType" lang="eng">article</genre>'
 
+    # NB: contentTypeCode changed from science to refereed
     genre$publicationType['conferencePaper'] <- '
-        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="contentTypeCode">refereed</genre>
         <genre authority="diva" type="publicationTypeCode">conferencePaper</genre>
         <genre authority="svep" type="publicationType">kon</genre>
         <genre authority="diva" type="publicationType" lang="eng">Conference paper</genre>

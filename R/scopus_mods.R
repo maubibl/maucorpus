@@ -44,16 +44,26 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     ce_given_name <- raw_org <- afid <-
     eng_code <- swe_code <- value <- NULL
 
-  p <- scopus$publications %>% filter(grepl(sid, `dc:identifier`))
-  aff <- scopus$affiliations %>% filter(sid == p$`dc:identifier`)
-  aut <- scopus$authors %>% filter(sid == p$`dc:identifier`)
-  abs <- p %>% select(sid = `dc:identifier`, `dc:description`) %>% filter(sid == p$`dc:identifier`)
+  # use info primarily from scopus Search API
+  p <- scopus$publications |> filter(grepl(sid, `dc:identifier`))
+
+  if (nrow(p) < 1)
+    stop("The scopus identifier ", sid, " is not in the scopus search results")
+
+  abs <- p |> select(sid = `dc:identifier`, `dc:description`)
+
+  # enable join on auid from Scopus Extended Search API
+  aut <- scopus$authors |> filter(sid == p$`dc:identifier`) |>
+    mutate(auid = as.character(authid))
+
+  aff <- scopus$affiliations |> filter(sid == p$`dc:identifier`)
+
 
   # TODO: raw org_sourcetext can contain a, b, "dagger" etc, may need cleaning
   sae <- scopus_abstract_extended(sid)
   abs <- sae$scopus_abstract
-  cor <- sae$scopus_correspondence #%>% filter(if_all(.fns = function(x) !is.na(x)))
-  ags <- sae$scopus_authorgroup #%>% filter(if_all(.fns = function(x) !is.na(x)))
+  cor <- sae$scopus_correspondence
+  ags <- sae$scopus_authorgroup |> mutate(seq = as.integer(seq)) |> arrange(-desc(seq))
 
   genres <- frag_genre(tolower(p$subtypeDescription))
 
@@ -85,26 +95,36 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   # "if a personal name with an affiliation is followed by a namepart with
   # a namepart element with that same exact name as the affiliation string, the affiliation
   # will be set at import"
+
   if (!"ce_given_name" %in% names(ags))
     ags$ce_given_name <- ags$preferred_name_ce_given_name
+
   if (!"raw_org" %in% names(ags))
     ags$raw_org <- ags$ce_text
 
   persons <-
-    ags |>
-    select(orcid, ce_surname, ce_given_name, seq, raw_org, afid) |>
-    group_by(seq) |>
-    summarize(across(where(is.character), function(x) {
-        res <- paste0(collapse = "; ", unique(na.omit(x)))
-        ifelse(all(res == ""), NA_character_, res)
-      }
-    )) |>
-    ungroup() |>
-    pmap(function(seq, orcid, ce_surname, ce_given_name, raw_org, afid, ...) {
+    # use "given-name" and "surname" from search API (aff)
+    # make seq numeric for proper sorting
+    aut |>
+      group_by(auid) |>
+      distinct(orcid, surname, `given-name`, surname) |>
+      ungroup() |>
+      left_join(by = "auid",
+        ags |> select(seq, raw_org, seq, auid) |>
+        group_by(seq) |>
+        summarize(across(where(is.character), function(x) {
+            res <- paste0(collapse = "; ", unique(na.omit(x)))
+            ifelse(all(res == ""), NA_character_, res)
+          }
+        )) |> ungroup()
+      ) |>
+    select(-auid) |>
+    pmap(function(seq, orcid, surname, `given-name`, raw_org, ...) {
       frag_name_personal(
         kthid = guess_kthid(my_orcid = orcid),
         source = "kth",
-        family = ce_surname, given = ce_given_name,
+        family = surname,
+        given = `given-name`,
         role = ifelse(seq == 1 , "aut", "aut"),
         affiliations = raw_org |> tidy_xml(cdata = TRUE),
         descriptions = if (all(is.na(orcid))) NULL else paste0("org.orcid=", orcid))
@@ -224,7 +244,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 scopus_mods <- function(sid, scopus = scopus_from_minio(), ko = kthid_orcid()) {
   my_params <- scopus_mods_params(scopus, sid, ko)
   my_mods <- create_diva_mods(my_params)
-  res <- xml2::read_xml(my_mods) |> as.character()
+  res <- my_mods #xml2::read_xml(my_mods) |> as.character()
   cat(res)
   invisible(res)
 }
@@ -263,14 +283,14 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
 
   my_mods <-
     my_params |> map(possibly(.f = function(x)
-      create_diva_mods(x) |> xml2::read_xml() |> as.character())) |>
+      create_diva_mods(x))) |> # xml2::read_xml() |> as.character())) |>
     setNames(nm = names(my_params)) |> compact()
 
-  # my_validations <-
-  #   my_mods |> map(possibly(xml2::read_xml)) |>
-  #   setNames(nm = ids) |> compact()
+  my_validations <-
+    my_mods |> map(possibly(xml2::read_xml)) |>
+    setNames(nm = ids) |> compact()
 
-  failed_mods <- setdiff(ids, names(my_mods))
+  failed_mods <- setdiff(ids, names(my_validations))
 
   if (length(failed_mods) > 0)
     message("Failed to generate valid MODS xml for these ids: \n",

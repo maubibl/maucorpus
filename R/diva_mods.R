@@ -813,4 +813,20 @@ create_diva_mods <- function(params = diva_mods_params()) {
     whisker::whisker.render(whiskers, values, debug = TRUE)
 
   return(txt)
+
 }
+
+create_diva_modscollection <- function(mods) {
+
+  wrapper <- readLines(system.file(package = "kthcorpus",
+    "extdata", "modsCollection_template.whisker"))
+
+  mods <- list(mods = mods)
+
+  collection <-
+    whisker::whisker.render(wrapper, mods, debug = TRUE)
+
+  return(collection)
+
+}
+

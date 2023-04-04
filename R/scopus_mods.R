@@ -356,3 +356,18 @@ write_mods_zip <- function(crawl_result, path = tempdir(), zipfile = "mods.zip")
 
 }
 
+#' Write MODS collections as XML files, where each contains a certain number of MODS
+#'
+#' @param mods a vector of MODS generated from scopus_mods_crawl()
+#' @param outdir the directory to write the files
+#' @param prefix the pattern to prefix file names with, by default "mods"
+#' @param chunk_size the number of MODS in each batch, by default 25
+#' @export
+#' @importFrom purrr walk2
+write_mods_chunked <- function(mods, outdir = ".", prefix = "mods", chunk_size = 25) {
+  chunks <- mods |> split(ceiling(seq_along(mods) / chunk_size))
+  fns <- file.path(outdir, paste0(sprintf("%s_%02d", prefix, as.integer(names(chunks))), ".xml"))
+  message("Chunk lengths: ", paste0(collapse = " ", lengths(chunks)))
+  message(paste0(collapse = "\n", fns))
+  purrr::walk2(chunks, fns, function(x, y) write_file(x |> create_diva_modscollection(), y))
+}

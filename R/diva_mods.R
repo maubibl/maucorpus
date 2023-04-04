@@ -826,7 +826,10 @@ create_diva_modscollection <- function(mods) {
   collection <-
     whisker::whisker.render(wrapper, mods, debug = TRUE)
 
-  return(collection)
+  # we don't mind that/if an xml declaration is added here so we can compact
+  # some whitespace by passing this through xml2::xml_read
+
+  collection |> xml2::read_xml() |> as.character()
 
 }
 

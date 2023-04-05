@@ -411,7 +411,7 @@ frag_name_personal <- function(kthid, source, family, given, role, affiliations,
     footer <- paste0(footer, "\n{f_desc}\n")
   }
 
-  glue::glue('<name type="personal" authority="{source}" href="{kthid}">
+  glue::glue('<name type="personal" authority="{source}" xlink:href="{kthid}">
   <namePart type="family">{family}</namePart>
   <namePart type="given">{given}</namePart>
   <role>

@@ -129,7 +129,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
         given = `given-name`,
         role = ifelse(seq == 1 , "aut", "aut"),
         affiliations = raw_org |> tidy_xml(cdata = TRUE),
-        descriptions = if (all(is.na(orcid))) NULL else paste0("org.orcid=", orcid))
+        descriptions = if (all(is.na(orcid))) NULL else paste0("orcid.org=", orcid))
       }
     )
 

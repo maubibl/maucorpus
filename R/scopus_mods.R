@@ -187,8 +187,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   hsv_call <-
     classify_swepub(
       title = p$`dc:title`,
-      keywords = p$`dc:description`,
-      abstract = paste0(collapse = " ", keywords), level = "5"
+      abstract = p$`dc:description`,
+      keywords = paste0(collapse = " ", keywords),
+      level = "5"
     )
 
   if (nrow(hsv_call) == 0) {

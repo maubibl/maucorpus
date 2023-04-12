@@ -137,7 +137,7 @@ classify_umu_ub <- function(record, type = c("mods", "wos"),
 classify_swepub <- function(title, abstract, keywords, level = 3) {
   stopifnot(level == 3 || level == 5)
   stopifnot(any(!is.na(c(title, abstract, keywords))))
-  stopifnot(any(nzchar(c(title, abstract, keywords))))
+#  stopifnot(any(nzchar(c(title, abstract, keywords))))
 
   json <-
     list(

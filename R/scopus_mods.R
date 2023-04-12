@@ -40,20 +40,32 @@ scopus_extent_from_pagerange <- function(x) {
 #' @export
 scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) {
 
-  `dc:identifier` <- `dc:description` <- ce_surname <-
-    ce_given_name <- raw_org <- afid <-
+  `dc:identifier` <- `dc:description` <-
+    `given-name` <- surname <- authid <- auid <-
+    ce_surname <- ce_given_name <-
+    raw_org <- afid <-
     eng_code <- swe_code <- value <- NULL
 
-  p <- scopus$publications %>% filter(grepl(sid, `dc:identifier`))
-  aff <- scopus$affiliations %>% filter(sid == p$`dc:identifier`)
-  aut <- scopus$authors %>% filter(sid == p$`dc:identifier`)
-  abs <- p %>% select(sid = `dc:identifier`, `dc:description`) %>% filter(sid == p$`dc:identifier`)
+  # use info primarily from scopus Search API
+  p <- scopus$publications |> filter(grepl(sid, `dc:identifier`))
+
+  if (nrow(p) < 1)
+    stop("The scopus identifier ", sid, " is not in the scopus search results")
+
+  abs <- p |> select(sid = `dc:identifier`, `dc:description`)
+
+  # enable join on auid from Scopus Extended Search API
+  aut <- scopus$authors |> filter(sid == p$`dc:identifier`) |>
+    mutate(auid = as.character(authid))
+
+  aff <- scopus$affiliations |> filter(sid == p$`dc:identifier`)
+
 
   # TODO: raw org_sourcetext can contain a, b, "dagger" etc, may need cleaning
   sae <- scopus_abstract_extended(sid)
   abs <- sae$scopus_abstract
-  cor <- sae$scopus_correspondence #%>% filter(if_all(.fns = function(x) !is.na(x)))
-  ags <- sae$scopus_authorgroup #%>% filter(if_all(.fns = function(x) !is.na(x)))
+  cor <- sae$scopus_correspondence
+  ags <- sae$scopus_authorgroup |> mutate(seq = as.integer(seq)) |> arrange(-desc(seq))
 
   genres <- frag_genre(tolower(p$subtypeDescription))
 
@@ -85,29 +97,39 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   # "if a personal name with an affiliation is followed by a namepart with
   # a namepart element with that same exact name as the affiliation string, the affiliation
   # will be set at import"
+
   if (!"ce_given_name" %in% names(ags))
     ags$ce_given_name <- ags$preferred_name_ce_given_name
+
   if (!"raw_org" %in% names(ags))
     ags$raw_org <- ags$ce_text
 
   persons <-
-    ags |>
-    select(orcid, ce_surname, ce_given_name, seq, raw_org, afid) |>
-    group_by(seq) |>
-    summarize(across(where(is.character), function(x) {
-        res <- paste0(collapse = "; ", unique(na.omit(x)))
-        ifelse(all(res == ""), NA_character_, res)
-      }
-    )) |>
-    ungroup() |>
-    pmap(function(seq, orcid, ce_surname, ce_given_name, raw_org, afid, ...) {
+    # use "given-name" and "surname" from search API (aff)
+    # make seq numeric for proper sorting
+    aut |>
+      group_by(auid) |>
+      distinct(orcid, surname, `given-name`, surname) |>
+      ungroup() |>
+      left_join(by = "auid",
+        ags |> select(seq, raw_org, seq, auid) |>
+        group_by(seq) |>
+        summarize(across(where(is.character), function(x) {
+            res <- paste0(collapse = "; ", unique(na.omit(x)))
+            ifelse(all(res == ""), NA_character_, res)
+          }
+        )) |> ungroup()
+      ) |>
+    select(-auid) |>
+    pmap(function(seq, orcid, surname, `given-name`, raw_org, ...) {
       frag_name_personal(
         kthid = guess_kthid(my_orcid = orcid),
         source = "kth",
-        family = ce_surname, given = ce_given_name,
+        family = surname,
+        given = `given-name`,
         role = ifelse(seq == 1 , "aut", "aut"),
         affiliations = raw_org |> tidy_xml(cdata = TRUE),
-        descriptions = if (all(is.na(orcid))) NULL else paste0("org.orcid=", orcid))
+        descriptions = if (all(is.na(orcid))) NULL else paste0("orcid.org=", orcid))
       }
     )
 
@@ -165,8 +187,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   hsv_call <-
     classify_swepub(
       title = p$`dc:title`,
-      keywords = p$`dc:description`,
-      abstract = paste0(collapse = " ", keywords), level = "5"
+      abstract = p$`dc:description`,
+      keywords = paste0(collapse = " ", keywords),
+      level = "5"
     )
 
   if (nrow(hsv_call) == 0) {
@@ -224,7 +247,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 scopus_mods <- function(sid, scopus = scopus_from_minio(), ko = kthid_orcid()) {
   my_params <- scopus_mods_params(scopus, sid, ko)
   my_mods <- create_diva_mods(my_params)
-  res <- xml2::read_xml(my_mods) |> as.character()
+  res <- my_mods #xml2::read_xml(my_mods) |> as.character()
   cat(res)
   invisible(res)
 }
@@ -263,14 +286,14 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
 
   my_mods <-
     my_params |> map(possibly(.f = function(x)
-      create_diva_mods(x) |> xml2::read_xml() |> as.character())) |>
+      create_diva_mods(x))) |> # xml2::read_xml() |> as.character())) |>
     setNames(nm = names(my_params)) |> compact()
 
-  # my_validations <-
-  #   my_mods |> map(possibly(xml2::read_xml)) |>
-  #   setNames(nm = ids) |> compact()
+  my_validations <-
+    my_mods |> map(possibly(xml2::read_xml)) |>
+    setNames(nm = ids) |> compact()
 
-  failed_mods <- setdiff(ids, names(my_mods))
+  failed_mods <- setdiff(ids, names(my_validations))
 
   if (length(failed_mods) > 0)
     message("Failed to generate valid MODS xml for these ids: \n",
@@ -334,3 +357,18 @@ write_mods_zip <- function(crawl_result, path = tempdir(), zipfile = "mods.zip")
 
 }
 
+#' Write MODS collections as XML files, where each contains a certain number of MODS
+#'
+#' @param mods a vector of MODS generated from scopus_mods_crawl()
+#' @param outdir the directory to write the files
+#' @param prefix the pattern to prefix file names with, by default "mods"
+#' @param chunk_size the number of MODS in each batch, by default 25
+#' @export
+#' @importFrom purrr walk2
+write_mods_chunked <- function(mods, outdir = ".", prefix = "mods", chunk_size = 25) {
+  chunks <- mods |> split(ceiling(seq_along(mods) / chunk_size))
+  fns <- file.path(outdir, paste0(sprintf("%s_%02d", prefix, as.integer(names(chunks))), ".xml"))
+  message("Chunk lengths: ", paste0(collapse = " ", lengths(chunks)))
+  message(paste0(collapse = "\n", fns))
+  purrr::walk2(chunks, fns, function(x, y) write_file(x |> create_diva_modscollection(), y))
+}

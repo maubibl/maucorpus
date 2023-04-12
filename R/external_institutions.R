@@ -5,7 +5,10 @@
 #' @importFrom purrr pluck
 #' @export
 latest_ror_url <- function(url = "https://zenodo.org/api/records/?communities=ror-data&sort=mostrecent"){
-  curl(url, open = "rb") %>%
+  ror_meta <- curl(url, open = "rb")
+  on.exit(close(ror_meta))
+
+  ror_meta %>%
     fromJSON(flatten = TRUE) %>%
     pluck("hits", "hits", "files", 1, "links.self")
 }

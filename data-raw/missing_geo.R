@@ -31,10 +31,9 @@ addresses_nogeo <- addresses_noror %>%
   anti_join(org_city, by = c("Name_eng", "Country_name", "City"))
 
 orgs_nogeo <- addresses_nogeo %>%
-  recode(ror_id = )
   mutate(ror_id = trimws(ror_id)) %>%
   group_by(Unified_org_id, Name_eng, Country_name, ror_id) %>%
   summarise(p = n_distinct(UT), .groups = "drop") %>%
   arrange(-p)
 
-s3write_using(x = orgs_nogeo, FUN = write.csv, row.names = FALSE, object = 'orgs_nogeo.csv', bucket = 'copub-data')
+s3write_using(x = orgs_nogeo, FUN = write.csv, row.names = FALSE, na = "", object = 'orgs_nogeo.csv', bucket = 'copub-data')

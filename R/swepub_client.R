@@ -21,7 +21,7 @@ swepub_checks <- function(
   ) {
 
   output_type <- mods_url <- repository_url <- publication_year <-
-    value <- flag_type <- NULL
+    value <- flag_type <- record_id <- NULL
 
   org <- config$org
 
@@ -37,8 +37,8 @@ swepub_checks <- function(
 
 
   tsv <-
-    url %>%
-    httr::GET(config = httr::add_headers("Accept" = "text/tab-separated-values")) %>%
+    url |>
+    httr::GET(config = httr::add_headers("Accept" = "text/tab-separated-values")) |>
     content(type = "text", encoding = "UTF-8")
 
   # json <-
@@ -71,8 +71,8 @@ swepub_checks <- function(
       new_value
       path
       mods_url
-      repository_url\n") %>%
-    sapply(trimws) %>%
+      repository_url\n") |>
+    sapply(trimws) |>
     unname()
 
   tsv <- readr::read_tsv(
@@ -86,16 +86,39 @@ swepub_checks <- function(
   if (nrow(tsv) < 1)
     return(tsv)
 
-  tsv %>%
-    mutate(output_type = linkify(gsub("term/swepub", "term/swepub/output", output_type))) %>%
-    mutate(PID = stringr::str_extract(repository_url, "[^-]\\d+$")) %>%
-    mutate(PID = link_diva(PID, PID)) %>%
-    mutate(mods_url = linkify(mods_url)) %>%
-    mutate(repository_url = linkify(repository_url)) %>%
-    rowwise() %>%
-    mutate(value = linkify(value, target = flag_type)) %>%
-    arrange(desc(publication_year)) %>%
-    select(PID, mods_url, repository_url, everything())
+  #https://swepub.kb.se/bib/swepub:oai:DiVA.org:kth-324493
+  #https://swepub.kb.se/showrecord?q=onr%3a%22swepub%3aoai%3aDiVA.org%3akth-324493%22&n=1&d=swepub&noredirect=true
+
+  tsv |>
+    mutate(output_type = linkify(gsub("term/swepub", "term/swepub/output", output_type))) |>
+    mutate(swepub_url = linkify(swepub_url(record_id), text = record_id)) |>
+    #mutate(PID = pid_from_urn(repository_url)) |>
+    #mutate(PID = link_diva(PID, PID)) |>
+    mutate(mods_url = linkify(mods_url)) |>
+    mutate(repository_url = linkify(repository_url)) |>
+    rowwise() |>
+    mutate(value = linkify(value, target = flag_type)) |>
+    arrange(desc(publication_year)) |>
+    select(swepub_url, mods_url, repository_url, !starts_with("record_id"))
+
+}
+
+swepub_url <- function(record_id) {
+
+  "https://swepub.kb.se/showrecord?q=onr:\"swepub:%s\"&n=1&d=swepub&noredirect=true" |>
+    sprintf(record_id) |>
+    utils::URLencode()
+
+}
+
+pid_from_urn <- function(repository_url) {
+
+  resolve_pid <- function(url)
+   url |> httr::HEAD() |> getElement("url") |>
+    utils::URLdecode() |>
+    stringr::str_extract(pattern = "pid=(.*[:](\\d+))", group = 2)
+
+  repository_url |> purrr::map_chr(resolve_pid, .progress = TRUE)
 
 }
 

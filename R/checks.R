@@ -752,21 +752,23 @@ check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
     mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) %>%
     select(PID, Year, everything())
 
+  return (res)
+
   # catch swepub ORCiD checks (for authors not related to divaorg=177)
 
-  flag_class <- flag_type <- new_value <- old_value <- validation_rule <-
-    value <- NULL
-
-  spc <- swepub_checks(config = config)
-
-  spc |> filter(flag_type == "ORCID", flag_class == "enrichment") |>
-    select(PID, old_value, new_value) |>
-  right_join(by = "PID",
-    spc |> filter(flag_type == "ORCID", flag_class == "validation") |>
-      select(PID, validation_rule, orcid = value)
-  ) |>
-  bind_rows(res) |>
-  select_if(Negate(anyNA))
+  # flag_class <- flag_type <- new_value <- old_value <- validation_rule <-
+  #   value <- NULL
+  #
+  # spc <- swepub_checks(config = config)
+  #
+  # spc |> filter(flag_type == "ORCID", flag_class == "enrichment") |>
+  # select(PID, old_value, new_value) |>
+  # right_join(by = "PID",
+  #   spc |> filter(flag_type == "ORCID", flag_class == "validation") |>
+  #     select(PID, validation_rule, orcid = value)
+  # ) |>
+  # bind_rows(res) |>
+  # select_if(Negate(anyNA))
 
 }
 

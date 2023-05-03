@@ -10,6 +10,7 @@ author:
         city: Stockholm
         postal-code: 114 28
 highlight-style: pygments
+fig-cap-location: top
 format:
   html:
     toc: true
@@ -252,35 +253,30 @@ re_kthid <- "^u1[a-z0-9]{6}$"
 
 authors <- kthcorpus::kth_diva_authors()
 
-# authors with orcid and kthid but some publications do not have kthids assigned
-
-pubs_missing_kthid <- 
-  authors |> filter(!is.na(orcid)) |> select(orcid, kthid, name, autid) |> 
-    group_by(orcid, name, autid) |> 
-    mutate(n_kthid = n_distinct(kthid)) |> 
-    arrange(desc(n_kthid)) |> 
-    distinct() |> 
-    ungroup() |> 
-    filter(n_kthid > 1, !grepl("^PI", kthid)) |> 
-    left_join(
-      authors |> 
-        group_by(orcid, kthid, name, autid) |> 
-        summarise(pids = paste0(collapse=" ", unique(PID)), n_pids = n_distinct(PID)), 
-          by = c("orcid", "kthid", "name", "autid")) |> 
-        arrange(desc(orcid), n_kthid, kthid
-    )
-
 authors_with_orcid_and_several_kthids <- 
   authors |> filter(!is.na(orcid)) |> 
-    group_by(orcid) |> 
-    mutate(
-      n_kthid = n_distinct(kthid, na.rm = TRUE), 
-      kthids = paste0(collapse = " ", na.omit(unique(kthid)))) |> 
-    ungroup() |> 
+  #group_by(orcid) |> 
+  mutate(.by = "orcid",
+    n_kthid = n_distinct(kthid, na.rm = TRUE), 
+    kthids = paste0(collapse = " ", na.omit(unique(kthid)))
+  ) |> 
+  #ungroup() |>
+  mutate(.by = "kthid",
+      pids = paste0(collapse = " ", na.omit(unique(PID))),
+      n_pids = length(na.omit(pids)),
+      kthid_variant = kthid
+  ) |> 
   filter(n_kthid > 1) |> 
-  distinct(orcid, kthids)
+  distinct(orcid, kthid_variant, kthids, n_kthid, n_pids, pids)  |>
+  arrange(orcid, kthid_variant) |> 
+  mutate(pidz = strsplit(pids, " ")) |>
+  mutate(pidz = purrr:::pmap_chr(list(pidz), function(x)
+    linkify(x, target = "PID") |> head(10) |> paste(collapse = " "))) |>
+  mutate(orcid = linkify(orcid, target = "ORCID")) |>  
+  select(orcid, kthid = kthid_variant, n_pids, pids, pidz)
 
-  # some authors have ORCiD and kthid, but no value for DiVA author id ("authority-person:105170" etc)
+# some authors have ORCiD and kthid, but no value for DiVA author id 
+# ("authority-person:105170" etc)
 authors_missing_diva_authority_person <- 
     authors |> distinct(orcid, kthid, autid, name, PID) |> 
       group_by(orcid, kthid) |> 
@@ -304,7 +300,29 @@ authors_missing_diva_authority_person <-
       mutate(
         combo = paste0(linkify(orcid, target = "ORCID"), " (", kthids, ")")
       ) |>
-      select(orcid, combo, kthids, autids, n_pids, n_kthids, pids) 
+      mutate(pidz = strsplit(pids, " ")) |>
+      mutate(pidz = purrr:::pmap_chr(list(pidz), function(x)
+        linkify(x, target = "PID") |> head(10) |> paste(collapse = " "))) |>
+      select(combo, kthids, n_kthids, n_pids, pids, pidz) 
+
+# authors with orcid and kthid but some publications do not have kthids assigned
+
+pubs_missing_kthid <- 
+  authors |> filter(!is.na(orcid)) |> select(orcid, kthid, name, autid) |> 
+    group_by(orcid, name, autid) |> 
+    mutate(n_kthid = n_distinct(kthid)) |> 
+    arrange(desc(n_kthid)) |> 
+    distinct() |> 
+    ungroup() |> 
+    filter(n_kthid > 1, !grepl("^PI", kthid)) |> 
+    left_join(
+      authors |> 
+        group_by(orcid, kthid, name, autid) |> 
+        summarise(pids = paste0(collapse=" ", unique(PID)), n_pids = n_distinct(PID)), 
+          by = c("orcid", "kthid", "name", "autid")
+    ) |> 
+    arrange(desc(orcid), kthid) |> 
+    mutate(orcid = linkify(orcid, target = "ORCID"))
 
   # left_join(
   #   authors |> filter(!is.na(orcid)) |> select(orcid, kthid, autid, name, PID) |>
@@ -331,10 +349,6 @@ authors_missing_diva_authority_person <-
   #     arrange(combo) |>
   #     select(combo, autids, n_pids, n_kthids, pids) 
   # ) 
-
-my_dt3 <- pubs_missing_kthid |> DT::datatable(escape = F)
-my_dt4 <- authors_with_orcid_and_several_kthids |> DT::datatable(escape = F)
-my_dt5 <- authors_missing_diva_authority_person |> DT::datatable(escape = F)
 
   # many |>
   #   select(orcid, n_kthid) |> left_join(multiple = "all",
@@ -391,15 +405,15 @@ my_dt5 <- authors_missing_diva_authority_person |> DT::datatable(escape = F)
 
 ## Multiple kthids
 
-Certain ORCiDs are associated with more than one author at KTH, sometimes because those records are being investigated / checked. Sometimes a possible kthid may be likely, but the investigation is not yet concluded.
+Certain ORCiDs are associated with more than one author at KTH, sometimes because those records are being investigated / checked. Sometimes a possible kthid may be likely, but the investigation is not yet concluded. One or more temporary kthids beginning with "P" may be issued. 
 
 :::{.callout-note}
-Note that a KTH author may be associated with zero, one (preferably) or in some cases more than one ORCiDs. However, if more than one KTH author identifier make use of the same ORCiD identifier there are chances that an incorrect affiliation has been detected.
+Note that a KTH author may be associated with zero, one (preferably) or in some cases more than one ORCiDs. If an author has an ORCiD but more than one kthid, this may indicate that the author record need curation. When assigning the proper kthid it can be helpful to be aware of current variants in use, when there is more than one kthid associated with an author with a singular ORCiD.
 :::
 
 ```{r}
-#| label: tbl-multiple-kthids
-#| tbl-cap: "ORCiDs being investigated"
+#| label: fig-multiple-kthids
+#| fig-cap: ORCiDs being investigated
 #| message: false
 #| column: screen-inset-shaded
 
@@ -412,7 +426,7 @@ my_dt4 <-
     escape = FALSE,
     extensions = "RowGroup",
     options = list(
-#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
       paging = FALSE,
       dom = "iftr"  # display number of records at top
     ),
@@ -440,8 +454,8 @@ Note that an author with a known kthid will likely have a DiVA authority person 
 :::
 
 ```{r}
-#| label: tbl-missing-authority-person
-#| tbl-cap: "Authors with kthid but missing DiVA authority person identifier"
+#| label: fig-missing-authority-person
+#| fig-cap: Authors with kthid but missing DiVA authority person identifier
 #| message: false
 #| column: screen-inset-shaded
 
@@ -482,8 +496,8 @@ Note that an author with a known ORCiD will likely have a single kthid associate
 :::
 
 ```{r}
-#| label: tbl-pubs-missing-kthid
-#| tbl-cap: "Authors with kthid but missing DiVA authority person identifier"
+#| label: fig-pubs-missing-kthid
+#| fig-cap: Authors with kthid but missing DiVA authority person identifier
 #| message: false
 #| column: screen-inset-shaded
 
@@ -496,7 +510,7 @@ my_dt3 <-
     escape = FALSE,
     extensions = "RowGroup",
     options = list(
-#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
       paging = FALSE,
       dom = "iftr"  # display number of records at top
     ),
@@ -511,7 +525,7 @@ my_dt3 <-
 # p - pagination control
 # r - processing display element
 
-bs4_card(my_dt3, "Publications missing kthids")
+bs4_card(my_dt3, title = "Publications missing kthids")
 
 ```
 
@@ -524,8 +538,8 @@ Note that a KTH author may be associated with zero, one (preferably) or in some 
 :::
 
 ```{r}
-#| label: tbl-orcid
-#| tbl-cap: "ORCiDs with more than one kthid"
+#| label: fig-orcid
+#| fig-cap: "ORCiDs with more than one kthid"
 #| message: false
 #| column: screen-inset-shaded
 
@@ -569,8 +583,8 @@ Note that authors can have made some publications that were tagged with an organ
 
 
 ```{r}
-#| label: tbl-orgid
-#| tbl-cap: "Authors with stale organisational units"
+#| label: fig-orgid
+#| fig-cap: "Authors with stale organisational units"
 #| message: false
 #| column: screen-inset-shaded
 

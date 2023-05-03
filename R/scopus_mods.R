@@ -44,7 +44,8 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     `given-name` <- surname <- authid <- auid <-
     ce_surname <- ce_given_name <-
     raw_org <- afid <-
-    eng_code <- swe_code <- value <- NULL
+    eng_code <- swe_code <- value <-
+    term <- sn <- rowid <- score <- enrich <- NULL
 
   # use info primarily from scopus Search API
   p <- scopus$publications |> filter(grepl(sid, `dc:identifier`))
@@ -52,7 +53,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   if (nrow(p) < 1)
     stop("The scopus identifier ", sid, " is not in the scopus search results")
 
-  abs <- p |> select(sid = `dc:identifier`, `dc:description`)
+  #abs <- p |> select(sid = `dc:identifier`, `dc:description`)
 
   # enable join on auid from Scopus Extended Search API
   aut <- scopus$authors |> filter(sid == p$`dc:identifier`) |>
@@ -67,7 +68,11 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   cor <- sae$scopus_correspondence
   ags <- sae$scopus_authorgroup |> mutate(seq = as.integer(seq)) |> arrange(-desc(seq))
 
-  genres <- frag_genre(tolower(p$subtypeDescription))
+  # TODO: map scopus publication type to DiVA MODS
+
+  #genres <- frag_genre(tolower(p$subtypeDescription))
+  genres <- frag_genre2(p$`prism:aggregationType`, p$subtypeDescription)
+  genre <- names(genres)
 
   # TODO: this can also hold an external URL
   # '<location><url displayLabel="">http://..</url></location>'
@@ -104,9 +109,13 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   if (!"raw_org" %in% names(ags))
     ags$raw_org <- ags$ce_text
 
-  persons <-
-    # use "given-name" and "surname" from search API (aff)
-    # make seq numeric for proper sorting
+  # TODO: if raw org is KTH then prefigate surname w "$$$"
+  # TODO: if unique match then "£££[score=]" (surname) - but populate w more info
+  # TODO: sort scopus records - 1. those who have DOI and/or ScopusID in DiVA
+  # 2. for the others, group in three MODSCollections a) Articles b) CP c) residual
+  # TODO: extract conf name and title for proceedings -
+
+  authors <-
     aut |>
       group_by(auid) |>
       distinct(orcid, surname, `given-name`, surname) |>
@@ -121,17 +130,58 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
         )) |> ungroup()
       ) |>
     select(-auid) |>
-    pmap(function(seq, orcid, surname, `given-name`, raw_org, ...) {
+    tibble::rowid_to_column()
+
+  re_kth <- paste0(
+    "kth|KTH|roy.*?inst.*?tech.*?|Roy\\. Inst\\. T|alfven|",
+    "kung.*?tek.*?hog|kgl.*?tek.*?|kung.*?tek.*?hg.*?|roy.*?tech.*?univ.*?"
+  )
+
+  suggestions <-
+    authors |> filter(grepl(re_kth, raw_org)) |> rowwise() |>
+    mutate(term = glue::glue(.na = "", .sep = " ", orcid, `given-name`, surname))
+
+  if (nrow(suggestions) > 0) {
+    suggestions <-
+      suggestions |> mutate(sn = list(search_names(term))) |>
+      mutate(enrich = list(sn |>
+        group_by(rowid) |> arrange(desc(score)) |> filter(score > 10) |>
+        summarise(
+          across(where(is.character), function(x) paste0(collapse = " ", unique(na.omit(x)))),
+          score = mean(score),
+          n = n_distinct(score)
+        ) |>
+         select(any_of(c("orcid", "kthid", "fullname", "orgid", "score", "n"))) #|>
+        )) |>
+      unnest(enrich, names_sep = "_") |>
+      select("rowid", starts_with("enrich")) |>
+      mutate(across(where(is.character), function(x) na_if(x, "")))
+    } else {
+      suggestions <-
+        data.frame() |> as_tibble() |>
+        mutate(rowid = NA, enrich_kthid = NA, enrich_orcid = NA)
+  }
+
+  enriched <-
+    authors |> left_join(suggestions, by = "rowid") |>
+    #filter(!is.na(enrich_kthid))
+    mutate(surname = ifelse(grepl("KTH", raw_org), paste0("$$$", surname), surname))
+
+  persons <-
+    # use "given-name" and "surname" from search API (aff)
+    # make seq numeric for proper sorting
+    enriched |>
+    pmap(function(seq, orcid, surname, `given-name`, raw_org,
+                  enrich_orcid, enrich_kthid, enrich_orgid, ...) {
       frag_name_personal(
-        kthid = guess_kthid(my_orcid = orcid),
+        kthid = enrich_kthid,
         source = "kth",
         family = surname,
         given = `given-name`,
         role = ifelse(seq == 1 , "aut", "aut"),
         affiliations = raw_org |> tidy_xml(cdata = TRUE),
-        descriptions = if (all(is.na(orcid))) NULL else paste0("orcid.org=", orcid))
-      }
-    )
+        descriptions = if (all(is.na(orcid), is.na(enrich_orcid))) NULL else paste0("orcid.org=", enrich_orcid))
+    })
 
   # TODO: Can the publication status be picked up from Scopus?
   # One of Submitted / Accepted / In press / Published
@@ -272,7 +322,7 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
   }
 
   my_params <-
-    ids |> map(possibly(smp)) |>
+    ids |> map(possibly(smp), .progress = TRUE) |>
     setNames(nm = ids) |> compact()
 
   failed_params <- setdiff(ids, names(my_params))
@@ -286,12 +336,12 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
 
   my_mods <-
     my_params |> map(possibly(.f = function(x)
-      create_diva_mods(x))) |> # xml2::read_xml() |> as.character())) |>
+      create_diva_mods(x)), .progress = TRUE) |> # xml2::read_xml() |> as.character())) |>
     setNames(nm = names(my_params)) |> compact()
 
   my_validations <-
-    my_mods |> map(possibly(xml2::read_xml)) |>
-    setNames(nm = ids) |> compact()
+    my_mods |> map(possibly(xml2::read_xml), .progress = TRUE) |>
+    setNames(nm = names(my_mods)) |> compact()
 
   failed_mods <- setdiff(ids, names(my_validations))
 

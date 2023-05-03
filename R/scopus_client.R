@@ -668,7 +668,8 @@ scopus_abstract_extended <- function(sid) {
   #   }
   # }
 
-  coredata$lang <- a |> find_name("language") |> as.character()
+  lang <- a |> find_name("language")
+  coredata$lang <- ifelse(is.null(lang), "eng", lang |> as.character())
 
   keywords <-
     a |> rget("$", parents = "author-keyword", new_name = "keywords") |>

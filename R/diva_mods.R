@@ -389,6 +389,202 @@ frag_genre <- function(pubtype) {
 
 }
 
+kth_genre <- function() {
+
+    genre <- list()
+
+    genre$publicationType['article'] <- '
+        <genre authority="diva" type="contentTypeCode">referee</genre>
+        <genre authority="diva" type="publicationTypeCode">article</genre>
+        <genre authority="svep" type="publicationType">art</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    genre$publicationType['articleOther'] <- '
+        <genre authority="diva" type="contentTypeCode">other</genre>
+        <genre authority="diva" type="publicationTypeCode">article</genre>
+        <genre authority="svep" type="publicationType">art</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    genre$publicationType['articleLetter'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">article</genre>
+        <genre authority="diva" type="publicationSubTypeCode">letter</genre>
+        <genre authority="svep" type="publicationType">art</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    # NB: used for errata and combo "Journal", "Note"
+    genre$publicationType['articleErratum'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">article</genre>
+        <genre authority="svep" type="publicationType">art</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    # NB: added to cover combo "Journal", "Conference Paper"
+    genre$publicationType['articleConferencePaper'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">article</genre>
+        <genre authority="diva" type="publicationSubTypeCode">meetingAbstract</genre>
+        <genre authority="svep" type="publicationType">art</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    genre$publicationType['editorialMaterial'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">article</genre>
+        <genre authority="diva" type="publicationSubTypeCode">editorialMaterial</genre>
+        <genre authority="svep" type="publicationType">art</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    genre$publicationType['meetingAbstract'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">article</genre>
+        <genre authority="diva" type="publicationSubTypeCode">meetingAbstract</genre>
+        <genre authority="svep" type="publicationType">art</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article in journal</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    # NB: contentTypeCode changed from science to refereed
+    genre$publicationType['conferencePaper'] <- '
+        <genre authority="diva" type="contentTypeCode">refereed</genre>
+        <genre authority="diva" type="publicationTypeCode">conferencePaper</genre>
+        <genre authority="svep" type="publicationType">kon</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Conference paper</genre>
+        <genre authority="kev" type="publicationType" lang="eng">proceeding</genre>'
+
+    # NB: added for Scopus combo "Conference Proceedings", "Conference Paper"
+    genre$publicationType['conferencePaperPublished'] <- '
+        <genre authority="diva" type="contentTypeCode">refereed</genre>
+        <genre authority="diva" type="publicationTypeCode">conferencePaper</genre>
+        <genre authority="diva" type="publicationSubTypeCode">publishedPaper</genre>
+        <genre authority="svep" type="publicationType">kon</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Conference paper</genre>
+        <genre authority="kev" type="publicationType" lang="eng">proceeding</genre>'
+
+    genre$publicationType['chapter'] <- '
+       <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">chapter</genre>
+        <genre authority="svep" type="publicationType">kap</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Chapter in book</genre>
+        <genre authority="kev" type="publicationType" lang="eng">bookitem</genre>'
+
+    genre$publicationType['review'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">review</genre>
+        <genre authority="svep" type="publicationType">for</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article, review/survey</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    genre$publicationType['report'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">report</genre>
+        <genre authority="svep" type="publicationType">rap</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Report</genre>
+        <genre authority="kev" type="publicationType" lang="eng">book</genre>'
+
+    genre$publicationType['patent'] <- '
+        <genre authority="diva" type="publicationTypeCode">patent</genre>
+        <genre authority="svep" type="publicationType">pat</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Patent</genre>
+        <genre authority="kev" type="publicationType" lang="eng">patent</genre>'
+
+    genre$publicationType['other'] <- '
+        <genre authority="diva" type="contentTypeCode">other</genre>
+        <genre authority="diva" type="publicationTypeCode">other</genre>
+        <genre authority="svep" type="publicationType">ovr</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Other</genre>'
+
+    genre$publicationType['manuscript'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">manuscript</genre>
+        <genre authority="svep" type="publicationType">ovr</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Manuscript (preprint)</genre>
+        <genre authority="kev" type="publicationType" lang="eng">preprint</genre>'
+
+    genre$publicationType['dataset'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">dataset</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Data set</genre>
+        <genre authority="kev" type="publicationType" lang="eng"/>'
+
+    genre$publicationType['conferenceProceedings'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">conferenceProceedings</genre>
+        <genre authority="svep" type="publicationType">pro</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Conference proceedings (editor)</genre>
+        <genre authority="kev" type="publicationType" lang="eng">conference</genre>'
+
+    genre$publicationType['collection'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">collection</genre>
+        <genre authority="svep" type="publicationType">sam</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Collection (editor)</genre>
+        <genre authority="kev" type="publicationType" lang="eng">book</genre>'
+
+    genre$publicationType['bookReview'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">bookReview</genre>
+        <genre authority="svep" type="publicationType">rec</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Article, book review</genre>
+        <genre authority="kev" type="publicationType" lang="eng">article</genre>'
+
+    genre$publicationType['book'] <- '
+        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="publicationTypeCode">book</genre>
+        <genre authority="svep" type="publicationType">bok</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Book</genre>
+        <genre authority="kev" type="publicationType" lang="eng">book</genre>'
+
+    genre$publicationType['artisticOutput'] <- '
+        <genre authority="diva" type="publicationTypeCode">artisticOutput</genre>
+        <genre authority="diva" type="publicationType" lang="eng">Artistic output</genre>
+        <genre authority="kev" type="publicationType" lang="eng"/>
+        <genre authority="svep" type="publicationType">kfa</genre>'
+
+    genre |> as.vector()
+}
+
+frag_genre2 <- function(aggregationType, subtypeDescription) {
+
+  `prism:aggregationType` <- subtype <- NULL
+
+  combos <- "prism:aggregationType	subtype	key
+Journal	Article	article
+Conference Proceeding	Conference Paper	conferencePaperPublished
+Journal	Review	review
+Book	Book Chapter	chapter
+Journal	Conference Paper	articleConferencePaper
+Book Series	Book Chapter	chapter
+Conference Proceeding	Editorial	conferenceProceedings
+Journal	Note	articleErratum
+Book	Book	book
+Book	Editorial	collection
+Journal	Editorial	editorialMaterial
+Journal	Letter	articleLetter
+Trade Journal	Article	articleOther
+Book Series\tConference Paper\tconferencePaperPublished
+Journal\tData Paper\tarticle
+Journal\tErratum\tarticleErratum
+" |> readr::read_tsv(show_col_types = FALSE)
+
+  key <-
+    combos |>
+    filter(`prism:aggregationType` == aggregationType, subtype == subtypeDescription) |>
+    pull(key)
+
+  res <- kth_genre()$publicationType[key]
+
+  if (length(res) == 0)
+    kth_genre()$publicationType["other"]
+
+  return (res)
+
+}
+
 frag_affiliation <- function(affiliation) {
   glue::glue("<affiliation>{affiliation}</affiliation>")
 }

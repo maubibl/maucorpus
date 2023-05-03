@@ -242,7 +242,278 @@ div.col_wrap div.bslib-column-wrap {
     max-height: 100vh !important;
 ```
 
+```{r}
+#| message: false
+#| eval: true
+#| echo: false
+
+re_orcid <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
+re_kthid <- "^u1[a-z0-9]{6}$"
+
+authors <- kthcorpus::kth_diva_authors()
+
+# authors with orcid and kthid but some publications do not have kthids assigned
+
+pubs_missing_kthid <- 
+  authors |> filter(!is.na(orcid)) |> select(orcid, kthid, name, autid) |> 
+    group_by(orcid, name, autid) |> 
+    mutate(n_kthid = n_distinct(kthid)) |> 
+    arrange(desc(n_kthid)) |> 
+    distinct() |> 
+    ungroup() |> 
+    filter(n_kthid > 1, !grepl("^PI", kthid)) |> 
+    left_join(
+      authors |> 
+        group_by(orcid, kthid, name, autid) |> 
+        summarise(pids = paste0(collapse=" ", unique(PID)), n_pids = n_distinct(PID)), 
+          by = c("orcid", "kthid", "name", "autid")) |> 
+        arrange(desc(orcid), n_kthid, kthid
+    )
+
+authors_with_orcid_and_several_kthids <- 
+  authors |> filter(!is.na(orcid)) |> 
+    group_by(orcid) |> 
+    mutate(
+      n_kthid = n_distinct(kthid, na.rm = TRUE), 
+      kthids = paste0(collapse = " ", na.omit(unique(kthid)))) |> 
+    ungroup() |> 
+  filter(n_kthid > 1) |> 
+  distinct(orcid, kthids)
+
+  # some authors have ORCiD and kthid, but no value for DiVA author id ("authority-person:105170" etc)
+authors_missing_diva_authority_person <- 
+    authors |> distinct(orcid, kthid, autid, name, PID) |> 
+      group_by(orcid, kthid) |> 
+       mutate(
+        n_aliases = n_distinct(name, na.rm = TRUE),
+        n_autid = n_distinct(autid, na.rm = TRUE), 
+        n_pids = n_distinct(PID, na.rm = TRUE)) |> 
+      filter(n_aliases >= 1, n_autid >= 0, !grepl("^PI", kthid), !is.na(orcid)) |>
+      ungroup() |>
+      group_by(orcid) |> 
+      summarise(
+        pids = paste0(collapse = " ", PID),
+        autids = paste0(collapse = " ", unique(na.omit(autid))),
+        kthids = paste0(collapse = " ", unique(na.omit(kthid))),
+        n_kthids = n_distinct(kthid, na.rm = TRUE),
+        n_autids = n_distinct(autid, na.rm = TRUE),
+        n_pids = n_distinct(PID, na.rm = TRUE)
+      ) |> 
+      filter(n_autids == 0, n_kthids >= 1) |> 
+      arrange(desc(n_pids)) |> 
+      mutate(
+        combo = paste0(linkify(orcid, target = "ORCID"), " (", kthids, ")")
+      ) |>
+      select(orcid, combo, kthids, autids, n_pids, n_kthids, pids) 
+
+  # left_join(
+  #   authors |> filter(!is.na(orcid)) |> select(orcid, kthid, autid, name, PID) |>
+  #     distinct() |>
+  #     group_by(orcid, kthid) |>
+  #     mutate(
+  #       n_aliases = n_distinct(name, na.rm = TRUE),
+  #       n_autid = n_distinct(autid, na.rm = TRUE)) |>
+  #     filter(n_aliases >= 1, n_autid >= 0, !grepl("^PI", kthid)) |>
+  #     ungroup() |>
+  #     group_by(orcid) |>
+  #     summarise(
+  #       pids = paste0(collapse = " ", PID),
+  #       autids = paste0(collapse = " ", unique(na.omit(autid))),
+  #       kthids = paste0(collapse = " ", unique(na.omit(kthid))),
+  #       n_pids = n_distinct(PID, na.rm = TRUE),
+  #       n_kthids = n_distinct(kthid, na.rm = TRUE)
+  #     ) |>
+  #     filter(n_kthids > 1) |>
+  #     arrange(desc(n_kthids)) |>
+  #     mutate(
+  #       combo = paste0(linkify(orcid, target = "ORCID"), " (", kthids, ")")
+  #     ) |>
+  #     arrange(combo) |>
+  #     select(combo, autids, n_pids, n_kthids, pids) 
+  # ) 
+
+my_dt3 <- pubs_missing_kthid |> DT::datatable(escape = F)
+my_dt4 <- authors_with_orcid_and_several_kthids |> DT::datatable(escape = F)
+my_dt5 <- authors_missing_diva_authority_person |> DT::datatable(escape = F)
+
+  # many |>
+  #   select(orcid, n_kthid) |> left_join(multiple = "all",
+  #   authors |>
+  #     group_by(orcid, kthid, name, autid) |>
+  #     summarise(
+  #       pids = paste0(collapse=" ", unique(PID)),
+  #       n_pids = n_distinct(PID)
+  #     ),
+  #   by = c("orcid")) |> #, "kthid", "name", "autid")) |>
+  #   arrange(desc(orcid), n_kthid, kthid)  |>
+  #   group_by(orcid) |>
+  #   mutate(combo = paste0(collapse = " ", unique(na.omit(kthid)))) |>
+  #   ungroup() |>
+  #   select(orcid, combo, kthid, everything()) |>
+  #   arrange(orcid, combo, desc(n_pids)) |>
+  #   mutate(pids = shorten(pids)) |>
+  #   #mutate(pids = paste(collapse = " ", linkify(na.omit(pids), target = "PID"))) |>
+  #   mutate(orcid = paste0(linkify(orcid, target = "ORCID"), " ", combo)) |>
+  #   select(-c("combo", "n_kthid"))
+
+  # many <-
+  #   authors |>
+  #   group_by(orcid) |>
+  #   filter(grepl(re_orcid, orcid)) |>
+  #   filter(grepl(re_kthid, kthid)) |>
+  #   summarize(
+  #     n_kthid = n_distinct(kthid),
+  #     kthids =  paste(collapse = " ", unique(kthid)),
+  #     n_pids = n_distinct(PID),
+  #     pids = paste(collapse = " ", unique(PID))
+  #   ) |>
+  #   filter(n_kthid > 1) |>
+  #   arrange(desc(n_kthid))
+  #
+  # authors |> inner_join(many, by = "orcid") |> distinct(PID, orcid, kthid) |>
+  #   group_by(orcid, kthid) |>
+  #   summarise(
+  #     pids = paste(collapse = " ", linkify(na.omit(unique(PID)[1:10]), target = "PID")),
+  #     n_pids = n_distinct(PID),
+  #     kthid = paste(collapse = " ", unique(kthid))
+  #   ) |>
+  #   group_by(orcid) |>
+  #   arrange(orcid, desc(n_pids), orcid) |>
+  #   mutate(orcid = linkify(orcid, target = "ORCID")) |>
+  #   mutate(combo = paste0(orcid, " (n=", sprintf("%03d", n_pids), ", kthid=", kthid, ")")) |>
+  #   ungroup() |>
+  #   select(combo, pids)
+
+```
+
+
 ::: {.panel-tabset}
+
+## Multiple kthids
+
+Certain ORCiDs are associated with more than one author at KTH, sometimes because those records are being investigated / checked. Sometimes a possible kthid may be likely, but the investigation is not yet concluded.
+
+:::{.callout-note}
+Note that a KTH author may be associated with zero, one (preferably) or in some cases more than one ORCiDs. However, if more than one KTH author identifier make use of the same ORCiD identifier there are chances that an incorrect affiliation has been detected.
+:::
+
+```{r}
+#| label: tbl-multiple-kthids
+#| tbl-cap: "ORCiDs being investigated"
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt4 <- 
+  authors_with_orcid_and_several_kthids |> datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt4, "Multiple kthids")
+
+```
+
+## Missing DiVA authority person
+
+Authors in DiVA are mostly associated with a "DiVA" authority person identifier. This is not always the case, though. 
+
+:::{.callout-note}
+Note that an author with a known kthid will likely have a DiVA authority person identifier. However, sometimes such a record is missing in DiVA.
+:::
+
+```{r}
+#| label: tbl-missing-authority-person
+#| tbl-cap: "Authors with kthid but missing DiVA authority person identifier"
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt5 <- 
+  authors_missing_diva_authority_person |> datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt5, "Missing authority person identifiers")
+
+```
+
+## Publications missing kthid for author with ORCiD
+
+Some publications from an author with a given ORCiD may sometimes have a kthid associated, but sometimes it is missing on certain publications while being present on others.
+
+:::{.callout-note}
+Note that an author with a known ORCiD will likely have a single kthid associated. However, sometimes such information is missing in DiVA on certain publications, but it is present on other publications.
+:::
+
+```{r}
+#| label: tbl-pubs-missing-kthid
+#| tbl-cap: "Authors with kthid but missing DiVA authority person identifier"
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt3 <- 
+  pubs_missing_kthid |> datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt3, "Publications missing kthids")
+
+```
 
 ## Ambiguous ORCiDs
 
@@ -295,110 +566,6 @@ Note that authors can have made some publications that were tagged with an organ
 :::
 
 
-```{r}
-#| message: false
-#| eval: false
-#| echo: false
-
-re_orcid <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
-re_kthid <- "^u1[a-z0-9]{6}$"
-
-authors <- kthcorpus::kth_diva_authors()
-
-authors |> filter(!is.na(orcid)) |> select(orcid, kthid, name, autid) |> 
-  group_by(orcid, name, autid) |> 
-  mutate(n_kthid = n_distinct(kthid)) |> 
-  arrange(desc(n_kthid)) |> 
-  distinct() |> 
-  ungroup() |> 
-  filter(n_kthid > 1, !grepl("^PI", kthid)) |> 
-  left_join(
-    authors |> 
-      group_by(orcid, kthid, name, autid) |> 
-      summarise(pids = paste0(collapse=" ", unique(PID)), n_pids = n_distinct(PID)), 
-        by = c("orcid", "kthid", "name", "autid")) |> 
-      arrange(desc(orcid), n_kthid, kthid
-  )
-
-authors |> filter(!is.na(orcid)) |> 
-  group_by(orcid) |> 
-  mutate(n_kthid = n_distinct(kthid, na.rm = TRUE)) |> 
-  ungroup() |> filter(n_kthid > 1) |> distinct(orcid) |>
-  left_join(
-    authors |> filter(!is.na(orcid)) |> select(orcid, kthid, autid, name, PID) |> distinct() |>
-      group_by(orcid, kthid) |>
-      mutate(
-        n_aliases = n_distinct(name, na.rm = TRUE),
-        n_autid = n_distinct(autid, na.rm = TRUE)) |>
-      filter(n_aliases >= 1, n_autid >= 0, !grepl("^PI", kthid)) |>
-      ungroup() |>
-      group_by(orcid) |>
-      summarise(
-        pids = paste0(collapse = " ", PID),
-        autids = paste0(collapse = " ", unique(na.omit(autid))),
-        kthids = paste0(collapse = " ", unique(na.omit(kthid))),
-        n_pids = n_distinct(PID, na.rm = TRUE),
-        n_kthids = n_distinct(kthid, na.rm = TRUE)
-      ) |>
-      filter(n_kthids > 1) |>
-      arrange(desc(n_kthids)) |>
-      mutate(
-        combo = paste0(linkify(orcid, target = "ORCID"), " (", kthids, ")")
-      ) |>
-      arrange(combo) |>
-      select(combo, autids, n_pids, n_kthids, pids) |>
-      DT::datatable(escape = F)
-  )
-
-  # many |>
-  #   select(orcid, n_kthid) |> left_join(multiple = "all",
-  #   authors |>
-  #     group_by(orcid, kthid, name, autid) |>
-  #     summarise(
-  #       pids = paste0(collapse=" ", unique(PID)),
-  #       n_pids = n_distinct(PID)
-  #     ),
-  #   by = c("orcid")) |> #, "kthid", "name", "autid")) |>
-  #   arrange(desc(orcid), n_kthid, kthid)  |>
-  #   group_by(orcid) |>
-  #   mutate(combo = paste0(collapse = " ", unique(na.omit(kthid)))) |>
-  #   ungroup() |>
-  #   select(orcid, combo, kthid, everything()) |>
-  #   arrange(orcid, combo, desc(n_pids)) |>
-  #   mutate(pids = shorten(pids)) |>
-  #   #mutate(pids = paste(collapse = " ", linkify(na.omit(pids), target = "PID"))) |>
-  #   mutate(orcid = paste0(linkify(orcid, target = "ORCID"), " ", combo)) |>
-  #   select(-c("combo", "n_kthid"))
-
-  # many <-
-  #   authors |>
-  #   group_by(orcid) |>
-  #   filter(grepl(re_orcid, orcid)) |>
-  #   filter(grepl(re_kthid, kthid)) |>
-  #   summarize(
-  #     n_kthid = n_distinct(kthid),
-  #     kthids =  paste(collapse = " ", unique(kthid)),
-  #     n_pids = n_distinct(PID),
-  #     pids = paste(collapse = " ", unique(PID))
-  #   ) |>
-  #   filter(n_kthid > 1) |>
-  #   arrange(desc(n_kthid))
-  #
-  # authors |> inner_join(many, by = "orcid") |> distinct(PID, orcid, kthid) |>
-  #   group_by(orcid, kthid) |>
-  #   summarise(
-  #     pids = paste(collapse = " ", linkify(na.omit(unique(PID)[1:10]), target = "PID")),
-  #     n_pids = n_distinct(PID),
-  #     kthid = paste(collapse = " ", unique(kthid))
-  #   ) |>
-  #   group_by(orcid) |>
-  #   arrange(orcid, desc(n_pids), orcid) |>
-  #   mutate(orcid = linkify(orcid, target = "ORCID")) |>
-  #   mutate(combo = paste0(orcid, " (n=", sprintf("%03d", n_pids), ", kthid=", kthid, ")")) |>
-  #   ungroup() |>
-  #   select(combo, pids)
-
-```
 
 
 ```{r}

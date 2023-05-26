@@ -26,6 +26,5 @@ Issues with publication and author affiliations
 }
 \seealso{
 \code{\link[rappdirs]{app_dir}}
-\code{\link[rcrypt]{decrypt}}
 \code{\link[readr]{read_file}}
 }

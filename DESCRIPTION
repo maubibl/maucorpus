@@ -40,7 +40,6 @@ Imports:
     readr,
     xml2,
     progress,
-    rcrypt,
     ndjson,
     jqr,
     R.utils,

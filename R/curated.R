@@ -63,11 +63,9 @@ kth_diva_curated <- function(jq = NULL) {
 #' }
 #' @seealso
 #'  \code{\link[rappdirs]{app_dir}}
-#'  \code{\link[rcrypt]{decrypt}}
 #'  \code{\link[readr]{read_file}}
 #' @export
 #' @importFrom rappdirs app_dir
-#' @importFrom rcrypt decrypt
 #' @importFrom readr read_lines
 #' @importFrom ndjson stream_in
 #' @importFrom jqr jq
@@ -83,7 +81,7 @@ kth_issues_pubauth <- function(pass = Sys.getenv("DIVA_PASS"), jq = NULL) {
   }
 
   if (!file.exists(diva_tmp("ap.json"))) {
-    rcrypt::decrypt(
+    rcrypt_decrypt(
       system.file(package = "kthcorpus", "extdata", "ap.rcrypt"),
       diva_tmp("ap.json"),
       passphrase = pass

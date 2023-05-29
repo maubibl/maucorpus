@@ -953,18 +953,21 @@ check_manuscripts_with_identifiers <- function(pubs = kth_diva_pubs()) {
 
   # DOIs are usually for published works, sometimes pre-prints provide DOIs though
 
-  # TODO: shall we suppress false positives by excluding DOIs starting with
-  # 10.1101 and 10.48550
+  # Suppress false positives by excluding DOIs starting with
+  # 10.1101 and 10.48550 (bioRxiv and arXiv)
   # https://doi.org/10.1101/2020.08.24.252296
   # https://doi.org/10.48550/ARXIV.2202.11577
 
+  re_exclude <- "^10.1101|^10.48550" # bioRxiv and arXiv
+
   ScopusId <- PMID <- Year <- LastUpdated <- NULL
 
-  pubs %>%
-    filter(grepl("Manuskript", PublicationType)) %>%
-    filter(!is.na(DOI) | !is.na(ISI) | !is.na(ScopusId) | !is.na(PMID)) %>%
-    select(PID, Year, Title, DOI, ISI, ScopusId, PMID, LastUpdated) %>%
-    arrange(desc(LastUpdated)) %>%
+  pubs |>
+    filter(grepl("Manuskript", PublicationType)) |>
+    filter(!is.na(DOI) | !is.na(ISI) | !is.na(ScopusId) | !is.na(PMID))  |>
+    filter(!grepl(re_exclude, DOI)) |>
+    select(PID, Year, Title, DOI, ISI, ScopusId, PMID, LastUpdated) |>
+    arrange(desc(LastUpdated)) |>
     mutate(
       Title = linkify(Title, target = "titlesearch"),
       PID = linkify(PID, target = "PID"),

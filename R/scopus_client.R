@@ -647,7 +647,7 @@ scopus_abstract_extended <- function(sid) {
   fields <-
     strsplit(split = "\\s+",
       "dc:publisher srctype prism:coverDate prism:aggregationType source-id
-      citedby-count prism:volume subtype openaccess prism:issn
+      citedby-count prism:volume subtype openaccess prism:issn prism:eIssn
       prism:issueIdentifier subtypeDescription prism:publicationName openaccessFlag
       prism:doi prism:startingPage dc:identifier") |>
     unlist()

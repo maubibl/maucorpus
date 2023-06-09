@@ -1,6 +1,7 @@
 #' @noRd
 #' @importFrom readr write_file
 download_searchdb <- function() {
+  # TODO: make independent of platform OS
   sdb <- minio_get("search.db", bucket = "kthcorpus")
   readr::write_file(sdb, "/tmp/search.db")
 }

@@ -559,6 +559,7 @@ Journal	Review	review
 Book	Book Chapter	chapter
 Journal	Conference Paper	articleConferencePaper
 Book Series	Book Chapter	chapter
+Book Series\tEditorial\tchapter
 Conference Proceeding	Editorial	conferenceProceedings
 Journal	Note	articleErratum
 Book	Book	book
@@ -569,6 +570,7 @@ Trade Journal	Article	articleOther
 Book Series\tConference Paper\tconferencePaperPublished
 Journal\tData Paper\tarticle
 Journal\tErratum\tarticleErratum
+Journal\tShort Survey\tarticle
 " |> readr::read_tsv(show_col_types = FALSE)
 
   key <-

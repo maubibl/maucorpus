@@ -473,7 +473,7 @@ kth_genre <- function() {
         <genre authority="kev" type="publicationType" lang="eng">bookitem</genre>'
 
     genre$publicationType['review'] <- '
-        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="contentTypeCode">refereed</genre>
         <genre authority="diva" type="publicationTypeCode">review</genre>
         <genre authority="svep" type="publicationType">for</genre>
         <genre authority="diva" type="publicationType" lang="eng">Article, review/survey</genre>
@@ -828,7 +828,7 @@ frag_publication_status <- function(
 # part of a journal or other magazine
 # TODO: Artikel-ID för e-publikationer som saknar sidnumrering anges i samma fält som första sida
 frag_relatedItem_host_journal <- function(
-    pub_title, pub_issn,
+    pub_title, pub_issn, pub_eissn,
     pub_volume, pub_issue,
     pub_extent_beg, pub_extent_end) {
   glue::glue('<relatedItem type="host">
@@ -836,6 +836,7 @@ frag_relatedItem_host_journal <- function(
       <title>{pub_title}</title>
     </titleInfo>
     <identifier type="issn">{pub_issn}</identifier>
+    <identifier type="eissn">{pub_eissn}</identifier>
     <part>
       <detail type="volume">
         <number>{pub_volume}</number>

@@ -194,6 +194,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   related_item <- frag_relatedItem_host_journal(
     pub_title = p$`prism:publicationName`,
     pub_issn = p$`prism:issn`,
+    pub_eissn = p$`prism:eIssn`,
     pub_volume = p$`prism:volume`,
     pub_issue = p$`prism:issueIdentifier`,
     pub_extent_beg = ext["extent_beg"],

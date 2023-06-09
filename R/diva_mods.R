@@ -473,7 +473,7 @@ kth_genre <- function() {
         <genre authority="kev" type="publicationType" lang="eng">bookitem</genre>'
 
     genre$publicationType['review'] <- '
-        <genre authority="diva" type="contentTypeCode">science</genre>
+        <genre authority="diva" type="contentTypeCode">refereed</genre>
         <genre authority="diva" type="publicationTypeCode">review</genre>
         <genre authority="svep" type="publicationType">for</genre>
         <genre authority="diva" type="publicationType" lang="eng">Article, review/survey</genre>

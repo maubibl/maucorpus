@@ -546,6 +546,10 @@ diva_download_aut <- function(
     #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
 
+  mydir <- file.path(rappdirs::app_dir("kthcorpus")$config())
+  if (!dir.exists(mydir)) dir.create(mydir, recursive = TRUE)
+  myfile <- function(f) file.path(mydir, f)
+
   # NB: the actual download command is provided through the diva_url() fcn
   all_years <-
     be(yb, ye) %>%
@@ -553,7 +557,7 @@ diva_download_aut <- function(
     tibble(dl = .) %>%
     bind_cols(be(yb, ye)) %>%
     mutate(fn = paste0("persons_", year_beg, ".csv")) %>%
-    mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
+    mutate(curl = paste0(sprintf("-o %s/", mydir), fn, " '", dl, "' \\"))
 
   curl_ua <- ""
   #curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
@@ -566,15 +570,15 @@ diva_download_aut <- function(
     "&& (awk '(NR == 1) || (FNR > 1)' persons_*.csv > aut.csv && rm persons_*.csv)"
   )
 
-  write_lines(script, "/tmp/dl_aut.sh")
-  Sys.chmod("/tmp/dl_aut.sh", mode = "744")
-  res <- system("cd /tmp && ./dl_aut.sh", timeout = 60 * 10)
 
-  #stopifnot(file.exists("/tmp/aut.csv") && res == 0)
-  stopifnot(file.exists(file.path(rappdirs::app_dir("kthcorpus")$config())) && res == 0)
+  write_lines(script, myfile("dl_aut.sh"))
+  Sys.chmod(myfile("dl_aut.sh"), mode = "744")
+  res <- system(sprintf("cd %s && ./dl_aut.sh", mydir), timeout = 60 * 10)
+
+  stopifnot(file.exists(myfile("aut.csv")) && res == 0)
 
   if (sync) # sync to kthcorpus bucket
-    diva_upload_s3("/tmp/aut.csv")
+    diva_upload_s3(myfile("aut.csv"))
 
   # parse and return content
   ct <- readr::cols(
@@ -586,7 +590,7 @@ diva_download_aut <- function(
   )
 
   #on.exit(unlink("/tmp/aut.csv"))
-  readr::read_csv("/tmp/aut.csv", col_types = ct)
+  readr::read_csv(myfile("aut.csv"), col_types = ct)
 
 }
 
@@ -609,13 +613,17 @@ diva_download_pub <- function(
     ) #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
 
+  mydir <- file.path(rappdirs::app_dir("kthcorpus")$config())
+  if (!dir.exists(mydir)) dir.create(mydir, recursive = TRUE)
+  myfile <- function(f) file.path(mydir, f)
+
   all_years <-
     be(yb, ye) %>%
     purrr::pmap_chr(diva_url) %>%
     tibble(dl = .) %>%
     bind_cols(be(yb, ye)) %>%
     mutate(fn = paste0("pubs_", year_beg, ".csv")) %>%
-    mutate(curl = paste0("-o /tmp/", fn, " '", dl, "' \\"))
+    mutate(curl = paste0(sprintf("-o %s/", mydir), fn, " '", dl, "' \\"))
 
   curl_ua <- ""
   #curl_ua <- paste0("-A DIVA-'", toupper(diva_config()$org), "'")
@@ -628,14 +636,14 @@ diva_download_pub <- function(
     "&& awk '(NR == 1) || (FNR > 1)' pubs_*.csv > pub.csv && rm pubs_*.csv"
   )
 
-  write_lines(script, "/tmp/dl_pubs.sh")
-  Sys.chmod("/tmp/dl_pubs.sh", mode = "744")
-  res <- system("cd /tmp && ./dl_pubs.sh", timeout = 60 * 10)
+  write_lines(script, myfile("dl_pubs.sh"))
+  Sys.chmod(myfile("dl_pubs.sh"), mode = "744")
+  res <- system(sprintf("cd %s && ./dl_pubs.sh", mydir), timeout = 60 * 10)
 
-  stopifnot(file.exists("/tmp/pub.csv") && res == 0)
+  stopifnot(file.exists(myfile("pub.csv")) && res == 0)
 
-  if (sync)
-    diva_upload_s3("/tmp/pub.csv")
+  if (sync) # sync to kthcorpus bucket
+    diva_upload_s3(myfile("pub.csv"))
 
   # parse and return content
   # Note: on Tue 5 Jul 2022, it was discovered that col 59 (FridaLevel) is
@@ -651,8 +659,7 @@ diva_download_pub <- function(
     NumberOfAuthors = col_double()
   )
 
-  #on.exit(unlink("/tmp/pub.csv"))
-  readr::read_csv("/tmp/pub.csv", col_types = ct)
+  readr::read_csv(myfile("pub.csv"), col_types = ct)
 
 }
 

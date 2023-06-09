@@ -1,14 +1,15 @@
 #' @noRd
 #' @importFrom readr write_file
 download_searchdb <- function() {
+  # TODO: make independent of platform OS
   sdb <- minio_get("search.db", bucket = "kthcorpus")
-  readr::write_file(sdb, "/tmp/search.db")
+  readr::write_file(sdb, file.path(rappdirs::app_dir("kthcorpus")$config(), "search.db"))
 }
 
 #' @noRd
 #' @importFrom DBI dbConnect
 #' @importFrom RSQLite SQLite
-con_search <- function(db_loc = "/tmp/search.db") {
+con_search <- function(db_loc = file.path(rappdirs::app_dir("kthcorpus")$config(), "search.db")) {
   if (!file.exists(db_loc)) download_searchdb()
   if (!file.exists(db_loc)) stop("Failed downloading search db... Network error?")
   DBI::dbConnect(RSQLite::SQLite(), db_loc)

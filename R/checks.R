@@ -741,7 +741,8 @@ check_invalid_orcid <- function(authors = kth_diva_authors(), pubs = kth_diva_pu
 
   ScopusId <- Year <- LastUpdated <- NULL
 
-  res <- authors %>%
+  res <-
+    authors %>%
     filter(!grepl(re, orcid) & !is.na(orcid)) %>%
     left_join(
       pubs %>% select(PID, Year, LastUpdated), by = "PID"

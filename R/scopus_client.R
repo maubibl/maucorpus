@@ -99,8 +99,10 @@ scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
     '(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
     '(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
     'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
-    'orig-load-date aft {beg_loaddate} AND pubyear aft {beg_pubyear}'
+    'orig-load-date aft {beg_loaddate} AND orig-load-date bef {end_loaddate} AND ',
+    'pubyear aft {beg_pubyear} AND NOT PUBSTAGE(AIP)'
   )
+
 
   # req <- httr::GET("https://api.elsevier.com/content/search/scopus",
   #   query = list(

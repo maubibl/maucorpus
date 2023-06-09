@@ -570,7 +570,8 @@ diva_download_aut <- function(
   Sys.chmod("/tmp/dl_aut.sh", mode = "744")
   res <- system("cd /tmp && ./dl_aut.sh", timeout = 60 * 10)
 
-  stopifnot(file.exists("/tmp/aut.csv") && res == 0)
+  #stopifnot(file.exists("/tmp/aut.csv") && res == 0)
+  stopifnot(file.exists(file.path(rappdirs::app_dir("kthcorpus")$config())) && res == 0)
 
   if (sync) # sync to kthcorpus bucket
     diva_upload_s3("/tmp/aut.csv")

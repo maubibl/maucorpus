@@ -81,11 +81,16 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     frag_identifier(type = "articleId", identifier = p$`article-number`)
   )
 
-  # TODO: fix parsing of `prism:isbn` "dictionary"
+  # TODO: fix parsing of `prism:isbn` "dictionary", esp "" should be NA
 
   isbn_identifiers <-
-    p$`prism:isbn` |> strsplit(split = ",") |>
+    p$`prism:isbn` |> strsplit(split = " ") |> unlist() |>
     map_chr(function(x) frag_identifier(type = "isbn", displayLabel = "Undefined", identifier = x))
+
+  notes <- c(
+    frag_note(sprintf("QC %s \nImported from Scopus. VERIFY.\n", format(Sys.Date(), "%Y%m%d")))#,
+    #frag_note("Another. @Funder@ [@project_number_from_funder@")
+  )
 
   if (! genre %in% c("chapter", "conferencePaperPublished", "articleConferencePaper")) {
     identifiers <- c(identifiers, isbn_identifiers)
@@ -93,6 +98,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     # TODO: isbn info should be used in Notes (Anders) for chapter and conferencePaperPublished
     # and articleConferencePaper
     # "partOf isbn"
+    notes <- c(notes,
+      frag_note(sprintf("Part of ISBN %s", p$`prism:isbn`))
+    )
   }
 
   guess_kthid <- function(my_orcid) {
@@ -193,8 +201,11 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
         given = `given-name`,
         role = ifelse(seq == 1 , "aut", "aut"),
         affiliations = raw_org |> tidy_xml(cdata = TRUE),
+        # TODO: give orcid precendence over enrich_orcid if both exist?
         descriptions = if (all(is.na(orcid), is.na(enrich_orcid))) NULL else paste0("orcid.org=", enrich_orcid))
     })
+
+
 
   # TODO: Can the publication status be picked up from Scopus?
   # One of Submitted / Accepted / In press / Published
@@ -234,11 +245,6 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 
   resourcetypes <- frag_typeOfResource(resourcetype = "text")
 
-  notes <- c(
-    frag_note("Imported from Scopus. VERIFY.")#,
-    #frag_note("Another. @Funder@ [@project_number_from_funder@")
-  )
-
   # n_authors <- nrow(aut)
   # has_many_authors <- n_authors > 30
   #
@@ -254,6 +260,8 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     gsub(pattern = " [|] ", replacement = ", ") |>
     strsplit(", ") |>
     unlist()
+
+  if (is.na(keywords)) keywords <- NULL
 
   hsv_call <-
     classify_swepub(

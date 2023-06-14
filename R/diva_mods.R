@@ -876,7 +876,7 @@ frag_relatedItem_host_book <- function(
 
 frag_keyword <- function(keywords) {
   kw <- strsplit(keywords, "\\W+") %>% unlist()
-  ks <- function(x) glue::glue('<subject lang=" eng ">
+  ks <- function(x) glue::glue(.na = "", '<subject lang="eng">
     <topic>{x}</topic>
   </subject>')
   kw %>% map_chr(ks) %>% paste0(collapse = "\n")

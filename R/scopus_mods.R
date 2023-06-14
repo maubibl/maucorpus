@@ -130,8 +130,6 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 
   # TODO: if raw org is KTH then prefigate surname w "$$$"
   # TODO: if unique match then "£££[score=]" (surname) - but populate w more info
-  # TODO: sort scopus records - 1. those who have DOI and/or ScopusID in DiVA
-  # 2. for the others, group in three MODSCollections a) Articles b) CP c) residual
   # TODO: extract conf name and title for proceedings -
 
   authors <-
@@ -261,7 +259,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     strsplit(", ") |>
     unlist()
 
-  if (is.na(keywords)) keywords <- NULL
+  if (all(is.na(keywords))) keywords <- NULL
 
   hsv_call <-
     classify_swepub(

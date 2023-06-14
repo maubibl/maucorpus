@@ -316,10 +316,9 @@ parse_scopus_entries <- function(xml) {
     mypubs <-
       tibble::as_tibble(setNames(mylist, nm = fields))
 
-    # TODO: FIXME: flatten `prism:isbn` to comma-separated value
     mypubs <- mypubs |> mutate(`prism:isbn` = `prism:isbn` |>
       map(function(x) eval(parse(text = x))) |>
-      map_chr(function(x) map(x, "$") |> unlist() |> paste(collapse = ","))
+      map_chr(function(x) map(x, "$") |> unlist() |> paste(collapse = " "))
     )
 
     t1 <- xml %>% purrr::map(function(x) tibble::tibble(sid = purrr::pluck(x, "dc:identifier")))

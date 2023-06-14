@@ -68,9 +68,6 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   cor <- sae$scopus_correspondence
   ags <- sae$scopus_authorgroup |> mutate(seq = as.integer(seq)) |> arrange(-desc(seq))
 
-  # TODO: map scopus publication type to DiVA MODS
-
-  #genres <- frag_genre(tolower(p$subtypeDescription))
   genres <- frag_genre2(p$`prism:aggregationType`, p$subtypeDescription)
   genre <- names(genres)
 
@@ -83,6 +80,20 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     frag_identifier(type = "issn", identifier = p$`prism:issn`),
     frag_identifier(type = "articleId", identifier = p$`article-number`)
   )
+
+  # TODO: fix parsing of `prism:isbn` "dictionary"
+
+  isbn_identifiers <-
+    p$`prism:isbn` |> strsplit(split = ",") |>
+    map_chr(function(x) frag_identifier(type = "isbn", displayLabel = "Undefined", identifier = x))
+
+  if (! genre %in% c("chapter", "conferencePaperPublished", "articleConferencePaper")) {
+    identifiers <- c(identifiers, isbn_identifiers)
+  } else {
+    # TODO: isbn info should be used in Notes (Anders) for chapter and conferencePaperPublished
+    # and articleConferencePaper
+    # "partOf isbn"
+  }
 
   guess_kthid <- function(my_orcid) {
     if (length(my_orcid) > 1 || is.na(my_orcid)) return (NA_character_)
@@ -132,13 +143,15 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     select(-auid) |>
     tibble::rowid_to_column()
 
+  # TODO: for many scopusids, get the raw_org... find all with afid for KTH
+  # run the re_kth - does it match for all those records.
   re_kth <- paste0(
-    "kth|KTH|roy.*?inst.*?tech.*?|Roy\\. Inst\\. T|alfven|",
-    "kung.*?tek.*?hog|kgl.*?tek.*?|kung.*?tek.*?hg.*?|roy.*?tech.*?univ.*?"
+    "kth|roy.*?inst.*?tech.*?|roy\\. inst\\. t|alfven|",
+    "kung.*?tek.*?h[oö]g.*?|kgl.*?tek.*?|kung.*?tek.*?hg.*?|roy.*?tech.*?univ.*?"
   )
 
   suggestions <-
-    authors |> filter(grepl(re_kth, raw_org)) |> rowwise() |>
+    authors |> filter(grepl(re_kth, tolower(raw_org))) |> rowwise() |>
     mutate(term = glue::glue(.na = "", .sep = " ", orcid, `given-name`, surname))
 
   if (nrow(suggestions) > 0) {
@@ -156,16 +169,16 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
       unnest(enrich, names_sep = "_") |>
       select("rowid", starts_with("enrich")) |>
       mutate(across(where(is.character), function(x) na_if(x, "")))
-    } else {
-      suggestions <-
-        data.frame() |> as_tibble() |>
-        mutate(rowid = NA, enrich_kthid = NA, enrich_orcid = NA)
+  } else {
+    suggestions <-
+      data.frame() |> as_tibble() |>
+      mutate(rowid = NA, enrich_kthid = NA, enrich_orcid = NA)
   }
 
   enriched <-
     authors |> left_join(suggestions, by = "rowid") |>
     #filter(!is.na(enrich_kthid))
-    mutate(surname = ifelse(grepl("KTH", raw_org), paste0("$$$", surname), surname))
+    mutate(surname = ifelse(grepl(re_kth, tolower(raw_org)), paste0("$$$", surname), surname))
 
   persons <-
     # use "given-name" and "surname" from search API (aff)
@@ -226,6 +239,13 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     #frag_note("Another. @Funder@ [@project_number_from_funder@")
   )
 
+  # n_authors <- nrow(aut)
+  # has_many_authors <- n_authors > 30
+  #
+  # if (has_many_authors) {
+  #   notes <- c(notes, frag_note("Total authorcount is ", n_authors))
+  # }
+
   abstract <- frag_abstract(p$`dc:description` |> tidy_xml(cdata = TRUE))
 
   # both author keywords and UKÄ classifications are MODS "subjects"
@@ -260,8 +280,8 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 
   subjects <- c(frag_subject(topic = keywords), hsv_categories)
 
-  # TODO: how should this be used?
-  location <- frag_location(p$`prism:url`)
+  # TODO: how should this be used? Remove it for now.
+  location <- NULL #frag_location(p$`prism:url`)
 
   #series <- frag_relatedItem_series(title = "relseries",
   #  issn = "my_issn", eissn = "my_eissn", issue = "1")

@@ -548,9 +548,7 @@ kth_genre <- function() {
     genre |> as.vector()
 }
 
-frag_genre2 <- function(aggregationType, subtypeDescription) {
-
-  `prism:aggregationType` <- subtype <- NULL
+genre_scopus_diva <- function() {
 
   combos <- "prism:aggregationType	subtype	key
 Journal	Article	article
@@ -561,9 +559,9 @@ Journal	Conference Paper	articleConferencePaper
 Book Series	Book Chapter	chapter
 Book Series\tEditorial\tchapter
 Conference Proceeding	Editorial	conferenceProceedings
-Journal	Note	articleErratum
+Journal	Note	article
 Book	Book	book
-Book	Editorial	collection
+Book	Editorial	chapter
 Journal	Editorial	editorialMaterial
 Journal	Letter	articleLetter
 Trade Journal	Article	articleOther
@@ -572,6 +570,16 @@ Journal\tData Paper\tarticle
 Journal\tErratum\tarticleErratum
 Journal\tShort Survey\tarticle
 " |> readr::read_tsv(show_col_types = FALSE)
+
+  return (combos)
+
+}
+
+frag_genre2 <- function(aggregationType, subtypeDescription) {
+
+  `prism:aggregationType` <- subtype <- NULL
+
+  combos <- genre_scopus_diva()
 
   key <-
     combos |>
@@ -746,10 +754,7 @@ frag_subject <- function(lang = "eng", source, href, topic, genre) {
 
   topix <- paste0(collapse = "\n", sprintf("  <topic>%s</topic>", topic))
 
-  glue::glue(paste0(footer, '>
-    {topix}',
-    infix, '
-    </subject>'))
+  glue::glue(paste0(footer, '>{topix}', infix, '</subject>'))
 }
 
 frag_physicalDescription <- function(desc = "text") {

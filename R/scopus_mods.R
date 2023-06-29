@@ -84,7 +84,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   # TODO: fix parsing of `prism:isbn` "dictionary", esp "" should be NA
 
   isbn_identifiers <-
-    p$`prism:isbn` |> strsplit(split = " ") |> unlist() |>
+    as.character(p$`prism:isbn`) |> strsplit(split = " ") |> unlist() |>
     map_chr(function(x) frag_identifier(type = "isbn", displayLabel = "Undefined", identifier = x))
 
   notes <- c(

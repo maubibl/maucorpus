@@ -1,3 +1,6 @@
+library(kthcorpus)
+library(dplyr)
+
 # get latest DiVA-data from minio (clear local cache)
 diva_refresh()
 
@@ -95,8 +98,8 @@ system("firefox ~/temp/modz/scopus_other.xml")
 # Same procedure but for a custom scopus search for a given time interval
 
 # Search in Scopus for a specific time period
-beg <- as.Date("2022-12-01")
-end <- as.Date("2023-01-01")
+beg <- as.Date("2023-01-01")
+end <- as.Date("2023-02-28")
 scopus <- scopus_search_pubs_kth(beg, end)
 pubs <- kth_diva_pubs()
 

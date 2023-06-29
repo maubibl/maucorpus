@@ -163,8 +163,9 @@ linkify <- function(href, text = shorten(href), title = href, target =
   p_ISI <- function(x) {
     # Web of Science, sökning på UT=WoS-id:
     # http://apps.webofknowledge.com/InboundService.do?product=WOS&action=retrieve&mode=FullRecord&UT=000722432000004
+    # New URL: https://www.webofscience.com/wos/woscc/full-record/WOS:001001819900001
     stringr::str_c(
-      "http://apps.webofknowledge.com/InboundService.do?product=WOS&action=retrieve&mode=FullRecord&UT=",
+      "https://www.webofscience.com/wos/woscc/full-record/WOS:",
       x
     )
   }
@@ -589,7 +590,7 @@ check_titles_book_chapters <- function(pubs = kth_diva_pubs()) {
 check_invalid_ISI <- function(pubs = kth_diva_pubs()) {
 
   # from kth-library/bibliutils: r'A19\d{2}[A-Z\d]{5}\d{5}|000\d{12}'
-  re <- "^A19\\d{2}[A-Z\\d]{5}\\d{5}$|^000\\d{12}$"
+  re <- "^A19\\d{2}[A-Z\\d]{5}\\d{5}$|^000\\d{12}$|^001\\d{12}$"
 
   ISI <- PID <- Year <- DOI <- ScopusId <- NULL
 

@@ -1463,8 +1463,12 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
 
 # results can be placed under missing/"saknat"
 check_non_qc <- function(pubs = kth_diva_pubs()) {
+
   # one check for which records are not quality checked
   # these publications are recent but not marked with QC
+
+  CreatedDate <- LastUpdated <- NULL
+
   pubs |>
     filter(CreatedDate > as.Date("2023-01-01")) |>
     filter(CreatedDate < as.Date(Sys.Date() - 30), !grepl("QC", Notes)) |>
@@ -1472,8 +1476,12 @@ check_non_qc <- function(pubs = kth_diva_pubs()) {
 }
 
 check_non_qc_stale <- function(pubs = kth_diva_pubs()) {
+
   # publications which are not tagged with "QC" but are created more than 30 days ago
   # frequency table per year
+
+  CreatedDate <- LastUpdated <- NULL
+
   pubs |>
     filter(CreatedDate < as.Date(Sys.Date() - 30), !grepl("QC", Notes)) |>
     select(PID, CreatedDate, LastUpdated, PublicationType) |>

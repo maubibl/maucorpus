@@ -153,7 +153,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   # run the re_kth - does it match for all those records.
   re_kth <- paste0(
     "kth|roy.*?inst.*?tech.*?|roy\\. inst\\. t|alfven|",
-    "kung.*?tek.*?h[oö]g.*?|kgl.*?tek.*?|kung.*?tek.*?hg.*?|roy.*?tech.*?univ.*?"
+    "kung.*?tek.*?h[o\u00f6]g.*?|kgl.*?tek.*?|kung.*?tek.*?hg.*?|roy.*?tech.*?univ.*?"
   )
 
   suggestions <-
@@ -252,7 +252,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 
   abstract <- frag_abstract(p$`dc:description` |> tidy_xml(cdata = TRUE))
 
-  # both author keywords and UKÄ classifications are MODS "subjects"
+  # both author keywords and classifications are MODS "subjects"
   keywords <-
     p$authkeywords |>
     gsub(pattern = " [|] ", replacement = ", ") |>

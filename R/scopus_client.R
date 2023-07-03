@@ -305,7 +305,7 @@ scopus_fields <- function() {
 #' @importFrom dplyr select any_of
 parse_scopus_entries <- function(xml) {
 
-    afid <- NULL
+    afid <- `prism:isbn` <- NULL
 
     fields <- scopus_fields()
 

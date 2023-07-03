@@ -199,8 +199,8 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
         given = `given-name`,
         role = ifelse(seq == 1 , "aut", "aut"),
         affiliations = raw_org |> tidy_xml(cdata = TRUE),
-        # TODO: give orcid precendence over enrich_orcid if both exist?
-        descriptions = if (all(is.na(orcid), is.na(enrich_orcid))) NULL else paste0("orcid.org=", enrich_orcid))
+        # give orcid precendence over enrich_orcid if both exist
+        descriptions = if (all(is.na(orcid), is.na(enrich_orcid))) NULL else paste0("orcid.org=", ifelse(is.na(orcid), enrich_orcid, orcid)))
     })
 
 

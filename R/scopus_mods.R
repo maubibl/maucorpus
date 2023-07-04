@@ -174,7 +174,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
         )) |>
       unnest(enrich, names_sep = "_") |>
       select("rowid", starts_with("enrich")) |>
-      mutate(across(where(is.character), function(x) na_if(x, "")))
+      mutate(across(where(is.character), function(x) na_if(x, ""))) |>
+      rowwise() |>
+      mutate(enrich_orcid = strsplit(enrich_orcid, "\\s+") |> unlist() |> toupper() |> unique() |>  paste(collapse = " "))
   } else {
     suggestions <-
       data.frame() |> as_tibble() |>

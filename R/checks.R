@@ -960,7 +960,7 @@ check_manuscripts_with_identifiers <- function(pubs = kth_diva_pubs()) {
   # https://doi.org/10.1101/2020.08.24.252296
   # https://doi.org/10.48550/ARXIV.2202.11577
 
-  re_exclude <- "^10.1101|^10.48550|^10.2139" # bioRxiv and arXiv
+  re_exclude <- "^10.1101|^10.48550|^10.2139" # bioRxiv,arXiv and SSRN
 
   ScopusId <- PMID <- Year <- LastUpdated <- NULL
 

@@ -155,3 +155,54 @@ cr_funders <- function(location = "Sweden") {
     unnest_wider(col = "replaces", names_sep = "_")
 
 }
+
+#' Crossref lookup table for DOI prefixes
+#'
+#' Requests DOI prefixes from Crossref web site and returns as a data frame.
+#' @param prefix the prefix to look up, by default "all"
+#' @return data frame
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  cr_publisher()  # lookup all publishers
+#'  cr_publisher(c("10.4172", "10.4236"))  # lookup given a few doi prefixes
+#'  }
+#' }
+#' @export
+#' @importFrom httr GET content
+#' @importFrom jsonlite fromJSON
+#' @importFrom tibble as_tibble
+#' @importFrom tidyr unnest
+#' @importFrom dplyr arrange rename mutate
+#' @importFrom purrr map_df
+cr_publisher <- function(doi_prefix = "all") {
+
+  cr_doi_lookup <- function(url)
+    url |> httr::GET()  |> httr::content(as = "text") |>
+    jsonlite::fromJSON() |> tibble::as_tibble()
+
+  if (length(doi_prefix) == 1 && doi_prefix == "all") {
+    all <-
+      paste0("http://doi.crossref.org/getPrefixPublisher/?prefix=", doi_prefix) |>
+      cr_doi_lookup() |>
+      tidyr::unnest(col = "prefixes") |>
+      dplyr::arrange(name) |>
+      dplyr::rename(publisher = name, cr_id = memberId, doi_prefix = prefixes) |>
+      dplyr::mutate(publisher = html_unescape(publisher))
+    return (all)
+  }
+
+  # vectorized calls for all give prefixes
+  urls <-
+    "http://doi.crossref.org/getPrefixPublisher/?prefix=%s" |>
+    sprintf(doi_prefix)
+
+  urls |> purrr::map_df(cr_doi_lookup, .progress = TRUE) |>
+    dplyr::mutate(publisher_name = html_unescape(publisher_name))
+}
+
+html_unescape <- function(x) {
+  html <- paste0("<x>", paste0(x, collapse = "#_|"), "</x>")
+  parsed <- xml2::xml_text(xml2::read_html(html))
+  strsplit(parsed, "#_|", fixed = TRUE)[[1]]
+}

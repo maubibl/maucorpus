@@ -45,7 +45,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     ce_surname <- ce_given_name <-
     raw_org <- afid <-
     eng_code <- swe_code <- value <-
-    term <- sn <- rowid <- score <- enrich <- NULL
+    term <- sn <- rowid <- score <- enrich <- enrich_orcid <- NULL
 
   # use info primarily from scopus Search API
   p <- scopus$publications |> filter(grepl(sid, `dc:identifier`))

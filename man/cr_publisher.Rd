@@ -7,7 +7,7 @@
 cr_publisher(doi_prefix = "all")
 }
 \arguments{
-\item{prefix}{the prefix to look up, by default "all"}
+\item{doi_prefix}{the prefix to look up, by default "all"}
 }
 \value{
 data frame

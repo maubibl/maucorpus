@@ -159,7 +159,7 @@ cr_funders <- function(location = "Sweden") {
 #' Crossref lookup table for DOI prefixes
 #'
 #' Requests DOI prefixes from Crossref web site and returns as a data frame.
-#' @param prefix the prefix to look up, by default "all"
+#' @param doi_prefix the prefix to look up, by default "all"
 #' @return data frame
 #' @examples
 #' \dontrun{
@@ -176,6 +176,8 @@ cr_funders <- function(location = "Sweden") {
 #' @importFrom dplyr arrange rename mutate
 #' @importFrom purrr map_df
 cr_publisher <- function(doi_prefix = "all") {
+
+  memberId <- prefixes <- publisher <- publisher_name <- NULL
 
   cr_doi_lookup <- function(url)
     url |> httr::GET()  |> httr::content(as = "text") |>

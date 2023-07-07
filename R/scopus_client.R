@@ -734,7 +734,10 @@ scopus_abstract_extended <- function(sid) {
 
 parse_confinfo <- function(abstract) {
 
-  date_beg <- date_end <- NULL
+  date_beg <- date_end <- beg <- end <-
+    conf_details <- conf_sourcetitle <-
+    date_beg_day <- date_beg_month <- date_beg_year <-
+    date_end_day <- date_end_month <- date_end_year <- NULL
 
   # sids <- paste0("SCOPUS_ID:85162277054 SCOPUS_ID:85162208085 ",
   #   "SCOPUS_ID:85162205964 SCOPUS_ID:85162194454 SCOPUS_ID:85162223284 ",
@@ -764,8 +767,9 @@ parse_confinfo <- function(abstract) {
     country = event$conflocation$`@country`,
     date_beg = event$confdate$enddate,
     date_end = event$confdate$startdate,
-    conf_subtitle = source$sourcetitle,
-    conf_series = event$confseriestitle
+    conf_sourcetitle = source$sourcetitle,
+    conf_seriestitle = event$confseriestitle,
+    conf_issuetitle = source$issuetitle
   )
 
   wc <- kthcorpus::countries_iso3
@@ -791,7 +795,8 @@ parse_confinfo <- function(abstract) {
       )
     ) |>
     mutate(conf_details = glue::glue("{conf_title}, {city}, {country_name}, {dur}")) |>
-    select(conf_title, conf_subtitle, conf_details)
+    select(conf_title = conf_issuetitle, conf_details) |>
+    mutate(conf_subtitle = NA)
 
 }
 

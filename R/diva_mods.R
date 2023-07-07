@@ -778,8 +778,12 @@ frag_abstract <- function(abstract, lang = "eng") {
   glue::glue('<abstract lang="{lang}">{abstract}</abstract>')
 }
 
+# conf_title <-> "sourcetitle"  #
+# conf_ext_start <-> abstract[["abstracts-retrieval-response"]][["coredata"]][["prism:startingPage"]]
+# conf_ext_end <-> abstract[["abstracts-retrieval-response"]][["coredata"]][["prism:endingPage"]]
+# conf_details <-> "" # composite of confname, location and duration
 frag_relatedItem_conference <- function(conf_title, conf_subtitle, conf_ext_start, conf_ext_end, conf_details) {
-  glue::glue('<relatedItem type="host">
+  glue::glue(.na = "", '<relatedItem type="host">
       <titleInfo>
         <title>{conf_title}</title>
         <subTitle>{conf_subtitle}</subTitle>

@@ -513,6 +513,7 @@ pluck_raw_org <- function(x) {
 scopus_abstract_extended <- function(sid) {
 
   #sid <- sidz[1]
+  #sid <- "85162277054"
 
   abstract <- scopus_req_abstract(sid = sid) |> httr::content()
 
@@ -657,7 +658,7 @@ scopus_abstract_extended <- function(sid) {
       "dc:publisher srctype prism:coverDate prism:aggregationType source-id
       citedby-count prism:volume subtype openaccess prism:issn prism:eIssn
       prism:issueIdentifier subtypeDescription prism:publicationName openaccessFlag
-      prism:doi prism:startingPage dc:identifier") |>
+      prism:doi prism:startingPage prism:endingPage dc:identifier") |>
     unlist()
 
   coredata <-
@@ -711,14 +712,87 @@ scopus_abstract_extended <- function(sid) {
   #   a |> rget("authkeywords") #: null
   # )
 
+  ci <- data.frame()
+
+  if (abstract$`abstracts-retrieval-response`$coredata$subtype == "cp") {
+    beg <- coredata$"prism:startingPage"
+    end <- coredata$"prism:endingPage"
+    ci <- parse_confinfo(abstract) |>
+      tibble::add_column(conf_ext_start = beg, conf_ext_end = end)
+  }
+
   list(
     scopus_abstract = coredata |> bind_cols(
       sid = sid,
       `dc:description` = tidy_xml(text)
     ),
     scopus_authorgroup = authorgroup,
-    scopus_correspondence = correspondence #,
+    scopus_correspondence = correspondence,
+    scopus_confinfo = ci
   )
+}
+
+parse_confinfo <- function(abstract) {
+
+  date_beg <- date_end <- NULL
+
+  # sids <- paste0("SCOPUS_ID:85162277054 SCOPUS_ID:85162208085 ",
+  #   "SCOPUS_ID:85162205964 SCOPUS_ID:85162194454 SCOPUS_ID:85162223284 ",
+  #   "SCOPUS_ID:85162210747 SCOPUS_ID:85162197463 SCOPUS_ID:85162224833 ",
+  #   "SCOPUS_ID:85162265813 SCOPUS_ID:85162219211 SCOPUS_ID:85162253865 ",
+  #   "SCOPUS_ID:85162196928 SCOPUS_ID:85162258109 SCOPUS_ID:85162256230 ",
+  #   "SCOPUS_ID:85162191207 SCOPUS_ID:85162217474 SCOPUS_ID:85162268691 ",
+  #   "SCOPUS_ID:85162208893 SCOPUS_ID:85162201437 SCOPUS_ID:85162197216 ",
+  #   "SCOPUS_ID:85162005310 SCOPUS_ID:85162006176 SCOPUS_ID:85161974029 ",
+  #   "SCOPUS_ID:85161999337 SCOPUS_ID:85161990555 SCOPUS_ID:85161889600 ",
+  #   "SCOPUS_ID:85161931704 SCOPUS_ID:85161853142 SCOPUS_ID:85161836541") |>
+  #   strsplit(split = "\\s+") |> unlist() |> gsub(pattern = "SCOPUS_ID:", replacement = "")
+  #
+  # sid <- sids[1]
+  # abstract <- scopus_req_abstract(sid = sid) |> httr::content()
+
+  source <-
+    #eid |> scopus_req_abstract() |>  httr::content() |>
+    abstract |>
+    _$`abstracts-retrieval-response`$item$bibrecord$head$source
+
+  event <- source$`additional-srcinfo`$conferenceinfo$confevent
+
+  aci <- list(
+    conf_title = event$confname,
+    city = event$conflocation$city,
+    country = event$conflocation$`@country`,
+    date_beg = event$confdate$enddate,
+    date_end = event$confdate$startdate,
+    conf_subtitle = source$sourcetitle,
+    conf_series = event$confseriestitle
+  )
+
+  wc <- kthcorpus::countries_iso3
+
+  list(aci) |>
+    tibble::enframe() |>
+    tidyr::unnest_wider(col = "value") |>
+    tidyr::unnest_wider(col = date_beg, names_sep = "") |>
+    tidyr::unnest_wider(col = date_end, names_sep = "") |>
+    dplyr::rename_with(.fn = function(x) gsub("@", "_", x), dplyr::starts_with("date")) |>
+    left_join(wc, by = "country") |>
+    mutate(
+      beg = lubridate::make_date(date_beg_year, date_beg_month, date_beg_day),
+      end = lubridate::make_date(date_end_year, date_end_month, date_end_day),
+      beg_my = paste(months(beg), year(beg)),
+      end_my = paste(months(end), year(end)),
+      dur = purrr::pmap_chr(
+        .l = list(end, beg),
+        .f = function(x, y) {
+          #x <- ifelse(x != "NA", x, NA)
+          na.omit(c(x, y)) |> format("%b %-d %Y") |> paste(collapse = " - ")
+        }
+      )
+    ) |>
+    mutate(conf_details = glue::glue("{conf_title}, {city}, {country_name}, {dur}")) |>
+    select(conf_title, conf_subtitle, conf_details)
+
 }
 
 tidy_xml <- function(x, cdata = FALSE) {
@@ -839,3 +913,4 @@ rget <- function(x, field, siblings = NULL, parents = NULL, new_name = field) {
   colnames(ret) <- new_name
   return (ret)
 }
+

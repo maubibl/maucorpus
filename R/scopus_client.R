@@ -53,65 +53,11 @@ scopus_config <- function(quiet = FALSE) {
   )
 }
 
-#' Retrieve publications from Scopus API from KTH - The Royal Institute of Technology.
-#'
-#' This function allows for using the "load date" when fetching publications for
-#' KTH - The Royal Institute of Technology. By default the time interval for the
-#' previous two weeks is used.
-#'
-#' Note: when using a subscriber API key, requests are only allowed from
-#' institutional IPs. From Elsevier's API documentation:
-#'
-#' "Elsevier Research Products APIs rely primarily on Institutional IP address
-#' for authentication. API access through proxies is not supported, however
-#' Elsevier will provide remote access direct to the APIs using a special
-#' access credential ("Institutional Token").
-#' If you are working away from your main institutional network
-#' or your institution accesses Scopus.com, Scival.com, or ScienceDirect.com
-#' through a proxy, please contact us to enquire about Institutional Token access."
-#'
-#' The rate limits that apply for using Scopus Search is a max paging length of 25 for
-#' complete views with a 5000 item total results limit and weekly 20k results and at
-#' the most 9 requests per second.
-#'
-#' @param beg_loaddate date expressed as "yyyymmdd", by default current date minus 7 days
-#' @param end_loaddate date expressed as "yyyymmdd", by default current date
 #' @importFrom httr GET add_headers content
-#' @importFrom glue glue
 #' @importFrom purrr map_chr possibly pmap map map_df
 #' @importFrom dplyr bind_cols
 #' @importFrom progress progress_bar
-#' @export
-scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
-
-  if (missing(end_loaddate))
-    end_loaddate <- Sys.Date() %>% format_date()
-
-  if (missing(beg_loaddate))
-    beg_loaddate <- (Sys.Date() - 14) %>% format_date()
-
-  beg_pubyear <- 2019L
-  id_affiliation <- 60002014L
-
-  criteria <- glue::glue(
-    'AFFIL(((kth*) OR (roy* AND inst* AND tech*) OR ("Roy. Inst. T") OR ',
-    '(alfven) OR (kung* AND tek* AND hog*) OR (kung* AND tek* AND h\\u00f6g*) OR ',
-    '(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
-    '(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
-    'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
-    'orig-load-date aft {beg_loaddate} AND orig-load-date bef {end_loaddate} AND ',
-    'pubyear aft {beg_pubyear} AND NOT PUBSTAGE(AIP)'
-  )
-
-
-  # req <- httr::GET("https://api.elsevier.com/content/search/scopus",
-  #   query = list(
-  #     query = criteria,
-  #     apiKey = scopus_config()$apikey,
-  #     view = "COMPLETE"
-  #   ),
-  #   add_headers("Content-Type" = "application/xml")
-  # )
+scopus_search_query <- function(criteria) {
 
   req <- scopus_req(criteria, start = 0, count = 25)
 
@@ -165,6 +111,90 @@ scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
 
   return(parse_scopus_entries(res))
 
+}
+
+#' Retrieve publications from Scopus Search API for specified Scopus ids
+#'
+#' Note: For long vectors of scopus eids, a warning will be issued
+#' if the query generates a long query string parameter that may
+#' run into issues with recommendations regarding RFC 2616.
+#'
+#' @param eid character vector of scopus eids, such as "2-s2.0-85144114333"
+#' @importFrom glue glue
+#' @export
+scopus_search_id <- function(eid) {
+
+  if (length(eid) > 1)
+    eid <- paste0(collapse = " OR ", eid)
+
+  criteria <- glue::glue(
+    "eid({eid})"
+  )
+
+  if (nchar(criteria) > 2048)
+    warning("Long query string parameter (use < 2048 chars, see RFC 2616)... ")
+
+  scopus_search_query(criteria)
+
+}
+
+#' Retrieve publications from Scopus API from KTH - The Royal Institute of Technology.
+#'
+#' This function allows for using the "load date" when fetching publications for
+#' KTH - The Royal Institute of Technology. By default the time interval for the
+#' previous two weeks is used.
+#'
+#' Note: when using a subscriber API key, requests are only allowed from
+#' institutional IPs. From Elsevier's API documentation:
+#'
+#' "Elsevier Research Products APIs rely primarily on Institutional IP address
+#' for authentication. API access through proxies is not supported, however
+#' Elsevier will provide remote access direct to the APIs using a special
+#' access credential ("Institutional Token").
+#' If you are working away from your main institutional network
+#' or your institution accesses Scopus.com, Scival.com, or ScienceDirect.com
+#' through a proxy, please contact us to enquire about Institutional Token access."
+#'
+#' The rate limits that apply for using Scopus Search is a max paging length of 25 for
+#' complete views with a 5000 item total results limit and weekly 20k results and at
+#' the most 9 requests per second.
+#'
+#' @param beg_loaddate date expressed as "yyyymmdd", by default current date minus 7 days
+#' @param end_loaddate date expressed as "yyyymmdd", by default current date
+#' @importFrom glue glue
+#' @export
+scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
+
+  if (missing(end_loaddate))
+    end_loaddate <- Sys.Date() %>% format_date()
+
+  if (missing(beg_loaddate))
+    beg_loaddate <- (Sys.Date() - 14) %>% format_date()
+
+  beg_pubyear <- 2019L
+  id_affiliation <- 60002014L
+
+  criteria <- glue::glue(
+    'AFFIL(((kth*) OR (roy* AND inst* AND tech*) OR ("Roy. Inst. T") OR ',
+    '(alfven) OR (kung* AND tek* AND hog*) OR (kung* AND tek* AND h\\u00f6g*) OR ',
+    '(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
+    '(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
+    'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
+    'orig-load-date aft {beg_loaddate} AND orig-load-date bef {end_loaddate} AND ',
+    'pubyear aft {beg_pubyear} AND NOT PUBSTAGE(AIP)'
+  )
+
+
+  # req <- httr::GET("https://api.elsevier.com/content/search/scopus",
+  #   query = list(
+  #     query = criteria,
+  #     apiKey = scopus_config()$apikey,
+  #     view = "COMPLETE"
+  #   ),
+  #   add_headers("Content-Type" = "application/xml")
+  # )
+
+  scopus_search_query(criteria)
 }
 
 #' Fetch abstract given Scopus ID

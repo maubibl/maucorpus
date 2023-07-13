@@ -361,4 +361,65 @@ my_coll <- my_mods |> create_diva_modscollection()
 write_file(my_coll, file = "/tmp/cp.xml")
 system("firefox /tmp/cp.xml")
 
+# Example showing usage based on identifier lists in an Excel file
+
+library(tidyverse)
+library(readxl)
+
+# note, this Excel file must exist at the path below
+# please amend as needed...
+file_gael <- "~/Downloads/SCOPUS-listor-2023.xlsx"
+data_gael <- 1:9 |> map(function(x) read_excel(file_gael, sheet = x))
+
+# sheet 3a, the fourth
+missing_in_diva <-
+  data_gael[[4]]
+
+# sheet 3b, the fifth
+not_kth_in_diva <-
+  data_gael[[5]]
+
+# example showing how to search for these identifiers in Scopus
+# using chunks of 25 in order to generate too long query params in the url
+
+eids <-
+  missing_in_diva |>
+  select(ScopusID) |>
+  mutate(chunk = sort(1:length(ScopusID) %% 25) + 1)
+
+chunks <-
+  split(eids$ScopusID, eids$chunk) |>
+  map(scopus_search_id, .progress = TRUE)
+
+scopus <- list(
+  "publications" = chunks |> map("publications") |> map_df(bind_rows),
+  "authors" = chunks |> map("authors") |> map_df(bind_rows),
+  "affiliations" = chunks |> map("affiliations") |> map_df(bind_rows)
+)
+
+# now we proceed to create the MODS
+
+# we use a helper function to generate params and create the MODs
+mods_from_eid <- function(eid) {
+  scopus_mods_params(
+    scopus = scopus_search_id(eid),
+    sid = gsub("2-s2.0-", "", eid)
+  ) |>
+  create_diva_mods()
+}
+
+# first time, we do all the identifiers in the first chunk
+system("firefox /tmp/chunk_1.xml")
+
+# now, we can make a helper function to run per chunk
+process_chunk <- function(chunks, i) {
+  my_mods <- chunks[[i]]$publications$eid |> map(mods_from_eid, .progress = TRUE)
+  my_coll <- my_mods |> create_diva_modscollection()
+  write_file(my_coll, file = glue::glue("/tmp/chunk_{i}.xml"))
+  print(".")
+}
+
+# and we run it for all the chunks
+1:length(chunks) |>
+  walk(function(x) process_chunk(chunks, x), .progress = TRUE)
 

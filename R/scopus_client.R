@@ -200,13 +200,14 @@ scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
 #' Fetch abstract given Scopus ID
 #' @param sid ScopusID
 #' @param endpoint the endpoint to use for the request (default value provided)
+#' @param timeout the timeout before the request fails, by default 10L
 #' @details see https://dev.elsevier.com/documentation/AbstractRetrievalAPI.wadl
 #' @examples
 #' \dontrun{
 #'   scopus_req_abstract("SCOPUS_ID:85140569271")
 #' }
 scopus_req_abstract <- function(sid,
-  endpoint = "https://api.elsevier.com/content/abstract/scopus_id/") {
+  endpoint = "https://api.elsevier.com/content/abstract/scopus_id/", timeout = 10L) {
 
   resp <- httr::GET(
     url = sprintf(paste0(endpoint, "%s"), sid),
@@ -216,7 +217,7 @@ scopus_req_abstract <- function(sid,
       view = "FULL" #"FULL"
     )),
     httr::add_headers("Content-Type" = "application/xml"),
-    httr::timeout(10L)
+    httr::timeout(timeout)
   )
 
   scopus_check_status(resp)
@@ -542,10 +543,14 @@ pluck_raw_org <- function(x) {
 #' @importFrom dplyr bind_cols tibble
 scopus_abstract_extended <- function(sid) {
 
-  #sid <- sidz[1]
-  #sid <- "85162277054"
+  # clean identifiers (if prefigated, ie long scopus ids or eids)
+  is_eid <- any(grepl("^2-s2.0-", sid))
+  is_long_sid <- any(grepl("^SCOPUS_ID:", sid))
 
-  abstract <- scopus_req_abstract(sid = sid) |> httr::content()
+  if (is_eid | is_long_sid)
+    sid <- gsub("(2-s2.0-)|(SCOPUS_ID:)", "", sid)
+
+  abstract <- scopus_req_abstract(sid = sid, timeout = 20L) |> httr::content()
 
   text <- abstract$`abstracts-retrieval-response`$coredata |>
     pluck(.default = NA_character_, "dc:description")
@@ -650,7 +655,7 @@ scopus_abstract_extended <- function(sid) {
     select(id, i = name, everything())
 
   aff <-
-    map(ag, "affiliation") %>% map(tibble::enframe) |>
+    map(ag, "affiliation") |>  map(tibble::enframe) |>
     map(function(x) x |> rowwise() |>
       mutate(value = paste0(collapse = " ", unique(unlist(value))))) |>
     map(function(x) mutate(x, name = gsub("@", "x_", name))) |>
@@ -662,7 +667,7 @@ scopus_abstract_extended <- function(sid) {
     left_join(raw_org, by = "id")
 
   authorgroup <-
-    aut %>% left_join(aff, by = "id") |>
+    aut  |>  left_join(aff, by = "id") |>
     dplyr::bind_cols(sid = sid) |>
     select(sid, everything())
 
@@ -756,6 +761,7 @@ scopus_abstract_extended <- function(sid) {
       sid = sid,
       `dc:description` = tidy_xml(text)
     ),
+    scopus_authors = aut,
     scopus_authorgroup = authorgroup,
     scopus_correspondence = correspondence,
     scopus_confinfo = ci
@@ -767,7 +773,8 @@ parse_confinfo <- function(abstract) {
   date_beg <- date_end <- beg <- end <-
     conf_details <- conf_sourcetitle <- conf_issuetitle <-
     date_beg_day <- date_beg_month <- date_beg_year <-
-    date_end_day <- date_end_month <- date_end_year <- NULL
+    date_end_day <- date_end_month <- date_end_year <-
+    Var1 <- Var2 <- var <- is_populated <- NULL
 
   # sids <- paste0("SCOPUS_ID:85162277054 SCOPUS_ID:85162208085 ",
   #   "SCOPUS_ID:85162205964 SCOPUS_ID:85162194454 SCOPUS_ID:85162223284 ",
@@ -804,13 +811,28 @@ parse_confinfo <- function(abstract) {
 
   wc <- kthcorpus::countries_iso3
 
-  list(aci) |>
+  my_aci <-
+    list(aci) |>
     tibble::enframe() |>
     tidyr::unnest_wider(col = "value") |>
     tidyr::unnest_wider(col = date_beg, names_sep = "") |>
     tidyr::unnest_wider(col = date_end, names_sep = "") |>
     dplyr::rename_with(.fn = function(x) gsub("@", "_", x), dplyr::starts_with("date")) |>
-    left_join(wc, by = "country") |>
+    left_join(wc, by = "country")
+
+  has_range <-
+    sprintf("date_%s", c("beg", "end")) |>
+    expand.grid(c("year", "month", "day")) |>
+    mutate(var = paste(Var1, Var2, sep = "_")) |>
+    mutate(is_populated = var %in% names(my_aci)) |>
+    select(var, is_populated)
+
+  has_end_date <-
+    has_range |> filter(is_populated) |> pull(var) |>
+    grepl(pattern = "_end_") |> all()
+
+  if (all(has_range$is_populated)) {
+    my_aci |>
     mutate(
       beg = lubridate::make_date(date_beg_year, date_beg_month, date_beg_day),
       end = lubridate::make_date(date_end_year, date_end_month, date_end_day),
@@ -827,6 +849,18 @@ parse_confinfo <- function(abstract) {
     mutate(conf_details = glue::glue("{conf_title}, {city}, {country_name}, {dur}")) |>
     select(conf_title = conf_issuetitle, conf_details) |>
     mutate(conf_subtitle = NA)
+  } else if (has_end_date) {
+    my_aci |>
+    mutate(
+      end = lubridate::make_date(date_end_year, date_end_month, date_end_day),
+      end_my = paste(months(end), year(end))
+    ) |>
+    mutate(conf_details = glue::glue("{conf_title}, {city}, {country_name}, {end_my}")) |>
+    select(conf_title = conf_issuetitle, conf_details) |>
+    mutate(conf_subtitle = NA)
+  } else {
+    stop("Cannot find date range or complete date for end of conference")
+  }
 
 }
 

@@ -37,15 +37,19 @@ scopus_extent_from_pagerange <- function(x) {
 #' @param kthid_orcid_lookup a lookuptable of orcids with a known kthid associated from kthid_orcid() fcn
 #' @return an object with parameters which can be used to generate MODS with the
 #' create_diva_mods() function
+#' @importFrom utils tail
 #' @export
 scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) {
 
   `dc:identifier` <- `dc:description` <-
     `given-name` <- surname <- authid <- auid <-
     ce_surname <- ce_given_name <-
+    preferred_name_ce_given_name <- preferred_name_ce_surname <-
     raw_org <- afid <-
     eng_code <- swe_code <- value <-
     term <- sn <- rowid <- score <- enrich <- enrich_orcid <- NULL
+
+  #sid <- "SCOPUS_ID:85136096142"
 
   # use info primarily from scopus Search API
   p <- scopus$publications |> filter(grepl(sid, `dc:identifier`))
@@ -128,16 +132,29 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   if (!"raw_org" %in% names(ags))
     ags$raw_org <- ags$ce_text
 
-  # TODO: if raw org is KTH then prefigate surname w "$$$"
   # TODO: if unique match then "£££[score=]" (surname) - but populate w more info
-  # TODO: extract conf name and title for proceedings -
+  # NB: it seems the scopus search api restricts the number of authors to 100
+  # but only there do we get the orcid (?)
 
-  authors <-
-    aut |>
+  sae_n_authors <-
+    sae$scopus_authors |> select(-c("id", "i")) |> distinct() |> nrow()
+
+  notes <-
+    c(notes, glue::glue('<note type="creatorCount">{sae_n_authors}</note>',
+      .na = ""))
+
+  #TODO: to get orcid for sae_authors, join for at most 100 of those?
+
+#  scopus_orcids <-
+
+  sae_authors <- sae$scopus_authors
+
+  authorz <-
+    sae_authors |>
       group_by(auid) |>
-      distinct(orcid, surname, `given-name`, surname) |>
+      distinct(preferred_name_ce_surname, preferred_name_ce_given_name) |>
       ungroup() |>
-      left_join(by = "auid",
+      left_join(by = "auid", relationship = "many-to-many",
         ags |> select(seq, raw_org, seq, auid) |>
         group_by(seq) |>
         summarize(across(where(is.character), function(x) {
@@ -147,7 +164,30 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
         )) |> ungroup()
       ) |>
     select(-auid) |>
-    tibble::rowid_to_column()
+    tibble::rowid_to_column() |>
+    mutate(orcid = NA) |>
+    rename(
+      surname = preferred_name_ce_surname,
+      `given-name` = preferred_name_ce_given_name
+    ) |>
+    arrange(as.integer(seq))
+
+  # authors <-
+  #   aut |>
+  #     group_by(auid) |>
+  #     distinct(orcid, surname, `given-name`, surname) |>
+  #     ungroup() |>
+  #     left_join(by = "auid",
+  #       ags |> select(seq, raw_org, seq, auid) |>
+  #       group_by(seq) |>
+  #       summarize(across(where(is.character), function(x) {
+  #           res <- paste0(collapse = "; ", unique(na.omit(x)))
+  #           ifelse(all(res == ""), NA_character_, res)
+  #         }
+  #       )) |> ungroup()
+  #     ) |>
+  #   select(-auid) |>
+  #   tibble::rowid_to_column()
 
   # TODO: for many scopusids, get the raw_org... find all with afid for KTH
   # run the re_kth - does it match for all those records.
@@ -156,9 +196,18 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     "kung.*?tek.*?h[o\u00f6]g.*?|kgl.*?tek.*?|kung.*?tek.*?hg.*?|roy.*?tech.*?univ.*?"
   )
 
-  suggestions <-
-    authors |> filter(grepl(re_kth, tolower(raw_org))) |> rowwise() |>
+  my_authorz <- authorz
+
+  authors_kth <- my_authorz |> filter(grepl(re_kth, tolower(raw_org))) |> rowwise() |>
     mutate(term = glue::glue(.na = "", .sep = " ", orcid, `given-name`, surname))
+
+  if (sae_n_authors >= 30) {
+    author_first <- my_authorz |> head(1)
+    author_last <- my_authorz |> tail(1)
+    my_authorz <- bind_rows(author_first, authors_kth, author_last)
+  }
+
+  suggestions <- authors_kth
 
   if (nrow(suggestions) > 0) {
     suggestions <-
@@ -184,7 +233,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   }
 
   enriched <-
-    authors |> left_join(suggestions, by = "rowid") |>
+    my_authorz |> left_join(suggestions, by = "rowid") |>
     #filter(!is.na(enrich_kthid))
     mutate(surname = ifelse(grepl(re_kth, tolower(raw_org)), paste0("$$$", surname), surname))
 
@@ -215,7 +264,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 
   ext <- p$`prism:pageRange` |> scopus_extent_from_pagerange()
 
-  related_item <- frag_relatedItem_host_journal(
+  related_item_journal <- frag_relatedItem_host_journal(
     pub_title = p$`prism:publicationName`,
     pub_issn = p$`prism:issn`,
     pub_eissn = p$`prism:eIssn`,
@@ -225,10 +274,20 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     pub_extent_end = ext["extent_end"]
   )
 
-  # relateditems <-
+  related_item_conf <- sae$scopus_confinfo |> pmap(frag_relatedItem_conference)
+
+  if (p$subtype == "cp") {
+    related_items <- related_item_conf
+  } else {
+    related_items <- related_item_journal
+  }
+
+  # related_item_series <-
   #   frag_relatedItem_series(
-  #     title = p$`prism:publicationName`, eissn = p$`prism:eIssn`,
-  #     issn = p$`prism:eIssn`, issue = p$`prism:issueIdentifier`
+  #     title = p$`prism:publicationName`,
+  #     eissn = p$`prism:eIssn`,
+  #     issn = p$`prism:issn`,
+  #     issue = p$`prism:issueIdentifier`
   #   )
 
   title <- frag_titleInfo(
@@ -244,13 +303,6 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   desc <- frag_physicalDescription(desc = "print")
 
   resourcetypes <- frag_typeOfResource(resourcetype = "text")
-
-  # n_authors <- nrow(aut)
-  # has_many_authors <- n_authors > 30
-  #
-  # if (has_many_authors) {
-  #   notes <- c(notes, frag_note("Total authorcount is ", n_authors))
-  # }
 
   abstract <- frag_abstract(p$`dc:description` |> tidy_xml(cdata = TRUE))
 
@@ -301,7 +353,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     , identifiers = identifiers
     , persons = persons
     , subjects = subjects
-    , relateditems = related_item
+    , relateditems = related_items
     , title = title
     , abstract = abstract
     , notes = notes
@@ -309,7 +361,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     , resourcetypes = resourcetypes
     , desc = desc
     , location = location
-    #  , series =
+    #, series = related_item_series
   )
 
   dmp

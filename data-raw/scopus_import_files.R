@@ -291,8 +291,74 @@ write_mods_chunked(my_mods_other, "~/temp/modz/v3536/other")
 write_mods_chunked(my_mods_ar, "~/temp/modz/v3536/ar")
 write_mods_chunked(my_mods_cp, "~/temp/modz/v3536/cp")
 
+#######
 
+library(tidyverse)
 
+# these are examples of scopus identifiers associated with many authors (> 30)
+eids <-
+"2-s2.0-85136096142
+2-s2.0-85144114333
+2-s2.0-85144102310
+2-s2.0-85144262179
+2-s2.0-85144453181
+2-s2.0-85143082466
+2-s2.0-85143084563
+2-s2.0-85161860997
+2-s2.0-85161946420
+2-s2.0-85162080709
+2-s2.0-85161433187
+2-s2.0-85161827135
+2-s2.0-85160419394
+2-s2.0-85160422771
+2-s2.0-85158942427
+2-s2.0-85156104827" |>
+  read_lines()
 
+# example of how to use Scopus Search API with those identifiers
+# for each identifier, we get at most 100 authors ...
+# ... since the Search API restricts the author listings
+scopus <- eids |> scopus_search_id()
+scopus$authors |> group_by(sid) |> summarize(n = n_distinct(authid))
+
+# if we instead use the Scopus Extended Abstract API, we get more authors
+# in this case, we get 2921 unique auids for the first identifier
+scopus <- eids[1] |> scopus_abstract_extended()
+scopus$scopus_authors  |> group_by(auid) |> count()
+
+# NB: for this identifier we get authors with more than one set of names
+# for the same auid! Possible data error? Example of such "dupes":
+scopus$scopus_authors  |> group_by(auid) |> count() |>
+  arrange(desc(n)) |> filter(n > 1) |>
+  left_join(by = "auid",
+    scopus$scopus_authors |> select(-c("id", "i"))
+  ) |> distinct() |> arrange(desc(auid)) |>
+  filter(auid %in% c("35227648200", "55107735600"))
+
+# Now, we proceed to make a MODS collection for that set of scopus identifiers
+
+# we use a helper function to generate params and create the MODs
+mods_from_eid <- function(eid) {
+  scopus_mods_params(
+    scopus = scopus_search_id(eid),
+    sid = gsub("2-s2.0-", "", eid)
+  ) |>
+  create_diva_mods()
+}
+
+my_mods <- eids |> map(mods_from_eid, .progress = TRUE)
+my_coll <- my_mods |> create_diva_modscollection()
+write_file(my_coll, file = "/tmp/atlas.xml")
+system("firefox /tmp/atlas.xml")
+
+# Now, instead use a list of scopus identifiers for conference proceedings
+
+scopus <- scopus_from_minio()
+eids <- scopus$publications |> filter(subtype == "cp") |> pull(eid)
+
+my_mods <- eids |> map(mods_from_eid, .progress = TRUE)
+my_coll <- my_mods |> create_diva_modscollection()
+write_file(my_coll, file = "/tmp/cp.xml")
+system("firefox /tmp/cp.xml")
 
 

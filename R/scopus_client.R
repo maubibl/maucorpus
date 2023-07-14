@@ -774,7 +774,7 @@ parse_confinfo <- function(abstract) {
     conf_details <- conf_sourcetitle <- conf_issuetitle <-
     date_beg_day <- date_beg_month <- date_beg_year <-
     date_end_day <- date_end_month <- date_end_year <-
-    Var1 <- Var2 <- var <- is_populated <- NULL
+    y <- m <- d <- Var1 <- Var2 <- var <- is_populated <- NULL
 
   # sids <- paste0("SCOPUS_ID:85162277054 SCOPUS_ID:85162208085 ",
   #   "SCOPUS_ID:85162205964 SCOPUS_ID:85162194454 SCOPUS_ID:85162223284 ",
@@ -802,8 +802,8 @@ parse_confinfo <- function(abstract) {
     conf_title = event$confname,
     city = event$conflocation$city,
     country = event$conflocation$`@country`,
-    date_beg = event$confdate$enddate,
-    date_end = event$confdate$startdate,
+    date_end = event$confdate$enddate,
+    date_beg = event$confdate$startdate,
     conf_sourcetitle = source$sourcetitle,
     conf_seriestitle = event$confseriestitle,
     conf_issuetitle = source$issuetitle
@@ -827,12 +827,15 @@ parse_confinfo <- function(abstract) {
     mutate(is_populated = var %in% names(my_aci)) |>
     select(var, is_populated)
 
-  has_end_date <-
+  has_pattern <- function(re)
     has_range |> filter(is_populated) |> pull(var) |>
-    grepl(pattern = "_end_") |> all()
+    grepl(pattern = re) |> all()
+
+  has_end_date <- has_pattern("_end_")
+  has_beg_date <- has_pattern("_beg_")
 
   if (all(has_range$is_populated)) {
-    my_aci |>
+    res <- my_aci |>
     mutate(
       beg = lubridate::make_date(date_beg_year, date_beg_month, date_beg_day),
       end = lubridate::make_date(date_end_year, date_end_month, date_end_day),
@@ -849,19 +852,33 @@ parse_confinfo <- function(abstract) {
     mutate(conf_details = glue::glue("{conf_title}, {city}, {country_name}, {dur}")) |>
     select(conf_title = conf_issuetitle, conf_details) |>
     mutate(conf_subtitle = NA)
+    return(res)
   } else if (has_end_date) {
-    my_aci |>
-    mutate(
-      end = lubridate::make_date(date_end_year, date_end_month, date_end_day),
-      end_my = paste(months(end), year(end))
-    ) |>
-    mutate(conf_details = glue::glue("{conf_title}, {city}, {country_name}, {end_my}")) |>
-    select(conf_title = conf_issuetitle, conf_details) |>
-    mutate(conf_subtitle = NA)
+    res <-
+      my_aci |> rename(
+        y = date_end_year,
+        m = date_end_month,
+        d = date_end_day
+      )
+  } else if (has_beg_date) {
+    res <-
+      my_aci |> rename(
+        y = date_beg_year,
+        m = date_beg_month,
+        d = date_beg_day
+      )
   } else {
-    stop("Cannot find date range or complete date for end of conference")
+    stop("Cannot find date range or complete date for conference")
   }
 
+  res |>
+    mutate(
+      end = lubridate::make_date(y, m, d),
+      dur = end |> format("%b %-d %Y") |> glue::glue(na = "")
+    ) |>
+    mutate(conf_details = glue::glue("{conf_title}, {city}, {country_name}, {dur}")) |>
+    select(conf_title = conf_issuetitle, conf_details) |>
+    mutate(conf_subtitle = NA)
 }
 
 tidy_xml <- function(x, cdata = FALSE) {

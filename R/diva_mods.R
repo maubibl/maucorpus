@@ -550,6 +550,8 @@ kth_genre <- function() {
 
 genre_scopus_diva <- function() {
 
+  #TODO: add Conference Proceeding\tBook Chapter\t????
+
   combos <- "prism:aggregationType	subtype	key
 Journal	Article	article
 Conference Proceeding	Conference Paper	conferencePaperPublished
@@ -569,6 +571,7 @@ Book Series\tConference Paper\tconferencePaperPublished
 Journal\tData Paper\tarticle
 Journal\tErratum\tarticleErratum
 Journal\tShort Survey\tarticle
+Conference Proceeding\tBook Chapter\tconferencePaperPublished
 " |> readr::read_tsv(show_col_types = FALSE)
 
   return (combos)

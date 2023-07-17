@@ -276,8 +276,11 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
 
   related_item_conf <- sae$scopus_confinfo |> pmap(frag_relatedItem_conference)
 
-  if (p$subtype == "cp") {
+  if (genre %in% c("conferencePaperPublished", "articleConferencePaper", "conferenceProceedings")) {
     related_items <- related_item_conf
+    # TODO FIXME: Special case introduced for "Conference Proceeding" / "Book Chapter"
+    if (length(related_item_conf) == 0)
+      related_items <- related_item_journal
   } else {
     related_items <- related_item_journal
   }

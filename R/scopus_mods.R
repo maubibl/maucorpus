@@ -298,7 +298,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     lang = "eng")
 
   origins <- frag_originInfo(
-    publisher = sae$scopus_abstract$`dc:publisher`,
+    publisher = sae$scopus_abstract$`dc:publisher` |> tidy_xml(),
     yearIssued = lubridate::year(p$`prism:coverDate`),
     availableFrom = p$`prism:coverDisplayDate`
   )

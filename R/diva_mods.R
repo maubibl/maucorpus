@@ -572,6 +572,7 @@ Journal\tData Paper\tarticle
 Journal\tErratum\tarticleErratum
 Journal\tShort Survey\tarticle
 Conference Proceeding\tBook Chapter\tconferencePaperPublished
+Book Series\tNote\tchapter
 " |> readr::read_tsv(show_col_types = FALSE)
 
   return (combos)

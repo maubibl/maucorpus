@@ -379,16 +379,81 @@ missing_in_diva <-
 not_kth_in_diva <-
   data_gael[[5]]
 
-# example showing how to search for these identifiers in Scopus
-# using chunks of 25 in order to generate too long query params in the url
+# now we proceed to create the MODS for 3a
+
+existing <- missing_in_diva |> filter(!is.na(`PID-Candidates`))
+not_imported <- missing_in_diva |> filter(is.na(`PID-Candidates`))
 
 eids <-
-  missing_in_diva |>
+  not_imported |>
   select(ScopusID) |>
-  mutate(chunk = sort(1:length(ScopusID) %% 25) + 1)
+  mutate(chunk = sort(1:length(ScopusID) %/% 25) + 1)
+
+max(eids$chunk)
 
 chunks <-
   split(eids$ScopusID, eids$chunk) |>
+  map(scopus_search_id, .progress = TRUE)
+
+# example showing how to search for identifiers in Scopus
+# using chunks of 25 in order to generate too long query params in the url
+
+scopus <- list(
+  "publications" = chunks |> map("publications") |> map_df(bind_rows),
+  "authors" = chunks |> map("authors") |> map_df(bind_rows),
+  "affiliations" = chunks |> map("affiliations") |> map_df(bind_rows)
+)
+
+scopus$publications |> select("prism:aggregationType", "subtypeDescription") |> distinct() |>
+  rename(subtype = subtypeDescription) |>
+  left_join(genre_scopus_diva())
+
+# we use a helper function to generate params and create the MODs
+mods_from_eid <- function(eid) {
+  scopus_mods_params(
+    scopus = scopus_search_id(eid) |> suppressMessages(),
+    sid = gsub("2-s2.0-", "", eid)
+  ) |>
+  create_diva_mods()
+}
+
+# now, we can make a helper function to run per chunk
+process_chunk <- function(chunks, i, fn_prefix = "/tmp/chunk") {
+  my_mods <- chunks[[i]]$publications$eid |> map(mods_from_eid, .progress = TRUE)
+  my_coll <- my_mods |> create_diva_modscollection()
+  fn <- glue::glue("{fn_prefix}_{sprintf('%02d', i)}.xml")
+  write_file(my_coll, file = fn)
+  message(fn)
+}
+
+# and we run it for all the chunks
+1:length(chunks) |>
+  walk(function(x) process_chunk(chunks, x, "/tmp/3a_not_imported"), .progress = TRUE)
+
+eids <-
+  existing |>
+  select(ScopusID) |>
+  mutate(chunk = sort(1:length(ScopusID) %/% 25) + 1)
+
+chunks <-
+  split(eids$ScopusID, eids$chunk) |>
+  map(scopus_search_id, .progress = TRUE)
+
+1:length(chunks) |>
+  walk(function(x) process_chunk(chunks, x, "/tmp/3a_imported"), .progress = TRUE)
+
+
+# now we proceed to 3b....
+# identifiers that are not affiliated to KTH in DiVA but appears to belong to KTH in Scopus
+
+eids <-
+  not_kth_in_diva |>
+  select(ScopusID) |>
+  mutate(chunk = sort(1:length(ScopusID) %/% 25) + 1) |>
+  rename(eid = ScopusID)
+
+chunks <-
+  split(eids$eid, eids$chunk) |>
   map(scopus_search_id, .progress = TRUE)
 
 scopus <- list(
@@ -397,29 +462,40 @@ scopus <- list(
   "affiliations" = chunks |> map("affiliations") |> map_df(bind_rows)
 )
 
-# now we proceed to create the MODS
-
-# we use a helper function to generate params and create the MODs
-mods_from_eid <- function(eid) {
-  scopus_mods_params(
-    scopus = scopus_search_id(eid),
-    sid = gsub("2-s2.0-", "", eid)
-  ) |>
-  create_diva_mods()
+nordita_info <- function(eid) {
+   eid |> scopus_abstract_extended() |>
+   getElement("scopus_authorgroup") |>
+   distinct(sid, raw_org) |>
+   mutate(is_nordita = grepl("nordita", tolower(raw_org)))
 }
 
-# first time, we do all the identifiers in the first chunk
-system("firefox /tmp/chunk_1.xml")
+ni <- eids$eid |> map_df(.progress = TRUE, nordita_info)
 
-# now, we can make a helper function to run per chunk
-process_chunk <- function(chunks, i) {
-  my_mods <- chunks[[i]]$publications$eid |> map(mods_from_eid, .progress = TRUE)
+sids_nordita <- ni |>  filter(is_nordita) |> pull(sid) |> unique()
+sids_other <- ni |> filter(! sid %in% sids_nordita) |> pull(sid) |> unique()
+
+chunks_nordita <-
+  tibble(eid = paste0("2-s2.0-", sids_nordita)) |>
+  mutate(chunk = sort(1:length(sids_nordita) %/% 25) + 1)
+
+chunks_other <-
+  tibble(eid = paste0("2-s2.0-", sids_other)) |>
+  mutate(chunk = sort(1:length(sids_nordita) %/% 25) + 1)
+
+
+pc <- function(chunks, i, fn_prefix = "/tmp/chunk") {
+  ids <- chunks |>  filter(chunk == i) |> pull(eid)
+  my_mods <- ids |> map(mods_from_eid, .progress = TRUE)
   my_coll <- my_mods |> create_diva_modscollection()
-  write_file(my_coll, file = glue::glue("/tmp/chunk_{i}.xml"))
-  print(".")
+  fn <- glue::glue("{fn_prefix}_{sprintf('%02d', i)}.xml")
+  write_file(my_coll, file = fn)
+  message("Wrote", fn)
+  return(my_mods)
 }
 
-# and we run it for all the chunks
-1:length(chunks) |>
-  walk(function(x) process_chunk(chunks, x), .progress = TRUE)
+1:length(sids_nordita) |>
+  walk(function(x) pc(chunks_nordita, x, "/tmp/3b_nordita"), .progress = TRUE)
+
+1:length(sids_other) |>
+  walk(function(x) pc(chunks_other, x, "/tmp/3b_other"), .progress = TRUE)
 

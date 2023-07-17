@@ -1472,7 +1472,8 @@ check_non_qc <- function(pubs = kth_diva_pubs()) {
   pubs |>
     filter(CreatedDate > as.Date("2023-01-01")) |>
     filter(CreatedDate < as.Date(Sys.Date() - 30), !grepl("QC", Notes)) |>
-    select(PID, CreatedDate, LastUpdated)
+    select(PID, CreatedDate, LastUpdated) |>
+    mutate(PID = linkify(PID, target = "PID"))
 }
 
 check_non_qc_stale <- function(pubs = kth_diva_pubs()) {
@@ -1485,7 +1486,8 @@ check_non_qc_stale <- function(pubs = kth_diva_pubs()) {
   pubs |>
     filter(CreatedDate < as.Date(Sys.Date() - 30), !grepl("QC", Notes)) |>
     select(PID, CreatedDate, LastUpdated, PublicationType) |>
-    arrange(desc(CreatedDate))
+    arrange(desc(CreatedDate)) |>
+    mutate(PID = linkify(PID, target = "PID"))
 
     #group_by(year(CreatedDate)) |>
     #count() |>

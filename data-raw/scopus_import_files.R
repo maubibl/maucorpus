@@ -462,6 +462,9 @@ scopus <- list(
   "affiliations" = chunks |> map("affiliations") |> map_df(bind_rows)
 )
 
+# we do not have raw_org information from Scopus search API (above)
+# so we need to use the Scopus Abstract Extended API, and create a helper fcn:
+
 nordita_info <- function(eid) {
    eid |> scopus_abstract_extended() |>
    getElement("scopus_authorgroup") |>
@@ -469,33 +472,38 @@ nordita_info <- function(eid) {
    mutate(is_nordita = grepl("nordita", tolower(raw_org)))
 }
 
+# use it for all identifiers
 ni <- eids$eid |> map_df(.progress = TRUE, nordita_info)
 
-sids_nordita <- ni |>  filter(is_nordita) |> pull(sid) |> unique()
-sids_other <- ni |> filter(! sid %in% sids_nordita) |> pull(sid) |> unique()
 
-chunks_nordita <-
-  tibble(eid = paste0("2-s2.0-", sids_nordita)) |>
-  mutate(chunk = sort(1:length(sids_nordita) %/% 25) + 1)
-
-chunks_other <-
-  tibble(eid = paste0("2-s2.0-", sids_other)) |>
-  mutate(chunk = sort(1:length(sids_nordita) %/% 25) + 1)
-
-
+# once we have chunks, we want to process these, using this fcn
 pc <- function(chunks, i, fn_prefix = "/tmp/chunk") {
   ids <- chunks |>  filter(chunk == i) |> pull(eid)
   my_mods <- ids |> map(mods_from_eid, .progress = TRUE)
   my_coll <- my_mods |> create_diva_modscollection()
   fn <- glue::glue("{fn_prefix}_{sprintf('%02d', i)}.xml")
   write_file(my_coll, file = fn)
-  message("Wrote", fn)
-  return(my_mods)
+  message("Wrote ", fn)
 }
 
-1:length(sids_nordita) |>
+# these are the identifiers where the raw_org contains "nordita"
+sids_nordita <- ni |>  filter(is_nordita) |> pull(sid) |> unique()
+
+chunks_nordita <-
+  tibble(eid = paste0("2-s2.0-", sids_nordita)) |>
+  mutate(chunk = sort(1:length(sids_nordita) %/% 25) + 1)
+
+# process the chunks for the "nordita" identifiers
+1:max(chunks_nordita$chunk) |>
   walk(function(x) pc(chunks_nordita, x, "/tmp/3b_nordita"), .progress = TRUE)
 
-1:length(sids_other) |>
-  walk(function(x) pc(chunks_other, x, "/tmp/3b_other"), .progress = TRUE)
+# these are the non-nordita identifiers
+sids_other <- ni |> filter(! sid %in% sids_nordita) |> pull(sid) |> unique()
 
+chunks_other <-
+  tibble(eid = paste0("2-s2.0-", sids_other)) |>
+  mutate(chunk = sort(1:length(sids_other) %/% 25) + 1)
+
+# process the chunks for the "non-nordita" identifiers
+1:max(chunks_other$chunk) |>
+  walk(function(x) pc(chunks_other, x, "/tmp/3b_other"), .progress = TRUE)

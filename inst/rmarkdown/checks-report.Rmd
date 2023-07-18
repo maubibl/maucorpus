@@ -330,6 +330,19 @@ myDT(checks$manuscripts_with_identifiers)
 myDT(checks$invalid_use_isbn)
 ```
 
+### Årets icke-QC:ade `r stats("non_qc")`
+
+```{r}
+myDT(checks$non_qc)
+```
+
+### Äldre icke-QC:ade `r stats("non_qc_stale")`
+
+```{r}
+myDT(checks$non_qc_stale)
+```
+
+
 Externt {data-icon="fa-university" data-width=1200}
 =============================
 

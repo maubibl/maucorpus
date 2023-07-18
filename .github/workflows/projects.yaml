@@ -18,3 +18,4 @@ jobs:
     steps:
       - run: |
           R -e 'kthcorpus:::projects_upload();'
+          Rscript /usr/local/lib/R/site-library/kthcorpus/extdata/upload_project_links.R

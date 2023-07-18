@@ -1,5 +1,7 @@
 
 # R packages --------------------------------------------------------------
+install.packages(c("fuzzyjoin", "RecordLinkage"))
+
 library(kthcorpus)
 library(readr)
 library(dplyr)

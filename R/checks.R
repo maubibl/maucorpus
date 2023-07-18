@@ -163,8 +163,9 @@ linkify <- function(href, text = shorten(href), title = href, target =
   p_ISI <- function(x) {
     # Web of Science, sökning på UT=WoS-id:
     # http://apps.webofknowledge.com/InboundService.do?product=WOS&action=retrieve&mode=FullRecord&UT=000722432000004
+    # New URL: https://www.webofscience.com/wos/woscc/full-record/WOS:001001819900001
     stringr::str_c(
-      "http://apps.webofknowledge.com/InboundService.do?product=WOS&action=retrieve&mode=FullRecord&UT=",
+      "https://www.webofscience.com/wos/woscc/full-record/WOS:",
       x
     )
   }
@@ -346,6 +347,20 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = k
 #' @importFrom rvest read_html html_text
 tidy_html <- function(x)
   rvest::html_text(rvest::read_html(charToRaw(x)))
+
+
+#' @importFrom methods formalArgs
+prefilter_pubs <- function(fn) {
+
+  CreatedDate <- NULL
+
+  if ("pubs" %in% formalArgs(fn)) {
+    formals(fn)$pubs <-
+      kth_diva_pubs() |> filter(grepl("QC ", Notes), CreatedDate < as.Date(Sys.Date() - 30))
+  }
+
+  fn()
+}
 
 check_multiplettes_title <- function(pubs = kth_diva_pubs(), aut = kth_diva_authors()) {
 
@@ -589,7 +604,7 @@ check_titles_book_chapters <- function(pubs = kth_diva_pubs()) {
 check_invalid_ISI <- function(pubs = kth_diva_pubs()) {
 
   # from kth-library/bibliutils: r'A19\d{2}[A-Z\d]{5}\d{5}|000\d{12}'
-  re <- "^A19\\d{2}[A-Z\\d]{5}\\d{5}$|^000\\d{12}$"
+  re <- "^A19\\d{2}[A-Z\\d]{5}\\d{5}$|^000\\d{12}$|^001\\d{12}$"
 
   ISI <- PID <- Year <- DOI <- ScopusId <- NULL
 
@@ -959,7 +974,7 @@ check_manuscripts_with_identifiers <- function(pubs = kth_diva_pubs()) {
   # https://doi.org/10.1101/2020.08.24.252296
   # https://doi.org/10.48550/ARXIV.2202.11577
 
-  re_exclude <- "^10.1101|^10.48550" # bioRxiv and arXiv
+  re_exclude <- "^10.1101|^10.48550|^10.2139" # bioRxiv,arXiv and SSRN
 
   ScopusId <- PMID <- Year <- LastUpdated <- NULL
 
@@ -989,29 +1004,31 @@ check_manuscripts_with_identifiers <- function(pubs = kth_diva_pubs()) {
 kth_diva_checks <- function() {
 
   checks <- list(
-    article_title_multiplettes = check_multiplettes_article_title(),
-    title_multiplettes = check_multiplettes_title(),
-    submission_status_invalid = check_invalid_submission_status(),
-    missing_kthid = check_missing_kthid(),
-    missing_orcids = check_missing_orcids(),
+    article_title_multiplettes = check_multiplettes_article_title |> prefilter_pubs(),
+    title_multiplettes = check_multiplettes_title |> prefilter_pubs(),
+    submission_status_invalid = check_invalid_submission_status |> prefilter_pubs(),
+    missing_kthid = check_missing_kthid |> prefilter_pubs(),
+    missing_orcids = check_missing_orcids |> prefilter_pubs(),
     #missing_affiliations = check_missing_affiliations(),
-    missing_confpubdate = check_missing_date(),
-    missing_journal_ids = check_missing_journals_identifiers(),
-    odd_book_chapters = check_titles_book_chapters(),
-    invalid_ISI = check_invalid_ISI(),
-    invalid_DOI = check_invalid_DOI(),
-    invalid_ISSN = check_invalid_ISSN(),
-    invalid_kthid = check_invalid_kthid(),
-    invalid_orcid = check_invalid_orcid(),
-    invalid_scopusid = check_invalid_scopusid(),
-    invalid_isbn = check_invalid_ISBN(),
-    invalid_use_isbn = check_invalid_use_ISBN(),
-    invalid_authorname = check_invalid_authorname(),
-    uncertain_published = check_published(),
-    multiplettes_scopusid = check_multiplettes_scopusid(),
-    multiplettes_DOI = check_multiplettes_DOI(),
-    multiplettes_ISI = check_multiplettes_ISI(),
-    manuscripts_with_identifiers = check_manuscripts_with_identifiers(),
+    missing_confpubdate = check_missing_date |> prefilter_pubs(),
+    missing_journal_ids = check_missing_journals_identifiers |> prefilter_pubs(),
+    odd_book_chapters = check_titles_book_chapters |> prefilter_pubs(),
+    invalid_ISI = check_invalid_ISI |> prefilter_pubs(),
+    invalid_DOI = check_invalid_DOI |> prefilter_pubs(),
+    invalid_ISSN = check_invalid_ISSN |> prefilter_pubs(),
+    invalid_kthid = check_invalid_kthid |> prefilter_pubs(),
+    invalid_orcid = check_invalid_orcid |> prefilter_pubs(),
+    invalid_scopusid = check_invalid_scopusid |> prefilter_pubs(),
+    invalid_isbn = check_invalid_ISBN |> prefilter_pubs(),
+    invalid_use_isbn = check_invalid_use_ISBN |> prefilter_pubs(),
+    invalid_authorname = check_invalid_authorname |> prefilter_pubs(),
+    uncertain_published = check_published |> prefilter_pubs(),
+    multiplettes_scopusid = check_multiplettes_scopusid |> prefilter_pubs(),
+    multiplettes_DOI = check_multiplettes_DOI |> prefilter_pubs(),
+    multiplettes_ISI = check_multiplettes_ISI |> prefilter_pubs(),
+    manuscripts_with_identifiers = check_manuscripts_with_identifiers |> prefilter_pubs(),
+    non_qc = check_non_qc(),
+    non_qc_stale = check_non_qc_stale(),
     swepub = swepub_checks(
       year_beg = lubridate::year(Sys.Date()) - 1,
       year_end = lubridate::year(Sys.Date())
@@ -1023,6 +1040,9 @@ kth_diva_checks <- function() {
     purrr::map(function(x) ifelse(is.null(x), NA, nrow(x))) %>%
     tibble::as_tibble() %>%
     tidyr::pivot_longer(cols = everything())
+
+  stats[stats$name == "non_qc_stale", "value"] <-
+    checks$non_qc_stale |> getElement("n") |> sum()
 
   checks$stats <- stats
 
@@ -1452,3 +1472,45 @@ check_invalid_orgid <- function(aut = kth_diva_authors(), pubs = kth_diva_pubs()
     mutate(alt_orgids = orgid_to_link(alt_orgids)) #|> DT::datatable(escape = F)
 
 }
+
+# TODO: add these checks and refactor existing checks
+# (changes needed if also including non-qc publications)
+
+# - all checks should start with ...
+#   pubs <-
+#      pubs |> filter(grepl("QC ", Notes), CreatedDate < as.Date(Sys.Date() - 30))
+
+# results can be placed under missing/"saknat"
+check_non_qc <- function(pubs = kth_diva_pubs()) {
+
+  # one check for which records are not quality checked
+  # these publications are recent (from this year) but not marked with QC
+
+  CreatedDate <- LastUpdated <- NULL
+
+  pubs |>
+    filter(CreatedDate > as.Date("2023-01-01")) |>
+    filter(CreatedDate < as.Date(Sys.Date() - 30), !grepl("QC ", Notes)) |>
+    select(PID, CreatedDate, LastUpdated) |>
+    mutate(PID = linkify(PID, target = "PID"))
+}
+
+check_non_qc_stale <- function(pubs = kth_diva_pubs()) {
+
+  # publications which are not tagged with "QC" but are created more than 30 days ago
+  # aggregated by year and publication type
+
+  CreatedDate <- LastUpdated <- y <- NULL
+
+  pubs |>
+    filter(CreatedDate < as.Date(Sys.Date() - 30), !grepl("QC ", Notes)) |>
+    select(PID, CreatedDate, LastUpdated, PublicationType) |>
+    arrange(desc(CreatedDate)) |>
+    mutate(PID = linkify(PID, target = "PID")) |>
+    group_by(PublicationType, year(CreatedDate)) |>
+    count() |>
+    ungroup() |>
+    rename(y = 2) |>
+    arrange(desc(y))
+}
+

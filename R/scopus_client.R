@@ -793,8 +793,7 @@ parse_confinfo <- function(abstract) {
 
   source <-
     #eid |> scopus_req_abstract() |>  httr::content() |>
-    abstract |>
-    _$`abstracts-retrieval-response`$item$bibrecord$head$source
+    abstract$`abstracts-retrieval-response`$item$bibrecord$head$source
 
   event <- source$`additional-srcinfo`$conferenceinfo$confevent
 

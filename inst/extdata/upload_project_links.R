@@ -12,15 +12,22 @@ library(aws.s3)
 
 # Data sources ------------------------------------------------------------
 
+# helper fcn to read public files from kthcorpus bucket on minio
+read_kthcorpus <- function(fn)
+  "https://data.bibliometrics.lib.kth.se/kthcorpus/" |>
+  paste0(fn) |> read_csv(show_col_types = FALSE)
+
 # Swecris, Formas & Vinnova
-swecris <- minio_get("projects_swecris.csv","kthcorpus") |> read_csv()
-formas <-  minio_get("projects_formas.csv", "kthcorpus") |> read_csv()
-vinnova <- minio_get("projects_vinnova.csv","kthcorpus") |> read_csv()
+swecris <- "projects_swecris.csv" |> read_kthcorpus()
+formas <- "projects_formas.csv" |> read_kthcorpus()
+vinnova <- "projects_vinnova.csv" |> read_kthcorpus()
+
 # Cordis & OpenAire
-cordis <-  minio_get("projects_cordis.csv","kthcorpus") |> read_csv()
-openaire <- minio_get("projects_openaire.csv", "kthcorpus") |> read_csv()
+cordis <- "projects_cordis.csv" |> read_kthcorpus()
+openaire <- "projects_openaire.csv" |> read_kthcorpus()
+
 # Case
-case <- bibliotools::case()
+case <- kth_case()
 
 ## Minor data wrangling steps
 

@@ -27,7 +27,7 @@ cordis <- "projects_cordis.csv" |> read_kthcorpus()
 openaire <- "projects_openaire.csv" |> read_kthcorpus()
 
 # Case
-case <- kth_case()
+case <- kthcorpus:::kth_case()
 
 ## Minor data wrangling steps
 
@@ -380,14 +380,13 @@ master_tbl <- dplyr::bind_rows(list(czs_tbl,czop_tbl,czvi_tbl,
 # File path
 temp_file <- tempfile(fileext = ".csv", tmpdir = tempdir())
 # Data frame.
-write_csv(x = master_tbl,file = "master_tbl", temp_file)
+write_csv(x = master_tbl, file = temp_file)
+
 # Upload to minio
-s3write_using(master_tbl, FUN = write_csv,
-              object = "master_tbl.csv",
-              bucket = "kthcorpus")
+minioclient::mc_cp(temp_file, "kthb/kthcorpus/project_links.csv")
+unlink(temp_file)
 
 # Did it work?
-connection_tbl <- minio_get("master_tbl.csv","kthcorpus") |> read_csv()
+connection_tbl <- kthcorpus:::mc_read("kthb/kthcorpus/project_links.csv") |>
+  readr::read_csv(show_col_types = FALSE)
 
-# Github action
-# https://crontab.guru/

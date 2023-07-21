@@ -1,6 +1,10 @@
 
 # R packages --------------------------------------------------------------
-install.packages(c("fuzzyjoin", "RecordLinkage"))
+
+pkgs_deps <- c("fuzzyjoin", "RecordLinkage", "ps", "cellranger", "rvest")
+installed <- installed.packages() |> tibble::as_tibble() |> getElement("Package")
+idx <- which(!pkgs_deps %in% installed)
+install.packages(pkgs_deps[idx])
 
 library(kthcorpus)
 library(readr)
@@ -27,7 +31,10 @@ cordis <- "projects_cordis.csv" |> read_kthcorpus()
 openaire <- "projects_openaire.csv" |> read_kthcorpus()
 
 # Case
-case <- kthcorpus:::kth_case()
+case <-
+  "kthb/kthcorpus/projects_case.csv" |>
+  kthcorpus:::mc_read() |>
+  readr::read_csv()
 
 ## Minor data wrangling steps
 

@@ -210,6 +210,7 @@ projects_upload <- function() {
   kth_vinnova <- kth_vinnova() # 441 projects, ca 4 minutes
   kth_swecris <- kth_swecris() # 5 secs
   kth_openaire <- kth_openaire() # 2 secs or 3 minutes, 813 projects
+  kth_case <- kth_case()  # 5 secs, 3000+ projects
 
   #ko <- kthid_orcid()
   #ko |> readr::write_csv("/tmp/kthid_orcid.csv")
@@ -219,6 +220,7 @@ projects_upload <- function() {
   kth_vinnova |> readr::write_csv("/tmp/projects_vinnova.csv")
   kth_formas |> readr::write_csv("/tmp/projects_formas.csv")
   kth_swecris |> readr::write_csv("/tmp/projects_swecris.csv")
+  kth_case |> readr::write_csv("/tmp/projects_case.csv")
 
   #diva_upload_s3("/tmp/kthid_orcid.csv")
   diva_upload_s3("/tmp/projects_openaire.csv")
@@ -226,10 +228,16 @@ projects_upload <- function() {
   diva_upload_s3("/tmp/projects_vinnova.csv")
   diva_upload_s3("/tmp/projects_formas.csv")
   diva_upload_s3("/tmp/projects_swecris.csv")
+  diva_upload_s3("/tmp/projects_case.csv")
 
 }
-
+#' @importFrom readr read_csv read_csv2 read_delim
+#' @importFrom tictoc tic toc
+#'
 kth_case <- function() {
+
+  message("Wranging projects data from CASE")
+  tictoc::tic()
 
   Diva_org_id <- `Project ID` <- beg <- end <- slug <- unit_code <- unit_long_en <-
     unit_short  <- NULL
@@ -291,8 +299,8 @@ kth_case <- function() {
   mapping <- case_mapping
 
   case_map <- function(x) {
-    tibble(export = x) %>%
-      inner_join(mapping, by = "export") %>%
+    tibble(export = x) |>
+      inner_join(mapping, by = "export") |>
       pull("colname")
   }
 
@@ -307,11 +315,11 @@ kth_case <- function() {
     mismatch <- setdiff(colnames(case), mapping$export)
     warning("New fields have been added, not present in case_mapping: ",
             paste0(collapse = ", ", mismatch))
-    case <- case %>% select(-any_of(mismatch))
+    case <- case |> select(-any_of(mismatch))
   }
 
   case <-
-    case %>%
+    case |>
     rename_with(.fn = case_map, .cols = any_of(cn))
 
   # data types parsing
@@ -320,17 +328,17 @@ kth_case <- function() {
   dtecols <- c("Start Date", "End Date")
 
   typed <-
-    case %>%
+    case |>
     mutate(across(.cols = contains(dtecols), .fns = function(x)
       readr::parse_date(substr(x, 1, 10), format = "%Y-%m-%d")))
 
-  probs <- purrr::map_dfr(typed %>% select(any_of(c(dtecols))), readr::problems)
+  probs <- purrr::map_dfr(typed |> select(any_of(c(dtecols))), readr::problems)
 
   if (nrow(probs) > 0) {
     print(probs)
-    info <- case %>% select(`Project ID`, c(dtecols)) %>%
-      slice(probs$row) %>% mutate(row = probs$row) %>%
-      inner_join(probs, by = "row") %>%
+    info <- case |> select(`Project ID`, c(dtecols)) |>
+      slice(probs$row) |> mutate(row = probs$row) |>
+      inner_join(probs, by = "row") |>
       select(`Project ID`, row, everything())
     w <- paste0(collapse = "\n", capture.output(info))
     warning("Proceeding, but with parsing issues for row(s): ",
@@ -339,16 +347,21 @@ kth_case <- function() {
     warning("Raw data:\n\n", w2)
   }
 
-  typed %>%
+  res <- typed |>
     rename(
       beg = "Start Date",
       end = "End Date"
-    ) %>%
+    ) |>
     mutate(
       duration = end - beg
-    ) %>%
-    left_join(dep, by = "dep") %>%
+    ) |>
+    left_join(dep, by = "dep") |>
     left_join(school, by = "school")
+
+  tictoc::toc()
+  message("Done wrangling CASE data")
+
+  return(res)
 }
 
 

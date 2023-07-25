@@ -1,4 +1,3 @@
-
 # R packages --------------------------------------------------------------
 
 pkgs_deps <- c("fuzzyjoin", "RecordLinkage", "ps", "cellranger", "rvest")
@@ -56,7 +55,7 @@ sd <- swecris |>
   # filter(grepl("^.*(\\d{4}-\\d{4,5}).*$", dnr)) |>
   mutate(agency = recode(agency, Vetenskapsrådet = "VR")) |>
   # Select variables.
-  select(any_of(c("dnr","projectTitle","coalese_title","start_date","end_date","agency"))) |>
+  select(any_of(c("dnr","projectId","projectTitle","coalese_title","start_date","end_date","agency"))) |>
   as_tibble()
 # select("projectTitle")
 
@@ -92,12 +91,11 @@ cd <- case |>
   as_tibble()
 # select("projectTitle")
 
-
 # Case connections --------------------------------------------------------
 
 # 1A. Case and Swecris.
 #     Fuzzy matching on title using the fuzzyjoin R package.
-#     For future reference, the maximum distance was arbitrary set at max_dist = 3.
+#     For future details, the maximum distance was arbitrary set at max_dist = 3.
 
 czs_m1 <-
   cd[!is.na(cd$projectTitle),] |>
@@ -123,12 +121,12 @@ czs_m3 <- bind_rows(czs_m1,czs_m2) |>
   mutate(swecris_id = ifelse(is.na(dnr.y),dnr,dnr.y))
 
 # 1D. Connection table results.
-czs_tbl <- czs_m3 |> dplyr::select(any_of(names(czs_m3[c(1,14,17)]))) |>
+czs_tbl <- czs_m3 |> dplyr::select(any_of(names(czs_m3[c("efecte_id","projectId","levenshtein_score")]))) |>
   filter(levenshtein_score != 0.00000000) |>
   add_column("from" = "case", .before = "efecte_id") |>
   add_column("to" = "swecris",.after = "efecte_id") |>
   rename("from_id" = efecte_id,
-         "to_id" = swecris_id,
+         "to_id" = projectId,
          "strength" = levenshtein_score) |>
   relocate("strength",.after = "to_id") |>
   arrange(desc(strength)) |>
@@ -137,6 +135,7 @@ czs_tbl <- czs_m3 |> dplyr::select(any_of(names(czs_m3[c(1,14,17)]))) |>
          to_id = as.character(to_id)
          # matching_method = "osa"
   ) |> as_tibble()
+
 # Enrich Case ID from Swecris
 # Case_ID = ifelse(is.na(Case_ID),Swecris_ID,Case_ID)) |> View()
 # openxlsx::write.xlsx(file = "case-swecris_tbl.xlsx")
@@ -194,7 +193,7 @@ czop_tbl <-
   czop |>
   select(any_of(c("efecte_id","op_id","levenshtein_score"))) |>
   arrange(desc(levenshtein_score)) |>
-  add_column("from" = "case", "to" = "openAire") |>
+  add_column("from" = "case", "to" = "openaire") |>
   rename("from_id" = efecte_id,
          "to_id" = op_id,
          "strength" = levenshtein_score) |>
@@ -271,8 +270,8 @@ swvin <- sd |>
 # Connection table result.
 swvin_tbl <-
   swvin |>
-  select("dnr","Diarienummer") |>
-  rename("from_id" = dnr,
+  select("projectId","Diarienummer") |>
+  rename("from_id" = projectId,
          "to_id" = Diarienummer) |>
   mutate(curated = NA,
          date = Sys.Date()) |>
@@ -290,8 +289,8 @@ swfor <- sd |>
 # Connection table results.
 swfor_tbl <-
   swfor |>
-  select("dnr","diarienummer") |>
-  rename("from_id" = dnr,
+  select("projectId","diarienummer") |>
+  rename("from_id" = projectId,
          "to_id" = diarienummer) |>
   mutate(curated = NA,
          date = Sys.Date()) |>
@@ -310,8 +309,8 @@ swcord <- sd |>
 
 swcord_tbl <-
   swcord |>
-  dplyr::select("dnr","id","levenshtein_score") |>
-  rename("from_id" = dnr,
+  dplyr::select("projectId","id","levenshtein_score") |>
+  rename("from_id" = projectId,
          "to_id" = id,
          "strength" = levenshtein_score) |>
   mutate(curated = NA,
@@ -337,8 +336,8 @@ swop <- swop |> mutate(levenshtein_score = RecordLinkage::levenshteinSim(project
 # Table results.
 swop_tbl <-
   swop |>
-  dplyr::select("dnr","op_id","levenshtein_score") |>
-  rename("from_id" = dnr,
+  dplyr::select("projectId","op_id","levenshtein_score") |>
+  rename("from_id" = projectId,
          "to_id" = op_id,
          "strength" = levenshtein_score) |>
   mutate(curated = NA,
@@ -385,9 +384,11 @@ master_tbl <- dplyr::bind_rows(list(czs_tbl,czop_tbl,czvi_tbl,
 # Export to Minio ---------------------------------------------------------
 
 # File path
-temp_file <- tempfile(fileext = ".csv", tmpdir = tempdir())
+# temp_file <- tempfile(fileext = ".csv", tmpdir = tempdir())
 # Data frame.
-write_csv(x = master_tbl, file = temp_file)
+write_csv(x = master_tbl,file = "project_links.csv")
+# Upload to minio
+kthcorpus:::diva_upload_s3("project_links.csv")
 
 # Upload to minio
 minioclient::mc_cp(temp_file, "kthb/kthcorpus/project_links.csv")

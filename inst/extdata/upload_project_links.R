@@ -1,5 +1,9 @@
 # R packages --------------------------------------------------------------
-install.packages(c("fuzzyjoin", "RecordLinkage"))
+
+pkgs_deps <- c("fuzzyjoin", "RecordLinkage", "ps", "cellranger", "rvest")
+installed <- installed.packages() |> tibble::as_tibble() |> getElement("Package")
+idx <- which(!pkgs_deps %in% installed)
+install.packages(pkgs_deps[idx])
 
 library(kthcorpus)
 library(readr)
@@ -11,15 +15,25 @@ library(aws.s3)
 
 # Data sources ------------------------------------------------------------
 
+# helper fcn to read public files from kthcorpus bucket on minio
+read_kthcorpus <- function(fn)
+  "https://data.bibliometrics.lib.kth.se/kthcorpus/" |>
+  paste0(fn) |> read_csv(show_col_types = FALSE)
+
 # Swecris, Formas & Vinnova
-swecris <- minio_get("projects_swecris.csv","kthcorpus") |> read_csv()
-formas <-  minio_get("projects_formas.csv", "kthcorpus") |> read_csv()
-vinnova <- minio_get("projects_vinnova.csv","kthcorpus") |> read_csv()
+swecris <- "projects_swecris.csv" |> read_kthcorpus()
+formas <- "projects_formas.csv" |> read_kthcorpus()
+vinnova <- "projects_vinnova.csv" |> read_kthcorpus()
+
 # Cordis & OpenAire
-cordis <-  minio_get("projects_cordis.csv","kthcorpus") |> read_csv()
-openaire <- minio_get("projects_openaire.csv", "kthcorpus") |> read_csv()
+cordis <- "projects_cordis.csv" |> read_kthcorpus()
+openaire <- "projects_openaire.csv" |> read_kthcorpus()
+
 # Case
-case <- bibliotools::case()
+case <-
+  "kthb/kthcorpus/projects_case.csv" |>
+  kthcorpus:::mc_read() |>
+  readr::read_csv()
 
 ## Minor data wrangling steps
 
@@ -376,8 +390,11 @@ write_csv(x = master_tbl,file = "project_links.csv")
 # Upload to minio
 kthcorpus:::diva_upload_s3("project_links.csv")
 
-# Did it work?
-connection_tbl <- minio_get("master_tbl.csv","kthcorpus") |> read_csv()
+# Upload to minio
+minioclient::mc_cp(temp_file, "kthb/kthcorpus/project_links.csv")
+unlink(temp_file)
 
-# Github action
-# https://crontab.guru/
+# Did it work?
+connection_tbl <- kthcorpus:::mc_read("kthb/kthcorpus/project_links.csv") |>
+  readr::read_csv(show_col_types = FALSE)
+

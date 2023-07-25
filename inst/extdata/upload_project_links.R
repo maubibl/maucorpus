@@ -396,5 +396,3 @@ connection_tbl <-
 
 message("Is uploaded file identical to local file? ",
   all.equal(as.data.frame(connection_tbl), as.data.frame(master_tbl)))
-
-diffdf::diffdf(connection_tbl, master_tbl)

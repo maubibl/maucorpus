@@ -33,7 +33,7 @@ openaire <- "projects_openaire.csv" |> read_kthcorpus()
 case <-
   "kthb/kthcorpus/projects_case.csv" |>
   kthcorpus:::mc_read() |>
-  readr::read_csv()
+  readr::read_csv(show_col_types = FALSE)
 
 ## Minor data wrangling steps
 
@@ -383,18 +383,18 @@ master_tbl <- dplyr::bind_rows(list(czs_tbl,czop_tbl,czvi_tbl,
 
 # Export to Minio ---------------------------------------------------------
 
-# File path
-# temp_file <- tempfile(fileext = ".csv", tmpdir = tempdir())
-# Data frame.
-write_csv(x = master_tbl,file = "project_links.csv")
-# Upload to minio
-kthcorpus:::diva_upload_s3("project_links.csv")
-
-# Upload to minio
-minioclient::mc_cp(temp_file, "kthb/kthcorpus/project_links.csv")
+message("Uploading results to minio")
+temp_file <- tempfile(fileext = ".csv", tmpdir = tempdir())
+write_csv(x = master_tbl, file = temp_file)
+minioclient::mc_cp(temp_file, "kthb/kthcorpus/project_links.csv", verbose = TRUE)
 unlink(temp_file)
 
 # Did it work?
-connection_tbl <- kthcorpus:::mc_read("kthb/kthcorpus/project_links.csv") |>
+connection_tbl <-
+  kthcorpus:::mc_read("kthb/kthcorpus/project_links.csv") |>
   readr::read_csv(show_col_types = FALSE)
 
+message("Is uploaded file identical to local file? ",
+  all.equal(as.data.frame(connection_tbl), as.data.frame(master_tbl)))
+
+diffdf::diffdf(connection_tbl, master_tbl)

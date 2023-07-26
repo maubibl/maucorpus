@@ -754,6 +754,10 @@ scopus_abstract_extended <- function(sid) {
     end <- coredata$"prism:endingPage"
     ci <- parse_confinfo(abstract) |>
       tibble::add_column(conf_ext_start = beg, conf_ext_end = end)
+  } else {
+    message("Skipping extraction of conf info for sid ", sid,
+      " due to aggregation type: ", coredata$`prism:aggregationType`,
+            ", and pubtype: ", coredata$subtypeDescription)
   }
 
   list(
@@ -796,6 +800,10 @@ parse_confinfo <- function(abstract) {
     abstract$`abstracts-retrieval-response`$item$bibrecord$head$source
 
   event <- source$`additional-srcinfo`$conferenceinfo$confevent
+
+  if (is.null(event))
+    message("Found no conference event info for ",
+            abstract$`abstracts-retrieval-response`$coredata$eid)
 
   aci <- list(
     conf_title = event$confname,
@@ -841,7 +849,7 @@ parse_confinfo <- function(abstract) {
       beg_my = paste(months(beg), year(beg)),
       end_my = paste(months(end), year(end)),
       dur = purrr::pmap_chr(
-        .l = list(end, beg),
+        .l = as.list(sort(c(beg, end))),
         .f = function(x, y) {
           #x <- ifelse(x != "NA", x, NA)
           na.omit(c(x, y)) |> format("%b %-d %Y") |> paste(collapse = " - ")

@@ -837,7 +837,7 @@ parse_confinfo <- function(abstract) {
   has_pattern <- function(re) {
     res <- has_range |> filter(is_populated) |> pull(var)
     if (length(res) < 1) return(FALSE)
-    grepl(pattern = re) |> all()
+    grepl(res, pattern = re) |> all()
   }
 
   has_end_date <- has_pattern("_end_")
@@ -890,9 +890,13 @@ parse_confinfo <- function(abstract) {
     mutate(conf_subtitle = NA)
 }
 
+#' @importFrom lubridate day month year
+#' @importFrom glue glue
 format_date_mods <- function(d) {
+  my_locale <- "en_US.UTF-8"
   my_day <- lubridate::day(d)
-  my_month <- as.character(lubridate::month(d, label = TRUE, abbr = TRUE))
+  my_month <- as.character(lubridate::month(d, label = TRUE, abbr = TRUE,
+    locale = my_locale))
   my_year <- lubridate::year(d)
   glue::glue("{my_month} {my_day} {my_year}") |> as.character()
 }

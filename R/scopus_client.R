@@ -834,9 +834,11 @@ parse_confinfo <- function(abstract) {
     mutate(is_populated = var %in% names(my_aci)) |>
     select(var, is_populated)
 
-  has_pattern <- function(re)
-    has_range |> filter(is_populated) |> pull(var) |>
+  has_pattern <- function(re) {
+    res <- has_range |> filter(is_populated) |> pull(var)
+    if (length(res) < 1) return(FALSE)
     grepl(pattern = re) |> all()
+  }
 
   has_end_date <- has_pattern("_end_")
   has_beg_date <- has_pattern("_beg_")
@@ -852,7 +854,7 @@ parse_confinfo <- function(abstract) {
         .l = as.list(sort(c(beg, end))),
         .f = function(x, y) {
           #x <- ifelse(x != "NA", x, NA)
-          na.omit(c(x, y)) |> format("%b %-d %Y") |> paste(collapse = " - ")
+          na.omit(c(x, y)) |> format_date_mods() |> paste(collapse = " - ")
         }
       )
     ) |>
@@ -881,11 +883,18 @@ parse_confinfo <- function(abstract) {
   res |>
     mutate(
       end = lubridate::make_date(y, m, d),
-      dur = end |> format("%b %-d %Y") |> glue::glue(na = "")
+      dur = end |> format_date_mods() |> glue::glue(na = "")
     ) |>
     mutate(conf_details = glue::glue("{conf_title}, {city}, {country_name}, {dur}")) |>
     select(conf_title = conf_issuetitle, conf_details) |>
     mutate(conf_subtitle = NA)
+}
+
+format_date_mods <- function(d) {
+  my_day <- lubridate::day(d)
+  my_month <- as.character(lubridate::month(d, label = TRUE, abbr = TRUE))
+  my_year <- lubridate::year(d)
+  glue::glue("{my_month} {my_day} {my_year}") |> as.character()
 }
 
 tidy_xml <- function(x, cdata = FALSE) {

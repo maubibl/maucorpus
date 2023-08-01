@@ -137,7 +137,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   # but only there do we get the orcid (?)
 
   sae_n_authors <-
-    sae$scopus_authors$id |> as.integer() |> max()
+    sae$scopus_authors$seq |> unique() |> length()
 
   notes <-
     c(notes, glue::glue('<note type="creatorCount">{sae_n_authors}</note>',

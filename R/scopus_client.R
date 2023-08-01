@@ -802,7 +802,7 @@ parse_confinfo <- function(abstract) {
   event <- source$`additional-srcinfo`$conferenceinfo$confevent
 
   if (is.null(event))
-    message("Found no conference event info for ",
+    message("\nFound no conference event info for ",
             abstract$`abstracts-retrieval-response`$coredata$eid)
 
   aci <- list(

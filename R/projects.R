@@ -158,7 +158,8 @@ kth_swecris <- function() {
     )
   }
 
-  organisationNameSv <- organisationId <- NULL
+  organisationNameSv <- organisationId <- projectId <- peopleList <-
+    scbs <- NULL
 
   message("Requesting projects from SweCRIS")
 
@@ -170,12 +171,60 @@ kth_swecris <- function() {
     pull(organisationId)
 
   kth_swecris <- swecris::swecris_projects(orgid = kth_orgid)
+  #to_lower_initial <- function(x) sub('^(.)', '\\L\\1', x, perl = TRUE)
+
+  swecris_projects_people <-
+    kth_swecris |> select(projectId, peopleList) |>
+    unnest_longer("peopleList") |>
+    unnest_wider("peopleList")
+
+  swecris_projects_codes <-
+    kth_swecris |> select(projectId, scbs) |>
+    unnest_longer("scbs") |>
+    unnest_wider("scbs")
+
+  # kth_swecris <- swecris::swecris_funding()
+  # names(kth_swecris) <- to_lower_initial(names(kth_swecris))
+  # names(kth_swecris)[names(kth_swecris) == "involvedPeople"] <- "peopleList"
+
+  # people <-
+  #   kth_swecris |> mutate(ip = purrr::pmap(.progress = TRUE,
+  #     .l = list(InvolvedPeople),
+  #     .f = swecris::parse_involved_people)) |>
+  #   select(ProjectId, ip)
+
+  # swecris_projects_people <-
+  #   people |>
+  #   tidyr::unnest_longer("ip", simplify = TRUE) |>
+  #   tidyr::unnest("ip")
+  #
+  # scb_codes <-
+  #   kth_swecris |>
+  #   mutate(codes = pmap(.progress = TRUE,
+  #     .l = list(Scbs),
+  #     .f = swecris::parse_scb_codes)) |>
+  #   select(ProjectId, codes)
+  #
+  # swecris_projects_codes <-
+  #   scb_codes |>
+  #   tidyr::unnest_longer("codes", indices_to = "id", simplify = TRUE) |>
+  #   tidyr::unnest("codes")
+
+  # unfortunately we cannot do this as the separator char is used not only as sep
+  # swecris_projects_codes |> tidyr::separate("scb_sv_en", sep = ", ", into = c("scb_sv", "scb_en"))
+
 
   tictoc::toc()
 
   message("Done")
 
-  return (kth_swecris)
+  res <- list(
+    swecris_projects = kth_swecris,
+    swecris_projects_people = swecris_projects_people,
+    swecris_projects_codes = swecris_projects_codes
+  )
+
+  return(res)
 
 }
 
@@ -208,18 +257,27 @@ projects_upload <- function() {
   kth_cordis <- kth_cordis() #
   kth_formas <- kth_formas() # 21 s, ca 471 projects
   kth_vinnova <- kth_vinnova() # 441 projects, ca 4 minutes
-  kth_swecris <- kth_swecris() # 5 secs
+
+  sc <- kth_swecris() # < 10 s
+  kth_swecris <- sc$swecris_projects # 5 secs
+  kth_swecris_codes <- sc$swecris_projects_codes
+  kth_swecris_people <- sc$swecris_projects_people
+
   kth_openaire <- kth_openaire() # 2 secs or 3 minutes, 813 projects
   kth_case <- kth_case()  # 5 secs, 3000+ projects
 
   #ko <- kthid_orcid()
   #ko |> readr::write_csv("/tmp/kthid_orcid.csv")
+  wcsv <- function(x, f) readr::write_csv(x = x, file = f, na = "")
 
-  kth_openaire |> readr::write_csv("/tmp/projects_openaire.csv")
-  kth_cordis |> readr::write_csv("/tmp/projects_cordis.csv")
-  kth_vinnova |> readr::write_csv("/tmp/projects_vinnova.csv")
-  kth_formas |> readr::write_csv("/tmp/projects_formas.csv")
-  kth_swecris |> readr::write_csv("/tmp/projects_swecris.csv")
+  kth_openaire |> wcsv("/tmp/projects_openaire.csv")
+  kth_cordis |> wcsv("/tmp/projects_cordis.csv")
+  kth_vinnova |> wcsv("/tmp/projects_vinnova.csv")
+  kth_formas |> wcsv("/tmp/projects_formas.csv")
+  kth_swecris |> wcsv("/tmp/projects_swecris.csv")
+  kth_swecris_codes |> wcsv("/tmp/projects_codes_swecris.csv")
+  kth_swecris_people |> wcsv("/tmp/projects_people_swecris.csv")
+
   kth_case |> readr::write_csv("/tmp/projects_case.csv")
 
   #diva_upload_s3("/tmp/kthid_orcid.csv")
@@ -228,7 +286,11 @@ projects_upload <- function() {
   diva_upload_s3("/tmp/projects_vinnova.csv")
   diva_upload_s3("/tmp/projects_formas.csv")
   diva_upload_s3("/tmp/projects_swecris.csv")
+  diva_upload_s3("/tmp/projects_codes_swecris.csv")
+  diva_upload_s3("/tmp/projects_people_swecris.csv")
   diva_upload_s3("/tmp/projects_case.csv")
+
+  refresh_projects_bucket()
 
 }
 #' @importFrom readr read_csv read_csv2 read_delim
@@ -362,6 +424,43 @@ kth_case <- function() {
   message("Done wrangling CASE data")
 
   return(res)
+}
+
+#' @importFrom arrow write_parquet
+#' @importFrom readr read_csv
+#' @importFrom purrr map_lgl
+refresh_projects_bucket <- function() {
+
+  fn <- NULL
+
+  project_files <-
+    mc_ls_tbl("kthb/kthcorpus") |> filter(grepl("project", fn)) |> pull(fn)
+
+  td <- file.path(tempdir(check = TRUE), "projects")
+
+  if (!dir.exists(td)) dir.create(td, recursive = TRUE)
+
+  sync_file <- function(x, bucket = "kthb/kthcorpus/", tempdir = tempdir()) {
+    if (!dir.exists(tempdir)) dir.create(tempdir, recursive = TRUE)
+    from <- paste0(bucket, x)
+    destfile <- x |> gsub(pattern = "\\.csv", replacement = "\\.parquet")
+    to <- paste0(tempdir, destfile)
+    csv <- mc_read(from) |> readr::read_csv(show_col_types = FALSE)
+    message("Writing ", from, " to ", to)
+    arrow::write_parquet(csv, to)
+    file.exists(to)
+  }
+
+  is_converted <-
+    project_files |>
+    map_lgl(function(x) sync_file(x, tempdir = td), .progress = TRUE)
+
+  stopifnot(all(is_converted))
+
+  #minioclient::mc_mb("kthb/projects")
+
+  minioclient::mc_mirror(td, "kthb/projects", overwrite = TRUE, verbose = TRUE)
+
 }
 
 

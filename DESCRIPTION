@@ -68,6 +68,7 @@ Imports:
     DBI,
     RSQLite,
     methods,
-    minioclient
+    minioclient,
+    arrow
 Depends: 
     R (>= 2.10)

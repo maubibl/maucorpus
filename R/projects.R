@@ -431,6 +431,9 @@ kth_case <- function() {
 #' @importFrom purrr map_lgl
 refresh_projects_bucket <- function() {
 
+  # use previously installed mc with minioclient 0.0.5
+  options("minioclient.dir" = dirname(Sys.which("mc")))
+
   fn <- NULL
 
   project_files <-
@@ -457,8 +460,6 @@ refresh_projects_bucket <- function() {
 
   stopifnot(all(is_converted))
 
-  # use previously installed mc with minioclient 0.0.5
-  options("minioclient.dir" = dirname(Sys.which("mc")))
   minioclient::mc_mirror(td, "kthb/projects", overwrite = TRUE, verbose = TRUE)
 
 }

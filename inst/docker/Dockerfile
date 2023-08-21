@@ -1,10 +1,9 @@
 FROM ghcr.io/kth-library/kontarion
 
-# use R repo source https://packagemanager.rstudio.com/cran/__linux__/focal/latest
+# use R repo source https://packagemanager.posit.co/cran/__linux__/jammy/latest
 #COPY inst/docker/rocker_scripts/.Rprofile /root/.Rprofile
-RUN echo 'options(repos = c(CRAN = "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"))' >> ${R_HOME}/etc/Rprofile.site
-
-RUN R -e 'source("https://docs.rstudio.com/rspm/1.1.4/admin/check-user-agent.R")'
+RUN echo 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/jammy/latest"))' >> ${R_HOME}/etc/Rprofile.site
+RUN R -e 'source("https://docs.posit.co/rspm/admin/check-user-agent.R")'
 
 WORKDIR /rocker_scripts
 
@@ -21,7 +20,7 @@ COPY . /kthcorpus
 #RUN apt-get install -y libjq-dev
 #RUN R -e 'install.packages("faststack")'
 #RUN R -e 'install.packages("htmltools")'
-RUN R -e 'remotes::install_local("kthcorpus")'
+RUN R -e 'Sys.setenv("NOT_CRAN" = "true"); remotes::install_local("kthcorpus")'
 
 # install minio client
 #RUN cd /usr/local/bin && \

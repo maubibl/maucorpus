@@ -290,8 +290,6 @@ projects_upload <- function() {
   diva_upload_s3("/tmp/projects_people_swecris.csv")
   diva_upload_s3("/tmp/projects_case.csv")
 
-  refresh_projects_bucket()
-
 }
 #' @importFrom readr read_csv read_csv2 read_delim
 #' @importFrom tictoc tic toc
@@ -437,7 +435,8 @@ refresh_projects_bucket <- function() {
   fn <- NULL
 
   project_files <-
-    mc_ls("kthb/kthcorpus") |> grep(pattern = "projects?_", value = TRUE)
+    mc_ls("kthb/kthcorpus") |>
+    grep(pattern = "projects?_.*?\\.csv$", value = TRUE)
 
   td <- file.path(tempdir(check = TRUE), "projects")
 

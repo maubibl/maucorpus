@@ -19,3 +19,5 @@ jobs:
       - run: |
           R -e 'kthcorpus:::projects_upload();'
           Rscript /usr/local/lib/R/site-library/kthcorpus/extdata/upload_project_links.R
+          R -e 'kthcorpus:::refresh_projects_bucket();'
+

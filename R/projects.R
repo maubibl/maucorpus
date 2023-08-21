@@ -434,7 +434,7 @@ refresh_projects_bucket <- function() {
   fn <- NULL
 
   project_files <-
-    mc_ls_tbl("kthb/kthcorpus") |> filter(grepl("project", fn)) |> pull(fn)
+    mc_ls("kthb/kthcorpus") |> grep(pattern = "projects?_", value = TRUE)
 
   td <- file.path(tempdir(check = TRUE), "projects")
 
@@ -444,7 +444,7 @@ refresh_projects_bucket <- function() {
     if (!dir.exists(tempdir)) dir.create(tempdir, recursive = TRUE)
     from <- paste0(bucket, x)
     destfile <- x |> gsub(pattern = "\\.csv", replacement = "\\.parquet")
-    to <- paste0(tempdir, destfile)
+    to <- file.path(tempdir, destfile)
     csv <- mc_read(from) |> readr::read_csv(show_col_types = FALSE)
     message("Writing ", from, " to ", to)
     arrow::write_parquet(csv, to)
@@ -457,8 +457,8 @@ refresh_projects_bucket <- function() {
 
   stopifnot(all(is_converted))
 
-  #minioclient::mc_mb("kthb/projects")
-
+  # use previously installed mc with minioclient 0.0.5
+  options("minioclient.dir" = dirname(Sys.which("mc")))
   minioclient::mc_mirror(td, "kthb/projects", overwrite = TRUE, verbose = TRUE)
 
 }

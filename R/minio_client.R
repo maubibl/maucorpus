@@ -82,6 +82,8 @@ convert_to_bytes <- function(value) {
 }
 
 mc_read <- function(fn) {
+  # use previously installed mc with minioclient 0.0.5
+  options("minioclient.dir" = dirname(Sys.which("mc")))
   tf <- tempfile()
   on.exit(unlink(tf))
   minioclient::mc_cp(from = fn, to = tf)

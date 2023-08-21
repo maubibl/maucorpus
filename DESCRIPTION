@@ -22,7 +22,8 @@ Remotes:
     KTH-Library/cordis,
     KTH-Library/formas,
     KTH-Library/swecris,
-    KTH-Library/vinnova
+    KTH-Library/vinnova,
+    cboettig/minioclient
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)

@@ -139,9 +139,11 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   sae_n_authors <-
     sae$scopus_authors$seq |> unique() |> length()
 
-  notes <-
-    c(notes, glue::glue('<note type="creatorCount">{sae_n_authors}</note>',
-      .na = ""))
+  if (sae_n_authors >= 30) {
+    notes <-
+      c(notes, glue::glue('<note type="creatorCount">{sae_n_authors}</note>',
+                          .na = ""))
+  }
 
   #TODO: to get orcid for sae_authors, join for at most 100 of those?
 

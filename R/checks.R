@@ -973,9 +973,10 @@ check_manuscripts_with_identifiers <- function(pubs = kth_diva_pubs()) {
   # DOIs are usually for published works, sometimes pre-prints provide DOIs though
 
   # Suppress false positives by excluding DOIs starting with
-  # 10.1101 and 10.48550 (bioRxiv and arXiv)
+  # 10.1101 and 10.48550 (bioRxiv, arXiv and SSRN)
   # https://doi.org/10.1101/2020.08.24.252296
   # https://doi.org/10.48550/ARXIV.2202.11577
+  # https://doi.org/10.2139/ssrn.4385563
 
   re_exclude <- "^10.1101|^10.48550|^10.2139" # bioRxiv,arXiv and SSRN
 

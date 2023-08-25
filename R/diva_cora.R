@@ -1,7 +1,7 @@
 cora_base <- "https://cora.diva-portal.org/diva/rest/record/"
 
 cora_organisation_search <- function(domain = "kth", beg = 1, end = 800,
-                                     freetext, orgid, orgname) {
+                                     freetext, orgid, orgname, verbose = FALSE) {
 
   myglue <- function(x) glue::glue(.open = "#{", .close = "}#", x)
 
@@ -34,8 +34,11 @@ cora_organisation_search <- function(domain = "kth", beg = 1, end = 800,
     "searchResult/publicOrganisationSearch?searchData=", param
   )
 
-  message("Sending request to: ")
-  cat(endpoint)
+  if (verbose) {
+    message("Sending request to: \n")
+    cat(endpoint)
+    message("\n")
+  }
 
   res <- httr::GET(endpoint)
 
@@ -90,7 +93,7 @@ cora_organisation <- function(identifier) {
 #
 # }
 
-cora_person_search <- function(freetext, id, name, beg = 1, end = 800) {
+cora_person_search <- function(freetext, id, name, beg = 1, end = 800, verbose = FALSE) {
 
    myglue <- function(x) glue::glue(.open = "#{", .close = "}#", x)
 
@@ -122,8 +125,11 @@ cora_person_search <- function(freetext, id, name, beg = 1, end = 800) {
     "searchResult/publicPersonSearch?searchData=", param
   )
 
-  message("Sending request to: ")
-  cat(endpoint)
+  if (verbose) {
+    message("Sending request to: \n")
+    cat(endpoint)
+    message("\n")
+  }
 
   res <- httr::GET(endpoint)
 
@@ -198,82 +204,57 @@ flatten_cora_records <- function(coras) {
 
 cora_fixup_organisations <- function(data) {
 
-  linkedRecordType <- linkedRecordId <- NULL
+  linkedRecordType <- linkedRecordId <-
+    closedDate <- closed_date <- internalNote <- l_orgid <- name_1 <- name_2 <-
+    org_code <- org_type <- organisationCode <- organisationType <-
+    orgid <- p_orgid <- tsCreated <- tsUpdated <- ts_created <- ts_updated <-
+    unit_en <- unit_sv <- NULL
 
-  data %>%
-    tidyr::separate("name", c("name_1", "name_2"), sep = "[|]", fill = "right") %>%
-    tidyr::separate("language", c("lang_1", "lang_2"), sep = "[|]", fill = "right")
-
-  data %>%
-    mutate(linkedRecordType = gsub("recordType|system|coraUser|", "", linkedRecordType, fixed = TRUE)) %>%
-    rowwise() %>%
-    mutate(linkedRecordId = paste0(collapse = ",", unlist(stringr::str_extract_all(linkedRecordId, "\\d+")))) %>%
-    ungroup() %>%
-    mutate(linkedRecordId = gsub("4412982402853626,", "", linkedRecordId))
-
+  data |>
+    tidyr::separate("name", c("name_1", "name_2"), sep = "[|]", fill = "right") |>
+    tidyr::separate("language", c("lang_1", "lang_2"), sep = "[|]", fill = "right") |>
+    mutate(linkedRecordType = gsub("recordType|system|coraUser|", "", linkedRecordType, fixed = TRUE)) |>
+    rowwise() |>
+    mutate(linkedRecordId = paste0(collapse = ",", unlist(stringr::str_extract_all(linkedRecordId, "\\d+")))) |>
+    ungroup() |>
+    mutate(linkedRecordId = gsub("4412982402853626,", "", linkedRecordId)) |>
+    mutate(across(starts_with("ts"), parse_ts)) |>
+    rename(
+      orgid = id,
+      level_desc = linkedRecordType,
+      l_orgid = linkedRecordId,
+      ts_created = tsCreated,
+      ts_updated = tsUpdated,
+      unit_sv = name_1,
+      unit_en = name_2,
+      closed_date = closedDate,
+      org_type = organisationType,
+      note = internalNote,
+      org_code = organisationCode
+    ) |>
+    select(-c("selectable", "domain")) |>
+    mutate(orgid = as.integer(orgid)) |>
+    mutate(p_orgid = as.integer(sapply(strsplit(l_orgid, ","), "[[", 1))) |>
+    select(
+      orgid, org_type, p_orgid, org_code, l_orgid,
+      unit_sv, unit_en,
+      closed_date, ts_created, ts_updated
+    )
 }
 
-# cora_organisation_search() %>%
-#   flatten_cora_records() %>%
-#   cora_fixup_organisations()
+parse_ts <- function(x)
+  gsub("(.*?)Z", "\\1", x) |>
+  strptime(format = "%Y-%m-%dT%H:%M:%OS")
 
-# cora_person_search(freetext = "Jeppsson", name = "Tobias Jeppsson") %>%
-#   flatten_cora_records()
+#' Search DiVA organisations using CORA API
+#' @param domain string with domain, by default "kth"
+#' @param freetext string with freetext to search for
+#' @returns data frame with results
+diva_organisations_cora <- function(domain = "kth", freetext) {
 
-# cora_person("5850") %>%
-#   flatten_cora_records()
-
-# cora_organisation(5858) %>%
-#   flatten_cora_records()
-
-
-
-
-
-
-# ps <- cora_person_search("Anders Wändahl")
-#
-#
-# ps %>%
-#   pluck("dataList", "data") %>%
-#   map("record", "data") %>%
-#   map(list("actionLinks", "read", "url"))
-#
-# ps %>% hoist(dataList)
-#
-# ps %>%
-#   pluck("dataList", "data") %>%
-#   map("record", "data") %>%
-#   map(list("data", "name"))
-#
-# ps %>%
-#   pluck("dataList", "data") %>%
-#   map("record", "data") %>%
-#   map(list("data", "children")) %>%
-#   map(list(1, 1, 1)) %>%
-#   map_df(.f = function(x) tibble(n = pluck(x, "name"), v = pluck(x, "value")))
-#
-# ps %>%
-#   pluck("dataList", "data") %>%
-#   map("record", "data") %>%
-#   map(list("data", "children")) %>%
-#   map(list(1, 1)) %>%
-#   View()
-#   map_df(.f = function(x) tibble(n = pluck(x, "name"), v = pluck(x, "value")))
-#
-#
-# ps %>%
-#   pluck("dataList", "data") %>%
-#   head(1) %>%
-#   map(list("record", "children", "data")) %>%
-#   map("data") %>%
-#   map("children", "children")
-#   View()
-
-  # map("data") %>%
-  # map_df(as_tibble) %>%
-  # pluck("children") %>%
-  # map_df(as_tibble)
-  # map(function(x) tibble(name = x$name, value = x$value)) %>%
-  # map_df(bind_rows) %>%
-  # View()
+  cora_organisation_search(verbose = FALSE,
+    domain = domain,
+    freetext = freetext) |>
+  flatten_cora_records() |>
+  cora_fixup_organisations()
+}

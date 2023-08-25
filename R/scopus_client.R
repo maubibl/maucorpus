@@ -138,6 +138,24 @@ scopus_search_id <- function(eid) {
 
 }
 
+scopus_search_doi <- function(doi) {
+
+  doi <- na.omit(doi)
+
+  if (length(doi) > 1)
+    dois <- paste0(collapse = " OR ", paste0("\"", doi, "\""))
+
+  criteria <- glue::glue(
+    "DOI({dois})"
+  )
+
+  if (nchar(criteria) > 2048)
+    warning("Long query string parameter (use < 2048 chars, see RFC 2616)... ")
+
+  scopus_search_query(criteria)
+
+}
+
 #' Retrieve publications from Scopus API from KTH - The Royal Institute of Technology.
 #'
 #' This function allows for using the "load date" when fetching publications for

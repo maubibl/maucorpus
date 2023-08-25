@@ -1,5 +1,5 @@
 ---
-title: "ORCiDs with ambiguous use in DiVA"
+title: "Checks for HR-plus data"
 author:
   - name: Markus Skyttner
     orcid: 0000-0002-4649-3651

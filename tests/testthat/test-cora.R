@@ -1,5 +1,7 @@
 test_that("Requests against DiVA CORA organisations search API works", {
 
+  skip_on_ci()
+
   orgs <- diva_organisations()
 
   cora <- diva_organisations_cora()

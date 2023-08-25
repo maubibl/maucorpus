@@ -1,0 +1,521 @@
+---
+title: "ORCiDs with ambiguous use in DiVA"
+author:
+  - name: Markus Skyttner
+    orcid: 0000-0002-4649-3651
+    email: markussk@kth.se
+    affiliations:
+      - name: KTH Royal Institute of Technology 
+        address: Osquars backe 31
+        city: Stockholm
+        postal-code: 114 28
+highlight-style: pygments
+fig-cap-location: top
+format:
+  html:
+    toc: true
+    toc-location: left
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    link-external-icon: true
+    link-external-newwindow: true
+    page-layout: article
+  pdf:
+    geometry: 
+      - top=30mm
+      - left=30mm
+  docx: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r warning=FALSE, results='hide', echo=TRUE}
+#| label: load-pkgs
+#| code-summary: "Packages"
+#| message: false
+
+pkgs <- "
+kthcorpus DT bslib leaflet plotly htmltools dplyr
+" 
+
+import <- function(x)
+ x |> trimws() |> strsplit("\\s+") |> unlist() |>
+  lapply(function(x) library(x, character.only = TRUE)) |> 
+  invisible()
+
+pkgs |> import()
+  
+```
+
+```{r}
+#| classes: col_wrap
+#| echo: FALSE
+#| message: FALSE
+
+bs4_card <- function(body, title) {
+  div(class = "table-responsive",
+    class = "card",
+    div(class = "card-header bg-primary", title),
+    div(class = "card-body d-flex justify-content-center", body)
+  )
+}
+
+```
+
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| 
+options(DT.options = list(scrollY = "100vh"))
+
+myDT <- function(data) {
+  
+  if (is.null(data) || nrow(data) <= 0) 
+    return(htmltools::pre("Denna kontroll passerar utan anmärkning! 🥳"))
+
+  # remap column display names here, replace iff in map
+  displaynamez <- kthcorpus:::check_remap_colnames(colnames(data))
+  
+  header_cb <- c(
+    "function(thead, data, start, end, display){",
+    sprintf("  var tooltips = [%s];", toString(paste0("'", names(displaynamez), "'"))),
+    "  for(var i = 0; i <= tooltips.length - 1; i++){",
+    "    $('th:eq('+i+')',thead).attr('title', tooltips[i]);",
+    "  }",
+    "}"
+  )  
+  
+  
+  colnamez <- stringr::str_trunc(colnames(data), 15)
+  font_size <- "80%"
+  
+  dt <- DT::datatable(data, 
+    filter = "top",
+    escape = FALSE,
+    rownames = FALSE,
+    style = "bootstrap",
+    # see https://getbootstrap.com/docs/5.1/content/tables/
+    class = "table-borderless table-striped table-sm",
+    fillContainer = TRUE,
+    width = "100%",
+    extensions = c(
+      "Buttons",  
+      "Select",
+      "Scroller"
+    ),
+    colnames = colnamez,
+    options = list(
+      headerCallback = DT::JS(header_cb),
+      dom = "fBlrtip",  # specify content (search box, etc)
+#      dom = 'pt',
+# l - Length changing
+# f - Filtering input
+# t - The Table!
+# i - Information
+# p - Pagination
+# r - pRocessing
+      scrollX = TRUE, 
+      scrollY = "100vh",
+      #paging = FALSE,
+      #bPaginate = FALSE,
+      #deferRender = FALSE,
+      scroller = TRUE,
+      select = TRUE,
+      buttons = list(
+        I("colvis"),  
+        "csv",  
+        "excel",
+        list(
+          extend = "copy",
+          text = 'Copy to clipboard',
+          exportOptions = list(modifier = list(selected = TRUE))
+        )
+      )#,
+      #initComplete = htmlwidgets::JS(
+      #  "function(settings, json) {",
+      #  paste0("$(this.api().table().container()).css({'font-size': '", font_size, "'});"),
+      #  "}"
+      #)
+    )
+  )  
+  #NB this causes DT to not fill vertically
+  #htmltools::div(dt, style = "font-size:80%")  
+  dt
+}
+
+myTOC <- function(data) {
+  
+  if (is.null(data) || nrow(data) <= 0) 
+    return(htmltools::pre("No TOC to display"))
+  
+  font_size <- "80%"
+  
+  DT::datatable(data,
+    escape = FALSE,
+    rownames = FALSE,
+    style = "bootstrap",
+    class = "table-borderless table-sm", 
+    width = "100%",
+    options = list(
+      dom = 't',
+      searching = FALSE,
+      ordering = FALSE,
+      #scrollX = TRUE, 
+      scrollY = "80vh"
+    )
+  )  
+}
+
+
+compact_cols <- function(data) {
+  mask_keep <- colSums(!is.na(data)) > 0
+  data[, mask_keep, drop = FALSE]
+}
+
+# checks <- kth_diva_checks()
+# 
+# stats <- function(x) 
+#   checks$stats %>% 
+#   dplyr::filter(name == x) %>% 
+#   dplyr::pull(value) %>% 
+#   (function(x) ifelse(x == 0, "✅",sprintf("(%s)❗", x)))
+
+```
+
+```{css, echo=FALSE}
+div.col_wrap div.bslib-column-wrap {
+  display: grid;
+}
+.tooltip-inner {max-width: 500px;}
+.dataTables_scrollBody {
+    max-height: 100vh !important;
+```
+
+```{r}
+#| message: false
+#| eval: true
+#| echo: false
+
+
+hrp <- hr_plus()
+
+hrp_extra <- function(hrp = hr_plus()) {
+    hrp |>
+    left_join(ss_employment_title, by = c("emp_code" = "id")) |>
+    mutate(is_uf_ta = is_uf_ta == "UF") |>
+    left_join(research_areas, by = c("scb_topic" = "id")) |>
+    rename(
+      "scb_topic_swe" = "swe",
+      "scb_topic_eng" = "eng",
+      "scb_topic_level" = "level"
+    )
+}
+
+hrpe <- hrp_extra()
+
+hrp_current <-
+  hrpe |>
+  filter(emp_beg <= lubridate::today(), emp_end > lubridate::today()) |>
+  group_by(kthid) |>
+  summarize(
+    across(c("emp_lastmod", "emp_end", "emp_beg"), max)
+  ) |>
+  arrange(desc(emp_lastmod), desc(emp_end), desc(emp_beg)) |>
+  inner_join(hrp) |>
+  unique()
+
+hrp_summary <-
+  hrpe |> group_by(kthid) |>
+  summarize(
+    elm = max(emp_lastmod),
+    ebeg = min(emp_beg),
+    eend = max(emp_end),
+    duration = eend - ebeg,
+    ttl = eend - Sys.Date(),
+    n = length(kthid),
+    yob = max(yob)
+  ) |>
+  arrange(desc(n), desc(elm))
+
+hrp <-
+  hrpe |>
+  distinct(kthid, unit_abbr, lastname, firstname, email) |>
+  mutate(username = gsub("@kth\\.se", "", email)) |>
+  mutate(fullname = trimws(paste0(lastname, ", ", firstname))) |>
+  select(-any_of(c("email", "lastname", "firstname")))
+
+check_hr_age_deviants <- function(max_age_years = 100) {
+  # employees older than old or began employment before birth
+  hrp_summary |> 
+  mutate(age_at_ebeg = lubridate::year(ebeg) - yob) |> 
+  filter(ebeg < Sys.Date() - max_age_years * 365 | age_at_ebeg < 0 | yob == 1900) |> 
+  left_join(hrpe, by = c("kthid", "yob")) |> 
+  select(kthid, ebeg, yob, duration, ttl, unit_abbr, lastname, firstname)
+}
+
+check_hr_long_end <- function(y_eend_from = 6, y_eend_to = 100) {
+  # employments that last for more than 6 years (PhD-students?)
+  # and less than very many years (employed for life?)
+  hrp_summary |> filter(
+    ttl > lubridate::duration(y_eend_from, units="years"),
+    ttl < lubridate::duration(y_eend_to, unit = "years")
+  ) |> 
+  left_join(hrp_current, by = "kthid") |> 
+  select(kthid, eend, duration, ttl, unit_abbr, lastname, firstname)
+}
+
+check_hr_elm <- function(offset = 60) {
+  # last modified date is set more than 2 months into the future
+  # or before the beginning date
+  hrp_summary |> 
+    filter(elm > Sys.Date() + offset | elm < ebeg) |> 
+  left_join(hrpe, by = "kthid") |> 
+  select(kthid, elm, ebeg, duration, ttl, unit_abbr, lastname, firstname) |> 
+  arrange(desc(ttl))
+}
+
+
+check_hr_topics <- function() {
+  ra <- 
+    research_areas |> 
+    mutate(emp_code = id |> as.integer() |> sprintf(fmt = "%05i")) |> 
+    mutate(scb_topic = id)
+  
+  hrp_current |>
+    filter(!scb_topic %in% c(unique(ra$scb_topic), "999"), !is.na(scb_topic)) |> 
+    count(scb_topic) |> 
+    left_join(hrp_current, by = "scb_topic") |> 
+    select(scb_topic, n, kthid, unit_abbr, unit_name, lastname, firstname)
+}
+
+check_hr_fullname <- function() {
+  re <- "\\s{2,}|[[:cntrl:]]|.*?\\s+$"
+  hrpe |> filter(grepl(re, lastname) | grepl(re, firstname)) |> 
+    select(kthid, unit_abbr, firstname, lastname)
+}
+
+```
+
+
+::: {.panel-tabset}
+
+## Age deviants
+
+Some employees might be older than 100 years or started employment before being born or may be born exactly on 1900 (anno domini).
+
+:::{.callout-note}
+Note that this is likely data quality issues (?)
+:::
+
+```{r}
+#| label: fig-age-deviants
+#| fig-cap: Age deviants
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt1 <- 
+  check_hr_age_deviants() |> 
+  datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt1, "Age deviants")
+
+```
+
+## Long employments
+
+Some employees have an employment end date set 6 years into the future (PhD student?), others have a employment end date set far into the future (life long employments?). Then there are a few outliers which have employments longer than 6 years but still set far in the future.
+
+:::{.callout-note}
+Note that many of these employemnts end in 2029, which is just slightly over 6 years. So might be in order, if these are PhD students?
+:::
+
+```{r}
+#| label: fig-long-employments
+#| fig-cap: Employees with employments ending long into the future
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt2 <- 
+  check_hr_long_end() |> 
+  datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt2, "Long employments")
+
+```
+
+## Last modified in the future
+
+Some employees have last modified dates that are set more than two months into the future. Or with a last modified date set before the employment started.
+
+:::{.callout-note}
+Note that these entries may be legit, but could also indicate a data quality issue.
+:::
+
+```{r}
+#| label: fig-future-lastmodified
+#| fig-cap: Employees with last modified date set two months into the future
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt3 <- 
+  check_hr_elm() |> 
+  datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt3, "Last modified in the future (or before employment started)")
+
+```
+
+## Deviant SCB topics
+
+Some employees have been tagged with SCB research area codes which seem deviant.
+
+:::{.callout-note}
+Note that some of these entries may be legit, but could also indicate a data quality issue.
+:::
+
+```{r}
+#| label: fig-topic-deviants
+#| fig-cap: Employees tagged with unusual SCB research area / topic codes
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt4 <- 
+  check_hr_topics() |> 
+  datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt4, "Deviant SCB research area topic codes")
+
+```
+
+## Control characters in names
+
+Some employee have names (firstnames and lastnames) which contain control characters (such as double spaces or tabs).
+
+:::{.callout-note}
+Due to the nature of some of these control characters, they may not be easy to spot in the table. Double or triple (or more) spaces, tabs and so on are caught in this test.
+:::
+
+```{r}
+#| label: fig-controlcharacters-in-names
+#| fig-cap: Employees with names that could be cleaned from control characters
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt5 <- 
+  check_hr_fullname() |> 
+  datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    extensions = "RowGroup",
+    options = list(
+#      rowGroup = list(dataSrc = 0),  # if rownames are used, increase index!
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt5, "Control characters in names")
+
+```
+
+:::

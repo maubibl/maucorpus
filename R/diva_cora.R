@@ -261,6 +261,9 @@ diva_organisations_cora <- function(domain = "kth", freetext) {
 }
 
 cora_fixup_persons <- function(data) {
+
+  domain <- familyName <- givenName <- public <- tsCreated <- NULL
+
   data |>
     mutate(ts = parse_ts(tsCreated)) |>
     tidyr::separate_longer_delim(cols = c("givenName"), delim = "|") |>
@@ -277,6 +280,8 @@ cora_fixup_persons <- function(data) {
 }
 
 diva_persons_cora <- function(search_term, my_domain = NULL) {
+
+  domain <- NULL
 
   persons <-
     cora_person_search(name = search_term, verbose = FALSE) |>

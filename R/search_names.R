@@ -44,7 +44,9 @@ match_near <- function(search_term, con = con_search(), colz, lookup) {
 extract_n_words <- function(x, n = 3) {
   re <- paste0("^((?:\\S+\\s+){", n, "}\\S+).*")
   sub(re, "\\1", x, perl = TRUE) |> tolower() |>
-    gsub(pattern = "[^[:alnum:] ]|and", replacement = "")
+    gsub(pattern = "[[:punct:]]", replacement = " ") |>
+    gsub(pattern = "^[[[:alnum:]]]", replacement = " ") |>
+    trimws()
 }
 
 # for a set of project names, this fcn looks for 0..* matches

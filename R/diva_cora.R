@@ -250,6 +250,7 @@ parse_ts <- function(x)
 #' @param domain string with domain, by default "kth"
 #' @param freetext string with freetext to search for
 #' @returns data frame with results
+#' @export
 diva_organisations_cora <- function(domain = "kth", freetext) {
 
   cora_organisation_search(verbose = FALSE,
@@ -258,3 +259,36 @@ diva_organisations_cora <- function(domain = "kth", freetext) {
   flatten_cora_records() |>
   cora_fixup_organisations()
 }
+
+cora_fixup_persons <- function(data) {
+  data |>
+    mutate(ts = parse_ts(tsCreated)) |>
+    tidyr::separate_longer_delim(cols = c("givenName"), delim = "|") |>
+    tidyr::separate_longer_delim(cols = c("familyName"), delim = "|") |>
+    mutate(name_variation = paste0(familyName, ", ", givenName)) |>
+    select(any_of(c("id", "ts", "public", "domain", "name_variation", "ORCID_ID", "academicTitle", "URL"))) |>
+    rename_with(.fn = \(x) ifelse(x == "ORCID_ID", "orcid", x)) |>
+    rename_with(.fn = \(x) ifelse(x == "academicTitle", "title", x)) |>
+    rename_with(.fn = \(x) ifelse(x == "URL", "url", x)) |>
+    rename_with(.fn = \(x) ifelse(x == "id", "author_id", x)) |>
+    mutate(orcid = replace(orcid, orcid == "", NA_character_)) |>
+    mutate(public = ifelse(public == "yes", TRUE, FALSE))
+
+}
+
+diva_persons_cora <- function(search_term, my_domain = NULL) {
+
+  persons <-
+    cora_person_search(name = search_term, verbose = FALSE) |>
+    flatten_cora_records()
+
+  if (nrow(persons) == 0) return(data.frame())
+
+  persons <- persons |> cora_fixup_persons()
+
+  if (!is.null(my_domain))
+    persons <- persons |> dplyr::filter(my_domain == domain)
+
+  persons
+}
+

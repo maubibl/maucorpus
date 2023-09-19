@@ -75,7 +75,7 @@ shr %>%
 
 # would these be new phd students?
 shr %>% filter(
-  ttl > lubridate::duration(5, units="years"),
+  ttl > lubridate::duration(6, units="years"),
   ttl < lubridate::duration(100, unit = "years")
 )
 
@@ -83,7 +83,7 @@ shr %>% filter(
 summary(shr)
 
 # is the 2101-02-01 elm max an outlier?
-shr %>% filter(elm == "2101-02-01")
+shr %>% filter(elm > Sys.Date() + 60)
 hr %>% filter(kthid == "u1pk4au0")
 
 

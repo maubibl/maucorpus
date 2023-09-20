@@ -17,6 +17,17 @@ jobs:
       name: Checkout
       uses: actions/checkout@v4
     -
+      name: Free Ubuntu runner disk space 🔧
+      uses: kfir4444/free-disk-space@main
+      with:
+        # frees about 6 GB, warning: may remove required tools
+        tool-cache: false
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        swap-storage: true
+    -
       name: Docker meta
       id: meta
       uses: docker/metadata-action@v5

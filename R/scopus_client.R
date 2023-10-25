@@ -181,15 +181,16 @@ scopus_search_doi <- function(doi) {
 #' @param end_loaddate date expressed as "yyyymmdd", by default current date
 #' @importFrom glue glue
 #' @export
-scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
+scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate,
+  include_early_access = FALSE, beg_pubyear) {
 
   if (missing(end_loaddate))
     end_loaddate <- Sys.Date() %>% format_date()
 
   if (missing(beg_loaddate))
-    beg_loaddate <- (Sys.Date() - 14) %>% format_date()
+    beg_loaddate <- (Sys.Date() - 7) %>% format_date()
 
-  beg_pubyear <- 2019L
+  #beg_pubyear <- 2019L
   id_affiliation <- 60002014L
 
   criteria <- glue::glue(
@@ -198,10 +199,14 @@ scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate) {
     '(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
     '(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
     'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
-    'orig-load-date aft {beg_loaddate} AND orig-load-date bef {end_loaddate} AND ',
-    'pubyear aft {beg_pubyear} AND NOT PUBSTAGE(AIP)'
+    'orig-load-date aft {beg_loaddate} AND orig-load-date bef {end_loaddate}'
   )
 
+  if (!missing(beg_pubyear))
+    criteria <- paste(criteria, glue::glue("AND pubyear aft {beg_pubyear}"))
+
+  if (!include_early_access)
+    criteria <- paste(criteria, "AND NOT PUBSTAGE(AIP)")
 
   # req <- httr::GET("https://api.elsevier.com/content/search/scopus",
   #   query = list(

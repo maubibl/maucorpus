@@ -5,15 +5,30 @@ read_from_minio <- function(fn) {
     readr::read_csv(show_col_types = F, na = "NA")
 }
 
+#' @noRd
+#' @importFrom readr read_csv
+read_s3 <- function(pathspec)
+  paste0("kthb/kthcorpus/", pathspec) |>
+  mc_read() |> readr::read_csv(show_col_types = F, na = "NA")
+
 #' Read scopus data from object storage
 #' @export
 scopus_from_minio <- function() {
   list(
-    publications = read_from_minio("scopus-publications.csv"),
-    affiliations = read_from_minio("scopus-affiliations.csv"),
-    authors = read_from_minio("scopus-authors.csv")
+    publications = "scopus-publications.csv" |> read_s3(),
+    affiliations = "scopus-affiliations.csv" |> read_s3(),
+    authors = "scopus-authors.csv" |> read_s3()
   )
 }
+
+# scopus_from_minio <- function() {
+#   list(
+#     publications = read_from_minio("scopus-publications.csv"),
+#     affiliations = read_from_minio("scopus-affiliations.csv"),
+#     authors = read_from_minio("scopus-authors.csv")
+#   )
+# }
+
 
 #' Read ORCiD kthid pairs from object storage
 #' @export

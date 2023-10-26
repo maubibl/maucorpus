@@ -20,6 +20,6 @@ jobs:
       TZ: Europe/Stockholm
     steps:
       - run: |
-          curl -LO https://quarto.org/download/latest/quarto-linux-amd64.deb
+          curl -o quarto-linux-amd64.deb -L https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.449/quarto-1.4.449-linux-amd64.deb
           gdebi --non-interactive quarto-linux-amd64.deb
           R -e 'kthcorpus:::publish_qmd_report()'

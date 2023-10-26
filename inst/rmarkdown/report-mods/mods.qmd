@@ -1,0 +1,406 @@
+---
+title: "MODS from Scopus"
+title-block-banner: "#000061"
+subtitle: "This report generates files in DiVA MODS-format"
+description: "These files can be used to update the DiVA KTH corpus of publications"
+date: last-modified
+date-format: "YYYY-MM-DD"
+mainfont: figtree
+sansfont: georgia
+footnotes-hover: true
+reference-location: margin
+lang: en
+number-sections: false
+crossref:
+  chapters: true
+#author:
+#  - name: Osquar Osquarsson
+#    orcid: 0000-0002-4649-3651
+#    email: osquar@kth.se
+#    url: https://kth.se
+#    affiliations:
+#      - name: KTH Library
+#        address: Osquars backe 30
+#        city: Stockholm
+#        postal-code: 100 00
+#        url: kth.se/biblioteket
+highlight-style: pygments
+fig-cap-location: top
+format:
+  kth-quarto-html:
+    embed-resources: true
+engine: knitr
+params:
+  use_minio: TRUE
+# if use_minio is TRUE, the date params will NOT be used
+# set use_minio to FALSE if using date params below...
+# for example: begdate: "2023-10-26" and enddate: "2023-10-26"
+  begdate: !expr (Sys.Date() - 7)
+  enddate: !expr Sys.Date()
+---
+
+```{r}
+#| echo: false
+#| message: false
+
+library(ktheme)
+
+# colors
+#  [1] "blue"        "yellow"      "green"       "red"         "teal"        "gray"       
+#  [7] "lightblue"   "lightyellow" "lightgreen"  "pink"        "lightteal"   "sand"       
+# [13] "darkblue"    "darkyellow"  "darkgreen"   "darkred"     "darkteal"    "darkgray"   
+
+kthcol <- function(color_name) {
+  pal <- ktheme::palette_kth_neo(18)
+  if (!color_name %in% names(pal))
+    stop("Please state one of these named colors: ", names(pal))
+  pal[color_name] |> unname()
+}
+
+library(DT)
+
+# function to display fancy table with links
+fancy_table <- function(data, compact = FALSE) {
+  
+  my_dom <- "tip"
+  
+  if (compact || nrow(data) < 20)
+    my_dom <- "t"
+  
+  DT::datatable(data, 
+    #fillContainer = TRUE,
+    #filter = "top",
+    escape = FALSE,
+    rownames = FALSE, 
+    #style = "bootstrap",
+    #class = "table-borderless table-sm", 
+    #width = "90%",
+    options = list(
+      pageLength = 20,
+      scrollX = TRUE, 
+      #scrollY = "800px",
+    # l - length changing input control
+    # f - filtering input
+    # t - The table!
+    # i - Table information summary
+    # p - pagination control
+    # r - processing display element
+      dom = 'tip',
+      searching = FALSE,
+      ordering = TRUE
+    )
+  ) #|> 
+  #htmltools::tagList() |> 
+ # htmltools::browsable()
+  
+} 
+
+library(kthcorpus)
+
+if (params$use_minio) {
+  scopus <- scopus_from_minio()
+} else {
+  scopus <- scopus_search_pubs_kth(params$begdate, params$enddate)
+}
+
+n_pubs <- nrow(scopus$publications)
+n_affs <- nrow(scopus$affiliations)
+n_authors <- nrow(scopus$authors)
+
+```
+
+## Summary
+
+Period: Scopus records from `r params$begdate` to `r params$enddate`.
+
+This report was generated at `r Sys.time()`. `r if (!params$use_minio) "Requests against Scopus API were made (no usage of object store \"Minio\")"`
+
+```{r}
+#| message: false
+#| layout-ncol: 3
+#| echo: false
+
+library(bslib)
+
+bslib::value_box(
+  "Publications", n_pubs, 
+  theme_color = kthcol("sand"), 
+  showcase = bsicons::bs_icon("book")
+)
+
+bslib::value_box(
+  "Affiliations", n_affs, 
+  theme_color = kthcol("lightteal"), 
+  showcase = bsicons::bs_icon("hospital")
+)
+
+bslib::value_box(
+  "Authors", n_authors, 
+  theme_color = kthcol("lightgreen"), 
+  showcase = bsicons::bs_icon("person")
+)
+
+```
+
+## Publication types
+
+```{r}
+#| echo: false
+#| message: false
+
+library(kthcorpus)
+library(dplyr)
+library(purrr)
+
+keys <-
+  scopus$publications |>
+  group_by(`prism:aggregationType`, subtypeDescription) |>
+  count() |> arrange(desc(n)) |>
+  purrr::pmap_chr(.f =  function(`prism:aggregationType`, subtypeDescription, ...)
+    kthcorpus:::frag_genre2(`prism:aggregationType`, subtypeDescription) |> names())
+
+
+scopus$publications |>
+  group_by(`prism:aggregationType`, subtypeDescription) |>
+  count() |> arrange(desc(n)) |>
+  bind_cols(key = keys) |> 
+  fancy_table()
+
+```
+
+## Already in DiVA
+
+Crosschecking with DiVA publications at `r Sys.time()` indicates that these Scopus records are already present in DiVA based on their ScopusIDs.
+
+```{r}
+#| echo: false
+#| message: false
+
+# We can see which of those in the Scopus batch that already have been imported in DiVA
+# (matches on ScopusId)
+
+# in case we have stale DiVA data locally
+is_refreshed <- diva_refresh() |> suppressWarnings()
+
+pubs <- kth_diva_pubs()
+
+already_imported <-
+  pubs |> filter(ScopusId %in% scopus$publications$eid) |> select(PID, DOI, ScopusId)
+
+already_imported |> 
+  mutate(
+    PID = linkify(PID, target = "PID"), 
+    DOI = linkify(DOI, target = "DOI"), 
+    ScopusId = linkify(ScopusId, target = "ScopusID")
+  ) |> 
+  rename(`DOI in DiVA` = DOI) |> 
+  fancy_table()
+```
+
+## Updatable ScopusIds in DiVA
+
+Matching these Scopus records against DiVA using DOIs at `r Sys.time()`, we find DiVA records that could be linked to Scopus records using these identifiers:
+
+```{r}
+#| echo: false
+#| message: false
+
+# We now match on DOIs instead, DiVA could add these ScopusIds (currently missing)
+
+scopus$publications$doi_lower <- 
+  scopus$publications$`prism:doi` |> tolower()
+
+pubs$doi_lower <- 
+  pubs$DOI |> tolower()
+
+pids_to_exclude <- 
+  already_imported |> filter(!is.na(DOI)) |> pull(PID)
+
+# TODO: to_lower for this join
+pids_with_doi_and_missing_scopusid <-
+  pubs |> 
+  filter(doi_lower %in% na.omit(scopus$publications$doi_lower)) |>
+  filter(! (PID %in% pids_to_exclude)) |> 
+  left_join(scopus$publications, by = "doi_lower") |>
+  select(PID, DOI = doi_lower, ScopusId = eid) |>
+  anti_join(already_imported, by = c("PID", "DOI", "ScopusId"))
+
+pids_with_doi_and_missing_scopusid |> 
+  mutate(
+    PID = linkify(PID, target = "PID"), 
+    DOI = linkify(DOI, target = "DOI"), 
+    ScopusId = linkify(ScopusId, target = "ScopusID")
+  ) |> 
+  fancy_table()
+
+# this file could be imported to DiVA (PID and ScopusID pairs)
+# this is an update in DiVA of existing records
+#pids_with_doi_and_missing_scopusid |> select(-DOI) |>
+#  write_csv("~/temp/modz/scopusid_updates_to_diva_support.csv")
+```
+
+This file could be imported to DiVA (use Firefox to download the CSV file):
+
+```{r}
+#| echo: false
+#| message: false
+
+library(bsplus)
+
+my_image_uri <- function(df) {
+  rc <- rawConnection(raw(), "r+")
+  on.exit(close(rc))
+  write.csv(pids_with_doi_and_missing_scopusid, rc)
+  my_csv <- rawConnectionValue(rc)
+  base64enc::dataURI(my_csv, mime = "text/csv")
+}
+  
+
+download_button <- function(df, button_icon = "fa fa-save", button_label = "Download CSV", button_type = "primary") {
+  bs_button(
+    label = htmltools::HTML(paste(htmltools::tags$i(class = button_icon), button_label)), button_type = button_type, button_size = "large"
+  ) |> 
+  htmltools::a(href = my_image_uri(df), target = "_blank") |> 
+  htmltools::attachDependencies(fontawesome::fa_html_dependency(), append = TRUE)
+}
+
+download_button(pids_with_doi_and_missing_scopusid)
+```
+
+
+## Downloadable MODS-Collection files
+
+Here are links to downloadable MODS-Collection files for each of these three categories:
+
+-   Articles
+-   Conference Papers
+-   Other
+
+The generated files have been chunked into MODS-Collections of at the most 25 items.
+
+```{r}
+#| echo: false
+#| message: false
+
+#scopus$publications <- scopus$publications |> head(10)
+kthid_orcid_lookup <- kthcorpus::kthid_orcid()
+
+import <-
+  scopus$publications |> filter(
+    # exclude from the Scopus import, because those are already imported
+    !eid %in% pids_with_doi_and_missing_scopusid$ScopusId,
+    !eid %in% already_imported$ScopusId
+  )
+
+sids_cp <-
+  import |>
+  filter(
+#    `prism:aggregationType` == "Conference Proceeding",
+    `subtypeDescription` == "Conference Paper") |>
+  pull(`dc:identifier`)
+
+sids_ar <-
+  import |>
+  filter(
+#    `prism:aggregationType` == "Conference Proceeding",
+    `subtypeDescription` == "Article") |>
+  pull(`dc:identifier`)
+
+sids_erratum <-
+  import |>
+  filter(
+#    `prism:aggregationType` == "Conference Proceeding",
+    `subtypeDescription` == "Erratum") |>
+  pull(`dc:identifier`)
+
+sids_other <-
+  import |> filter(!`dc:identifier` %in% c(sids_cp, sids_ar, sids_erratum)) |>
+  pull(`dc:identifier`)
+
+my_mods_ar <- scopus_mods_crawl(sids = sids_ar, 
+  scopus = scopus, ko = kthid_orcid_lookup)
+
+my_mods_cp <- scopus_mods_crawl(sids = sids_cp, 
+  scopus = scopus, ko = kthid_orcid_lookup)
+
+my_mods_erratum <- scopus_mods_crawl(sids = sids_erratum, 
+  scopus = scopus, ko = kthid_orcid_lookup)
+
+my_mods_other <- scopus_mods_crawl(sids = sids_other, 
+  scopus = scopus, ko = kthid_orcid_lookup)
+
+all_fails <- tibble(sid = c(
+  my_mods_ar |> attr("debug") |> _$fails,
+  my_mods_cp |> attr("debug") |> _$fails,
+  my_mods_other |> attr("debug") |> _$fails,
+  my_mods_erratum |> attr("debug") |> _$fails
+))
+
+other <- my_mods_other |> kthcorpus:::create_diva_modscollection() 
+articles <- my_mods_ar |> kthcorpus:::create_diva_modscollection()
+erratum <- my_mods_erratum |> kthcorpus:::create_diva_modscollection()
+cp <- my_mods_cp |> kthcorpus:::create_diva_modscollection() 
+
+df_articles <- tibble(`dc:identifier` = sids_ar, mods = articles)
+df_other <- tibble(`dc:identifier` = sids_other, mods = other)
+df_cp <- tibble(`dc:identifier` = sids_cp, mods = cp)
+df_erratum <- tibble(`dc:identifier` = sids_erratum, mods = erratum)
+
+#df_articles |> fancy_table()
+#df_other |> fancy_table()
+#df_cp |> fancy_table()
+
+td <- tempdir()
+#on.exit(unlink(td, recursive = TRUE))
+
+outdir <- file.path(Sys.time() |> 
+  strftime(format = "%Y%m%d_%H%m%S"))
+
+is_created <- dir.create(outdir, recursive = TRUE)
+
+# TODO: this data interval might not be representative of what minio provides!
+# if params$use_mino is true
+
+prefix_interval <- paste0(params$begdate, "_", params$enddate)
+
+write_mods_chunked(my_mods_other, outdir, 
+  prefix = sprintf("mods-other_%s", prefix_interval))
+
+write_mods_chunked(my_mods_ar, outdir, 
+  prefix = sprintf("mods-ar_%s", prefix_interval))
+
+write_mods_chunked(my_mods_cp, outdir, 
+  prefix = sprintf("mods-cp_%s", prefix_interval))
+
+write_mods_chunked(my_mods_erratum, outdir, 
+  prefix = sprintf("mods-erratum_%s", prefix_interval))
+
+readme_fn <- file.path(outdir, 
+  paste0("INTERVAL_", prefix_interval))
+
+is_created <- file.create(readme_fn)
+
+readr::write_csv(pids_with_doi_and_missing_scopusid, 
+  file.path(outdir, sprintf("kth_updates_%s.csv", prefix_interval)))
+
+if (nrow(all_fails) > 0)
+  readr::write_csv(all_fails,
+    file.path(outdir, sprintf("sid_fails_%s.csv", prefix_interval)))
+
+# mirror to minio
+src <- outdir
+tgt <- file.path("kthb/kthcorpus/mods", basename(outdir))
+
+# generate table for display with links to the files at minio
+filez <- dir(outdir, pattern = c("\\.xml|\\.csv"))
+
+links <- file.path(outdir, filez)
+#  file.path(
+#    "https://data.bibliometrics.lib.kth.se/kthcorpus/mods",
+#    basename(outdir), filez
+#  )
+
+tibble(Download = linkify(links, text = filez, title = filez)) |> 
+  fancy_table()
+
+```

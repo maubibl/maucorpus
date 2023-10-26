@@ -12,7 +12,9 @@ keys <-
   scopus$publications |>
   group_by(`prism:aggregationType`, subtypeDescription) |>
   count() |> arrange(desc(n)) |>
-  purrr::pmap_chr(.f = function(`prism:aggregationType`, subtypeDescription, ...) frag_genre2(`prism:aggregationType`, subtypeDescription) |> names())
+  purrr::pmap_chr(.f =  function(`prism:aggregationType`, subtypeDescription, ...)
+    frag_genre2(`prism:aggregationType`, subtypeDescription) |> names())
+
 
 scopus$publications |>
   group_by(`prism:aggregationType`, subtypeDescription) |>
@@ -39,19 +41,18 @@ pubs <- kth_diva_pubs()
 already_imported <-
   pubs |> filter(ScopusId %in% scopus$publications$eid) |> select(PID, DOI, ScopusId)
 
-# We now match on DOIs instead DiVA could add these ScopusIds (currently missing)
+# We now match on DOIs instead, DiVA could add these ScopusIds (currently missing)
 pids_with_doi_and_missing_scopusid <-
   pubs |>
   filter(DOI %in% na.omit(scopus$publications$`prism:doi`)) |>
   left_join(scopus$publications, by = c("DOI" = "prism:doi")) |>
-  select(PID, DOI, ScopusId = eid)
+  select(PID, DOI, ScopusId = eid) |>
+  anti_join(already_imported, by = c("PID", "DOI", "ScopusId"))
 
 # this file could be imported to DiVA (PID and ScopusID pairs)
 # this is an update in DiVA of existing records
 pids_with_doi_and_missing_scopusid |> select(-DOI) |>
   write_csv("~/temp/modz/scopusid_updates_to_diva_support.csv")
-
-intersect(pids_with_doi_and_missing_scopusid$ScopusId, already_imported$ScopusId)
 
 # these could be imported from Scopus, since not already imported
 # this is creating new records in DiVA
@@ -99,44 +100,54 @@ system("firefox ~/temp/modz/scopus_other.xml")
 
 # Search in Scopus for a specific time period
 beg <- as.Date("2023-01-01")
-end <- as.Date("2023-02-28")
+end <- as.Date("2023-05-31")
 scopus <- scopus_search_pubs_kth(beg, end)
+diva_refresh()
 pubs <- kth_diva_pubs()
 
+# there are the DiVA "keys" mapping to given combinations / "publication types"
 # investigation of combos not yet covered in "frag_genre2" (ie mappings to DiVA)
+
+scopus$publications |>
+  group_by(`prism:aggregationType`, subtypeDescription) |>
+  count() |> arrange(desc(n)) |>
+  left_join(genre_scopus_diva() |> rename(subtypeDescription = subtype))
+
 scopus$publications |>
   filter(
-    `prism:aggregationType` == "Journal",
-    subtypeDescription == "Short Survey"
+    `prism:aggregationType` == "Trade Journal",
+    subtypeDescription == "Review"
   ) |>
   pull(`dc:identifier`) |>
   scopus_browse()
 
-# there are the DiVA "keys" mapping to given combinations / "publication types"
-keys <-
-  scopus$publications |>
-  group_by(`prism:aggregationType`, subtypeDescription) |>
-  count() |> arrange(desc(n)) |>
-  purrr::pmap_chr(.f = function(`prism:aggregationType`, subtypeDescription, ...)
-    frag_genre2(`prism:aggregationType`, subtypeDescription) |> names())
-
-scopus$publications |>
-  group_by(`prism:aggregationType`, subtypeDescription) |>
-  count() |> arrange(desc(n)) |>
-  bind_cols(key = keys)
+sids <- scopus$publications |> filter(subtype == "cp") |> pull("dc:identifier")
+eids <- scopus$publications |> filter(subtype == "cp") |> pull("eid")
+dois <- scopus$publications |> filter(subtype == "cp") |> pull("prism:doi")
+# keys <-
+#   scopus$publications |>
+#   group_by(`prism:aggregationType`, subtypeDescription) |>
+#   count() |> arrange(desc(n)) |>
+#   purrr::pmap_chr(.f = function(`prism:aggregationType`, subtypeDescription, ...)
+#     frag_genre2(`prism:aggregationType`, subtypeDescription) |> names())
+#
+# scopus$publications |>
+#   group_by(`prism:aggregationType`, subtypeDescription) |>
+#   count() |> arrange(desc(n)) |>
+#   bind_cols(key = keys)
 
 # We can see which of those in the Scopus batch that already have been imported in DiVA
 # (because they match on ScopusId)
 already_imported <-
   pubs |>
-  filter(ScopusId %in% scopus$publications$eid) |>
+  filter(ScopusId %in% eids) |>
   select(PID, DOI, ScopusId)
 
-# We now match on DOIs instead... DiVA could add these ScopusIds (currently missing)
+# We now match on DOIs instead... DiVA support could add these ScopusIds (currently missing)
 pids_with_doi_and_missing_scopusid <-
   pubs |>
-  filter(DOI %in% na.omit(scopus$publications$`prism:doi`)) |>
-  left_join(scopus$publications, by = c("DOI" = "prism:doi")) |>
+  filter(DOI %in% na.omit(dois)) |>
+  left_join(scopus$publications |> filter(eid %in% eids), by = c("DOI" = "prism:doi")) |>
   select(PID, DOI, ScopusId = eid)
 
 # this file could be imported to DiVA (PID and ScopusID pairs)
@@ -150,6 +161,7 @@ intersect(pids_with_doi_and_missing_scopusid$ScopusId, already_imported$ScopusId
 # this is creating new records in DiVA
 import <-
   scopus$publications |> filter(
+    eid %in% eids,
     # exclude from the Scopus import, because those are already imported
     !eid %in% pids_with_doi_and_missing_scopusid$ScopusId,
     !eid %in% already_imported$ScopusId
@@ -162,35 +174,44 @@ sids_cp <-
     `subtypeDescription` == "Conference Paper") |>
   pull(`dc:identifier`)
 
-sids_ar <-
-  import |>
-  filter(
-#    `prism:aggregationType` == "Conference Proceeding",
-    `subtypeDescription` == "Article") |>
-  pull(`dc:identifier`)
+# sids_ar <-
+#   import |>
+#   filter(
+# #    `prism:aggregationType` == "Conference Proceeding",
+#     `subtypeDescription` == "Article") |>
+#   pull(`dc:identifier`)
+#
+# sids_other <-
+#   import |> filter(!`dc:identifier` %in% c(sids_cp, sids_ar)) |>
+#   pull(`dc:identifier`)
 
-sids_other <-
-  import |> filter(!`dc:identifier` %in% c(sids_cp, sids_ar)) |>
-  pull(`dc:identifier`)
+#my_mods_ar <- scopus_mods_crawl(sids = sids_ar, scopus = scopus, ko = kthid_orcid_lookup)
 
-my_mods_ar <- scopus_mods_crawl(sids = sids_ar, scopus = scopus, ko = kthid_orcid_lookup)
+#my_mods_markus <- scopus_mods_crawl(sids = "SCOPUS_ID:85159787071", scopus = scopus, ko = kthid_orcid_lookup)
 my_mods_cp <- scopus_mods_crawl(sids = sids_cp, scopus = scopus, ko = kthid_orcid_lookup)
-my_mods_other <- scopus_mods_crawl(sids = sids_other, scopus = scopus, ko = kthid_orcid_lookup)
+# no confinfo found for these identifiers:
+ # SCOPUS_ID:85153507418
+ # SCOPUS_ID:85152489651
+ # SCOPUS_ID:85151018475
+ # SCOPUS_ID:85150529759
+ # SCOPUS_ID:85148497118
+ # SCOPUS_ID:85146304521
+#my_mods_other <- scopus_mods_crawl(sids = sids_other, scopus = scopus, ko = kthid_orcid_lookup)
 
 #system("mkdir -p ~/temp/modz")
 
-my_mods_other |> create_diva_modscollection() |> write_file("~/temp/modz/scopus_other.xml")
-my_mods_ar |> create_diva_modscollection() |> write_file("~/temp/modz/scopus_ar.xml")
+#my_mods_other |> create_diva_modscollection() |> write_file("~/temp/modz/scopus_other.xml")
+#my_mods_ar |> create_diva_modscollection() |> write_file("~/temp/modz/scopus_ar.xml")
 my_mods_cp |> create_diva_modscollection() |> write_file("~/temp/modz/scopus_cp.xml")
 
 system("firefox ~/temp/modz/scopus_cp.xml")
-system("firefox ~/temp/modz/scopus_ar.xml")
-system("firefox ~/temp/modz/scopus_other.xml")
+#system("firefox ~/temp/modz/scopus_ar.xml")
+#system("firefox ~/temp/modz/scopus_other.xml")
 
 # 25-batches per "type" (article, conference proceedings, other)
 system("mkdir -p ~/temp/modz/other ~/temp/modz/ar ~/temp/modz/cp")
-write_mods_chunked(my_mods_other, "~/temp/modz/other")
-write_mods_chunked(my_mods_ar, "~/temp/modz/ar")
+#write_mods_chunked(my_mods_other, "~/temp/modz/other")
+#write_mods_chunked(my_mods_ar, "~/temp/modz/ar")
 write_mods_chunked(my_mods_cp, "~/temp/modz/cp")
 
 # these files can now be uploaded to kthb/kthcorpus/mods
@@ -201,6 +222,15 @@ scopus$publications |>
   mutate(y = year(`prism:coverDate`)) |>
   mutate(is_earlybird = `prism:coverDate` > Sys.Date()) |>
   filter(!is_earlybird)
+
+# we do not want publications which have not yet been properly filled with
+# information about volume, issue, pages... what is a good criteria to catch these?
+
+# wos is better at signalling when a publication is "ready" and not "early bird" with
+# respect to metadata...
+
+
+
 
 #### Scopus publikationer från v 35 och 36 år 2022
 
@@ -507,3 +537,46 @@ chunks_other <-
 # process the chunks for the "non-nordita" identifiers
 1:max(chunks_other$chunk) |>
   walk(function(x) pc(chunks_other, x, "/tmp/3b_other"), .progress = TRUE)
+
+#
+
+library(tidyverse)
+
+# these are examples of scopus identifiers associated with many authors (> 30)
+eids <-
+"2-s2.0-85148497118
+2-s2.0-85146304521
+2-s2.0-85152489651
+2-s2.0-85149933573
+2-s2.0-85149912365
+2-s2.0-85149505088
+2-s2.0-85149564601" |>
+  read_lines()
+
+scopus_search_id(eids)
+
+.Last.value -> a
+
+# which "combos" are these?
+a$publications |> group_by(`prism:aggregationType`, subtypeDescription) |> count() |>
+  ungroup() |>
+  rename(subtype = subtypeDescription) |>
+  left_join(genre_scopus_diva())
+
+b <- eids |>  map(.progress = TRUE, possibly(scopus_abstract_extended))
+
+
+# Number of authors?
+
+eid <- "2-s2.0-85149045814"
+d <- eid |> scopus_abstract_extended()
+
+d$scopus_authors
+
+
+params <- scopus_mods_params(
+    scopus = scopus_search_id(eid) |> suppressMessages(),
+    sid = gsub("2-s2.0-", "", eid)
+  )
+
+params |> create_diva_mods()

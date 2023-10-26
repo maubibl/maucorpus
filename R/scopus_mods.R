@@ -137,7 +137,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   # but only there do we get the orcid (?)
 
   sae_n_authors <-
-    sae$scopus_authors$seq |> unique() |> length()
+    sae$scopus_authors$auid |> unique() |> length() # NB: changed to auid from seq
 
   if (sae_n_authors >= 30) {
     notes <-
@@ -206,7 +206,8 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   if (sae_n_authors >= 30) {
     author_first <- my_authorz |> head(1)
     author_last <- my_authorz |> tail(1)
-    my_authorz <- bind_rows(author_first, authors_kth, author_last)
+    author_etal <- tibble(rowid = NA, surname = "et al.", `given_name` = NA, seq = +Inf, raw_org = NA, orcid = NA)
+    my_authorz <- bind_rows(author_first, authors_kth, author_last, author_etal)
   }
 
   suggestions <- authors_kth

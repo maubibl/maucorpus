@@ -4,12 +4,22 @@
 \alias{scopus_search_pubs_kth}
 \title{Retrieve publications from Scopus API from KTH - The Royal Institute of Technology.}
 \usage{
-scopus_search_pubs_kth(beg_loaddate, end_loaddate)
+scopus_search_pubs_kth(
+  beg_loaddate,
+  end_loaddate,
+  include_early_access = FALSE,
+  beg_pubyear
+)
 }
 \arguments{
 \item{beg_loaddate}{date expressed as "yyyymmdd", by default current date minus 7 days}
 
 \item{end_loaddate}{date expressed as "yyyymmdd", by default current date}
+
+\item{include_early_access}{logical, by default FALSE}
+
+\item{beg_pubyear}{optional parameter to restrict criteria to include records after
+a specific publication year}
 }
 \description{
 This function allows for using the "load date" when fetching publications for

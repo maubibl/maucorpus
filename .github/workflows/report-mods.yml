@@ -1,0 +1,23 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/report-mods.yml'
+  schedule:
+    - cron: '0 12 * * 3' # https://crontab.guru/#0_7_*_*_*
+
+name: Generate MODS report
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    container: ghcr.io/kth-library/kthcorpus
+    timeout-minutes: 20
+    env:
+      MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
+      TZ: Europe/Stockholm
+    steps:
+      - run: |
+          R -e 'kthcorpus:::publish_qmd_report()'

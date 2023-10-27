@@ -44,9 +44,8 @@ publish_qmd_report <- function(src = qmd_path(), params = qmd_params(),
 
   d6 <- strftime(Sys.time(), "%Y%m%d_%H%M")
   dst <- file.path(destdir, d6)
-  message("Publishing ", tgt, " to ", dst)
-  minioclient::mc_mirror(tgt, dst, overwrite = TRUE)
-  #my_cmd <- glue::glue("mc mirror {tgt} {dst}")
-  #cmd_result <- system(my_cmd)
 
+  message("Publishing ", tgt, " to ", dst)
+  options("minioclient.dir" = dirname(Sys.which("mc")))
+  minioclient::mc_mirror(tgt, dst, overwrite = TRUE)
 }

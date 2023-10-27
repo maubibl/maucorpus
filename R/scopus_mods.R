@@ -33,10 +33,10 @@ scopus_from_minio <- function() {
 #' Read ORCiD kthid pairs from object storage
 #' @export
 kthid_orcid <- function() {
-  "ug_kthid_orcid.csv" |> read_from_minio() |>
+  "ug_kthid_orcid.csv" |> read_s3() |>
   select("kthid" = 1, "orcid" = 2) |>
   bind_rows(
-    "diva_kthid_orcid.csv" |> read_from_minio()
+    "diva_kthid_orcid.csv" |> read_s3()
   ) |> dplyr::distinct(kthid, orcid)
 }
 

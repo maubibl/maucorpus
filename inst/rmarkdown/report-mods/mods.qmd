@@ -18,11 +18,12 @@ fig-cap-location: top
 embed-resources: true
 format:
   kth-quarto-html:
+    self-contained: true
     include-in-header: 
       - kth-favicon.css
 engine: knitr
 params:
-  use_minio: true
+  use_minio: "true"
 # if use_minio is true, the date params will NOT be used
 # set use_minio to false if using date params below...
 # for example: begdate: "2023-10-26" and enddate: "2023-10-26"
@@ -93,7 +94,7 @@ Period: Scopus records from `r params$begdate` to `r params$enddate`.
 
 This report was generated at `r Sys.time()`. 
 
-`r if (params$use_minio == "true" || params$use_minio == TRUE) "Requests against Scopus API were made (no usage of object store \"Minio\")"`
+`r if (!(params$use_minio == "true" || params$use_minio == TRUE)) "Requests against Scopus API were made (no usage of object store \"Minio\")"`
 
 ```{r}
 #| message: false
@@ -102,23 +103,27 @@ This report was generated at `r Sys.time()`.
 
 library(bslib)
 
-bslib::value_box(
-  "Publications", n_pubs, 
-  theme_color = kth_colors("sand"), 
+value_box(
+  "Publications", n_pubs,
+  #theme_color = kth_colors("sand"),
+  theme = value_box_theme(bg = kth_colors("sand")), 
   showcase = bsicons::bs_icon("book")
-)
+) |> suppressWarnings()
 
-bslib::value_box(
+value_box(
   "Affiliations", n_affs, 
-  theme_color = kth_colors("lightteal"), 
+  #theme_color = kth_colors("lightteal"),
+  theme = value_box_theme(bg = kth_colors("lightteal")), 
   showcase = bsicons::bs_icon("hospital")
-)
+) |> suppressWarnings()
 
-bslib::value_box(
+
+value_box(
   "Authors", n_authors, 
-  theme_color = kth_colors("lightgreen"), 
+  #theme_color = kth_colors("lightgreen"),
+  theme = value_box_theme(bg = kth_colors("lightgreen")), 
   showcase = bsicons::bs_icon("person")
-)
+) |> suppressWarnings()
 
 ```
 

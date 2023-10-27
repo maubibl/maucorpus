@@ -16,6 +16,8 @@ jobs:
     container: ghcr.io/kth-library/kthcorpus
     timeout-minutes: 20
     env:
+      SCOPUS_API_KEY: ${{ secrets.SCOPUS_API_KEY }}
+      SCOPUS_API_INSTTOKEN: ${{ secrets.SCOPUS_API_INSTTOKEN }}
       MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
       TZ: Europe/Stockholm
     steps:

@@ -460,7 +460,7 @@ scopus_mods_crawl <- function(sids, scopus = scopus_from_minio(), ko = kthid_orc
   message("Returning ", length(my_mods), " MODS invisibly")
 
   if (length(debug$fails) > 0)
-    warning("Failed conversion for these identifiers:\n",
+    warning("\nFailed conversion for these identifiers:\n",
       paste0(collapse = "\n", sep = " ", debug$fails))
 
   invisible(structure(my_mods, debug = debug))

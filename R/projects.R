@@ -1,5 +1,5 @@
 #' @import dplyr cordis
-kth_cordis <- function() {
+kth_cordis <- function(use_refresh = FALSE) {
   #devtools::install_github("kth-library/cordis")
 
   if (!requireNamespace("cordis", quietly = TRUE)) {
@@ -11,7 +11,7 @@ kth_cordis <- function() {
 
   shortName <- projectID <- projectAcronym <- totalCost <- NULL
 
-  cordis::cordis_import(refresh = TRUE)
+  cordis::cordis_import(refresh = use_refresh)
 
   #cordis:::cordis_dropdb(confirm = TRUE)
   #cordis::cordis_import()
@@ -37,10 +37,11 @@ kth_cordis <- function() {
     pull(projectID)
 
   fp7_projects <-
-    con |> tbl("fp7_project") |> filter(id %in% fp7_project_ids) |> collect() |>
-    mutate(totalCost = readr::parse_number(totalCost)) #|>
-  #arrange(desc(totalCost)) |>
-  #pull(totalCost)
+    con |> tbl("fp7_project") |> filter(id %in% fp7_project_ids) |> collect()
+
+  if (is.character(fp7_projects$totalCost)) {
+    fp7_projects$totalCost <- readr::parse_number(fp7_projects$totalCost)
+  }
 
   h2020_project_ids <-
     con |> tbl("h2020_organization") |>
@@ -254,7 +255,8 @@ kth_openaire <- function(format = c("tsv", "xml")) {
 
 projects_upload <- function() {
 
-  kth_cordis <- kth_cordis() #
+  #TODO: Investigate https://github.com/rstudio/renv/commit/da7bffd747b05384a99e0d4be0bf372d0b6364a1
+  #kth_cordis <- kth_cordis() #
   kth_formas <- kth_formas() # 21 s, ca 471 projects
   kth_vinnova <- kth_vinnova() # 441 projects, ca 4 minutes
 
@@ -271,7 +273,7 @@ projects_upload <- function() {
   wcsv <- function(x, f) readr::write_csv(x = x, file = f, na = "")
 
   kth_openaire |> wcsv("/tmp/projects_openaire.csv")
-  kth_cordis |> wcsv("/tmp/projects_cordis.csv")
+  #kth_cordis |> wcsv("/tmp/projects_cordis.csv")
   kth_vinnova |> wcsv("/tmp/projects_vinnova.csv")
   kth_formas |> wcsv("/tmp/projects_formas.csv")
   kth_swecris |> wcsv("/tmp/projects_swecris.csv")
@@ -282,7 +284,7 @@ projects_upload <- function() {
 
   #diva_upload_s3("/tmp/kthid_orcid.csv")
   diva_upload_s3("/tmp/projects_openaire.csv")
-  diva_upload_s3("/tmp/projects_cordis.csv")
+  #diva_upload_s3("/tmp/projects_cordis.csv")
   diva_upload_s3("/tmp/projects_vinnova.csv")
   diva_upload_s3("/tmp/projects_formas.csv")
   diva_upload_s3("/tmp/projects_swecris.csv")

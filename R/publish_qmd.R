@@ -46,6 +46,9 @@ publish_qmd_report <- function(src = qmd_path(), params = qmd_params(),
   dst <- file.path(destdir, d6)
 
   message("Publishing ", tgt, " to ", dst)
-  options("minioclient.dir" = dirname(Sys.which("mc")))
-  minioclient::mc_mirror(tgt, dst, overwrite = TRUE)
+  #options("minioclient.dir" = dirname(Sys.which("mc")))
+  #minioclient::mc_mirror(tgt, dst, overwrite = TRUE)
+
+  mc_cmd <- glue::glue("mc mirror --overwrite {tgt} {dst}")
+  system(mc_cmd)
 }

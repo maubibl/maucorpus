@@ -15,6 +15,8 @@ qmd_params <- function(begdate, enddate) {
   return(params)
 }
 
+#' @noRd
+#' @importFrom R.utils copyDirectory
 publish_qmd_report <- function(src = qmd_path(), params = qmd_params(),
   destdir = "kthb/kthcorpus/mods", cleanup = TRUE) {
 
@@ -23,7 +25,7 @@ publish_qmd_report <- function(src = qmd_path(), params = qmd_params(),
 
   message("Copying ", dirname(src), " to ", tgt)
   is_created <- if (!dir.exists(tgt)) dir.create(tgt, recursive = TRUE) else TRUE
-  is_copied <- R.utils::copyDirectory(dirname(src), tgt)
+  is_copied <- R.utils::copyDirectory(dirname(src), tgt, recursive = TRUE)
 
   i <- file.path(tgt, basename(src))
   message("Rendering ", i, " ...")

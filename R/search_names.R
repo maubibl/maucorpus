@@ -2,7 +2,7 @@
 #' @importFrom readr write_file
 download_searchdb <- function() {
   # TODO: make independent of platform OS
-  sdb <- minio_get("search.db", bucket = "kthcorpus")
+  sdb <- mc_read("kthb/kthcorpus/search.db")
   readr::write_file(sdb, file.path(rappdirs::app_dir("kthcorpus")$config(), "search.db"))
 }
 

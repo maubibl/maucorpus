@@ -81,6 +81,8 @@ library(htmltools)
 library(tibble)
 library(glue)
 
+options("minioclient.dir" = dirname(Sys.which("mc")))
+
 fz <- minioclient::mc_ls("kthb/kthcorpus/mods") 
 
 fz <- 

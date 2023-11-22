@@ -733,8 +733,15 @@ diva_config <- function() {
 
 scrape_diva_organisations <- function(language = NULL, config = diva_config()) {
 
-  url <- paste0(config$portal, "/smash/search.jsf?searchType=ORGANISATION")
+  # https://kth.diva-portal.org/smash/search.jsf?aq=%5B%5B%5D%5D&faces-redirect=true&aq2=%5B%5B%5D%5D&aqe=%5B%5D&af=%5B%5D&searchType=RESEARCH&dswid=1474#
+  #aq=[[]]&aq2=[[]]&aqe=[]&af=[]&searchType=ORGANISATION
+#  URLdecode("https://kth.diva-portal.org/smash/search.jsf?dswid=1474&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&sf=all&aqe=%5B%5D&searchType=ORGANISATION&query=&onlyFullText=false&language=en")
+#URLdecode("https://kth.diva-portal.org/smash/search.jsf?dswid=1474&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&sf=all&aqe=%5B%5D&searchType=ORGANISATION&query=&onlyFullText=false&language=en")
+#"smash/search.jsf?dswid=1474&aq=[[]]&aq2=[[]]&sf=all&aqe=[]&searchType=ORGANISATION&query=&onlyFullText=false&language=en"
+#  url <- paste0(config$portal, "/smash/search.jsf?searchType=ORGANISATION")
+#  url <- paste0(config$portal, "/smash/search.jsf?aq=[[]]&aq2=[[]]&sf=all&aqe=[]&af=[]&searchType=ORGANISATION&query=&onlyFullText=false&language=en")
 
+  url <- paste0(config$portal, "/smash/search.jsf?aq=[[]]&aq2=[[]]&sf=all&aqe=[]&searchType=ORGANISATION&query=&onlyFullText=false")
   re_closed <- "Closed down"
 
   if (!is.null(language)) {

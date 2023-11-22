@@ -52,3 +52,39 @@ publish_qmd_report <- function(src = qmd_path(), params = qmd_params(),
   mc_cmd <- glue::glue("mc mirror --overwrite {tgt} {dst}")
   system(mc_cmd)
 }
+
+#' @noRd
+#' @importFrom R.utils copyDirectory
+publish_qmd_index <- function(
+    src = system.file(package = "kthcorpus", "rmarkdown", "report-mods", "index.qmd"),
+    params = NULL,
+    destdir = "kthb/kthcorpus/mods",
+    cleanup = TRUE,
+    dryrun = FALSE)
+{
+
+  tgt <- file.path(tempdir(), "report-mods")
+  if (cleanup) on.exit(unlink(tgt, recursive = TRUE))
+
+  message("Copying ", dirname(src), " to ", tgt)
+  is_created <- if (!dir.exists(tgt)) dir.create(tgt, recursive = TRUE) else TRUE
+  is_copied <- R.utils::copyDirectory(dirname(src), tgt, recursive = TRUE)
+
+  i <- file.path(tgt, basename(src))
+  message("Rendering ", i, " ...")
+  is_rendered <-
+    quarto::quarto_render(
+      input = i,  output_format = "html",
+      execute_params = params,
+      execute_dir = tgt
+    )
+
+  tgt <- file.path(tgt, "index.html")
+  dst <- file.path(destdir, "index.html")
+
+  if (!dryrun) {
+    message("Publishing ", tgt, " to ", dst)
+    mc_cmd <- glue::glue("mc cp {tgt} {dst}")
+    system(mc_cmd)
+  }
+}

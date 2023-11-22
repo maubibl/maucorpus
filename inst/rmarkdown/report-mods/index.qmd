@@ -1,0 +1,284 @@
+---
+title: "MODS from Scopus"
+title-block-banner: "#000061"
+subtitle: "Existing MODS reports"
+description: "A listing of existing MODS reports"
+date: last-modified
+date-format: "YYYY-MM-DD"
+mainfont: figtree
+sansfont: georgia
+footnotes-hover: true
+reference-location: margin
+lang: en
+number-sections: false
+crossref:
+  chapters: true
+highlight-style: pygments
+fig-cap-location: top
+embed-resources: true
+format:
+  kth-quarto-html:
+    self-contained: true
+    include-in-header: 
+      - kth-favicon.css
+engine: knitr
+---
+
+```{r}
+#| echo: false
+#| message: false
+
+library(ktheme)
+library(DT)
+
+# function to display fancy table with links
+fancy_table <- function(data, compact = FALSE) {
+  
+  my_dom <- "tip"
+  
+  if (compact || nrow(data) < 20)
+    my_dom <- "t"
+  
+  DT::datatable(data, 
+    #fillContainer = TRUE,
+    #filter = "top",
+    escape = FALSE,
+    rownames = FALSE, 
+    #style = "bootstrap",
+    #class = "table-borderless table-sm", 
+    #width = "90%",
+    options = list(
+      pageLength = 20,
+      scrollX = TRUE, 
+      #scrollY = "800px",
+    # l - length changing input control
+    # f - filtering input
+    # t - The table!
+    # i - Table information summary
+    # p - pagination control
+    # r - processing display element
+      dom = 'tip',
+      searching = FALSE,
+      ordering = TRUE
+    )
+  ) #|> 
+  #htmltools::tagList() |> 
+ # htmltools::browsable()
+  
+} 
+
+
+```
+
+## Existing reports
+
+```{r}
+#| echo: false
+#| message: false
+
+library(kthcorpus)
+library(htmltools)
+library(tibble)
+library(glue)
+
+fz <- minioclient::mc_ls("kthb/kthcorpus/mods") 
+
+fz <- 
+  fz[grepl("\\d{8}_\\d{4}/$", fz)] 
+
+tz <- fz |> strptime(format = "%Y%m%d_%H%M/") 
+
+ts <- fz[order(tz, decreasing = TRUE)]
+
+# ts <- c(
+#   "20231101_1326",
+#   "20231108_1325",
+#   "20231115_1326"
+# )
+
+dirz <- 
+  "https://data.bibliometrics.lib.kth.se/kthcorpus/mods/{ts}" |> 
+  glue::glue()
+
+
+linkz <- paste0(
+  "<a href='", paste0(dirz, "mods.html"), "'>",
+  ts, "</a>"
+)
+
+t1 <- tibble(Report = linkz)
+
+kableExtra::kable_styling(knitr::kable(t1, escape = FALSE))
+
+```
+
+## Statistics over time
+
+
+::: {.panel-tabset}
+
+```{r}
+#| echo: false
+#| message: false
+
+pubs <- kth_diva_pubs(refresh_cache = TRUE)
+
+library(dplyr)
+library(tsibble)
+library(lubridate)
+
+classify_pubtype <- function(x) {
+  case_when(
+    grepl("^Artikel", x) ~ "Article",
+    grepl("[Bb]ok", x) ~ "Book",
+    grepl("[Kk]onferens", x)  ~ "Conference",
+    grepl("Dataset", x) ~ "Dataset",
+    grepl("Patent", x) ~ "Patent",
+    grepl("Rapport", x) ~ "Report",
+    .default = "Other"
+  )
+}
+
+pids <-
+  pubs |>
+  mutate(
+    across(
+      c("CreatedDate", "LastUpdated"), 
+      \(x) as.Date(strptime(x, "%Y-%m-%d"))
+    )
+  ) |>
+  mutate(
+    yq_created = yearquarter(CreatedDate),
+    yq_updated = yearquarter(LastUpdated),
+    ym_created = yearmonth(CreatedDate),
+    ym_updated = yearmonth(LastUpdated),
+    yw_created = yearweek(CreatedDate),
+    yw_updated = yearweek(LastUpdated),
+    y_created = year(CreatedDate),
+    y_updated = year(LastUpdated),
+    PublicationType = classify_pubtype(PublicationType)
+  ) |>
+  select(
+    PID,
+    PublicationType,
+    CreatedDate, LastUpdated,
+    yq_created, yq_updated,
+    ym_created, ym_updated,
+    yw_created, yw_updated,
+    y_created, y_updated
+  )
+
+
+counts_by_unit <- function(unit) {
+  as_tsibble(pids, key = "PID", index = unit) |>
+  group_by(PublicationType) |>
+  index_by() |>
+  summarize(
+    n = n_distinct(PID)
+  ) |>
+  fill_gaps() |>
+  mutate(n = ifelse(is.na(n), 0, n))
+}
+
+created <- pubs$CreatedDate |> strptime("%Y-%m-%d") 
+updated <- pubs$LastUpdated |> strptime("%Y-%m-%d")
+
+created_last_30 <- created[created > Sys.Date() - 30]  
+updated_last_30 <- updated[updated > Sys.Date() - 30]  
+
+```
+
+## Record creation
+
+```{r}
+#| echo: false
+#| message: false
+#| fig-height: 10
+
+library(ggplot2)
+library(plotly)
+library(ggforce)
+library(forcats)
+library(ggHoriPlot)
+
+p <- 
+  counts_by_unit("ym_created") |>
+  mutate(d = as.Date(ym_created)) |>
+  mutate(text = fct_reorder(as.character(weekdays(d)), d)) |>
+  mutate(PublicationType = fct_reorder(PublicationType, desc(n))) |>
+  ggplot(aes(y=n, x=d, group = PublicationType)) +
+  ggforce::facet_col(
+    facets = vars(PublicationType),
+    scales = "free_y",
+    space = "free"
+  ) +
+#    facet_grid(rows = c("PublicationType"), scales = "free_y") +
+  geom_line(color = ktheme::palette_kth_neo(1)) +
+  geom_point(size = 0.3) +
+  geom_smooth(
+    color = ktheme::palette_kth_neo(3)[3], 
+    alpha = 0.5, 
+    formula = y ~ x,
+    method = "loess"
+  ) +
+  ktheme::theme_kth_neo(fontscale_factor = 0.7)
+
+p
+
+```
+
+## Record updates
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+ counts_by_unit("ym_created") |>
+  mutate(d = as.Date(ym_created)) |>
+  mutate(text = fct_reorder(as.character(weekdays(d)), d)) |>
+  mutate(PublicationType = fct_reorder(PublicationType, desc(n))) |>
+  ggplot() +
+  geom_horizon(aes(d, n), origin = 'min', horizonscale = 4) +
+  facet_wrap(~ PublicationType, ncol = 1, strip.position = 'right') +
+  scale_fill_hcl(palette = 'Peach', reverse = T) +
+#  ggthemes::theme_few() +
+  ktheme::theme_kth_neo(fontscale_factor = 0.7) +
+  theme(
+    panel.spacing.y=unit(0, "lines"),
+    strip.text.y = element_text(angle = 0),
+    legend.position = 'none',
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+#    axis.ticks = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_x_continuous(
+    name = 'Time',
+    breaks = as.Date(strptime(paste0(seq(from = 2010, to = 2025, by = 1), "-01-01"), "%Y-%m-%d")),
+    labels = function(x) strftime(x, "%Y")
+  )
+
+#updated |> 
+#  hist(breaks = "months", freq = TRUE)
+
+#created |> 
+#  hist(breaks = "months", freq = TRUE)
+```
+
+## Recent activity
+
+```{r}
+#| echo: false
+#| message: false
+
+updated_last_30 |>
+  hist(breaks = "days", freq = TRUE)
+
+created_last_30 |>
+  hist(breaks = "days", freq = TRUE)
+```
+
+:::

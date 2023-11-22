@@ -6,6 +6,7 @@ qmd_params <- function(begdate, enddate) {
   if (!missing(begdate) && !missing(enddate)) {
     stopifnot(all(vapply(c(begdate, enddate), is.Date, logical(1))))
     params <- list(
+      use_minio = 'false',
       begdate = as.character(begdate),
       enddate = as.character(enddate)
     )

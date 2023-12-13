@@ -381,8 +381,17 @@ parse_scopus_entries <- function(xml) {
     t1 <- xml %>% purrr::map(function(x) tibble::tibble(sid = purrr::pluck(x, "dc:identifier")))
 
     t2 <-
-      purrr::map(xml %>% purrr::map(function(x) tibble::tibble(sid = pluck(x, "author"))),
-        function(x) tidyr::unnest_wider(x, "sid"))
+      purrr::map(xml %>% purrr::map(function(x) tibble::tibble(sid = pluck(x, "author",
+        .default = tibble::tibble(sid = list())))),
+          function(x) tidyr::unnest_wider(x, "sid"))
+
+    exceptions <- which(map(t2, nrow) == 0)
+
+    if (length(exceptions) > 0) {
+      message("Removing records due to missing sids at positions", exceptions)
+      t1[exceptions] <- NULL
+      t2[exceptions] <- NULL
+    }
 
     myaut <-
       purrr::map2_df(t1, t2, function(x, y) tibble::tibble(x, y)) %>%
@@ -390,8 +399,17 @@ parse_scopus_entries <- function(xml) {
       dplyr::filter(afid != "true")
 
     t2 <-
-      purrr::map(xml %>% purrr::map(function(x) tibble::tibble(sid = purrr::pluck(x, "affiliation"))),
-        function(x) tidyr::unnest_wider(x, "sid"))
+      purrr::map(xml %>% purrr::map(function(x) tibble::tibble(sid = purrr::pluck(x, "affiliation",
+        .default = tibble::tibble(sid = list())))),
+          function(x) tidyr::unnest_wider(x, "sid"))
+
+    exceptions <- which(map(t2, nrow) == 0)
+
+    if (length(exceptions) > 0) {
+      message("Removing records due to missing sids at positions: ",
+              paste0(collapse = ", ", exceptions))
+      t2[exceptions] <- NULL
+    }
 
     myaff <- purrr::map2_df(t1, t2, function(x, y) tibble::tibble(x, y))
 
@@ -539,7 +557,7 @@ pluck_raw_org <- function(x) {
 
   tibble(org = org, ce_source = ce_source, ce_text = ce_text, raw = raw, ap = ap) |>
     mutate(across(where(is.character), .fns = function(x) na_if(x, ""))) |>
-    mutate(raw = ifelse(nzchar(ce_source) && nchar(ce_source) > nchar(raw), NA, raw)) |>
+    mutate(raw = ifelse(nzchar(ce_source) && nchar(ce_source) > nchar(raw), NA_character_, raw)) |>
 #    mutate(ce_source = ifelse(nzchar(raw) && nchar(raw) < nchar(ce_source), NA, ce_source)) |>
     mutate(raw_org = paste0(collapse = ", ", na.omit(c(org, ce_source, raw, ap, ce_text)))) |>
     mutate(across(where(is.character), .fns = function(x) na_if(x, "")))

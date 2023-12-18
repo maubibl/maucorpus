@@ -224,13 +224,13 @@ compact_cols <- function(data) {
   data[, mask_keep, drop = FALSE]
 }
 
-checks <- kth_diva_checks()
+#checks <- kth_diva_checks()
 
-stats <- function(x) 
-  checks$stats %>% 
-  dplyr::filter(name == x) %>% 
-  dplyr::pull(value) %>% 
-  (function(x) ifelse(x == 0, "✅",sprintf("(%s)❗", x)))
+# stats <- function(x) 
+#   checks$stats %>% 
+#   dplyr::filter(name == x) %>% 
+#   dplyr::pull(value) %>% 
+#   (function(x) ifelse(x == 0, "✅",sprintf("(%s)❗", x)))
 
 ```
 
@@ -251,7 +251,11 @@ div.col_wrap div.bslib-column-wrap {
 re_orcid <- "^([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{4})+(-)+([0-9]{3}[0-9Xx]{1})$"
 re_kthid <- "^u1[a-z0-9]{6}$"
 
-authors <- kthcorpus::kth_diva_authors()
+
+options("minioclient.dir" = dirname(Sys.which("mc")))
+authors <- kthcorpus::kth_diva_authors(refresh_cache = TRUE)
+
+ko <- kthcorpus::kthid_orcid()
 
 authors_with_orcid_and_several_kthids <- 
   authors |> filter(!is.na(orcid)) |> 
@@ -397,6 +401,49 @@ pubs_missing_kthid <-
   #   mutate(combo = paste0(orcid, " (n=", sprintf("%03d", n_pids), ", kthid=", kthid, ")")) |>
   #   ungroup() |>
   #   select(combo, pids)
+
+check_invalid_kthid_visavi_ug <- function(
+    ko = kthcorpus::kthid_orcid(), 
+    aut = kthcorpus::kth_diva_authors()) {
+
+  sort_nchar <- function(var) {
+    x <- strsplit(split = " ", unique(gsub(";", " ", na.omit(var)))) |> unlist() |> unique()
+    if (is.null(x)) return (NA_character_)
+    if (length(x) <= 1) return(x)
+    x[order(nchar(x), x)] |> paste(collapse = " ")
+  }  
+    
+  kda <-
+    aut |>
+    filter(!is.na(autid)) |>
+    distinct(name, kthid, orcid, orgid) |>
+    filter(!is.na(orgid)) |>
+    group_by(kthid, orcid, name) |>
+    summarise(orgid = sort_nchar(orgid)) |>
+    dplyr::ungroup() |>
+    filter(nchar(kthid) == 8, substr(kthid, 1, 1) == "u")
+  
+  t2 <- kda |> filter(!is.na(kthid), !is.na(orcid)) |> distinct(kthid, orcid)
+  
+  pids_for_orcid <- function(x)
+    aut |> filter(orcid == x) |> 
+    pull(PID) |> paste(collapse = " ")
+  
+  t2 |> left_join(relationship = "many-to-many", ko, by = "kthid") |> 
+    select(kthid, orcid_diva = `orcid.x`, orcid_ug = `orcid.y`) |> 
+    filter(orcid_diva != orcid_ug) |> 
+    mutate(
+      is_casing_only = (tolower(orcid_diva) == tolower(orcid_ug))
+    ) |> 
+    filter(!is_casing_only) |> 
+    distinct() |> 
+    rowwise() |> 
+    mutate(pids = pids_for_orcid(orcid_diva)) |> 
+    ungroup()
+  
+}
+
+invalid_kthid_orcid <- check_invalid_kthid_visavi_ug(aut = authors, ko = ko)
 
 ```
 
@@ -570,6 +617,47 @@ my_dt <-
 bs4_card(my_dt, "ORCiD Table")
 
 ```
+
+## ORCiDs w/ different kthid (DiVA vs UG@KTH)
+
+Certain ORCiDs are associated with a kthid identifier value in UG@KTH but use another such value in DiVA.
+
+:::{.callout-note}
+KTH researchers link their users to ORCiDs and the corresponding ORCiD is stored in UG@KTH. Records in DiVA may point to a different ORCiD, which may indicate an error.
+:::
+
+```{r}
+#| label: fig-kthid
+#| fig-cap: "ORCiDs with different kthid in DiVA versus UG@KTH"
+#| message: false
+#| column: screen-inset-shaded
+
+my_dt0 <- 
+  invalid_kthid_orcid |> datatable(
+    style = "bootstrap4", # "bootstrap" or "bootstrap4" or "auto" (for bslib)
+    class = "table-bordered table-condensed table-sm",
+    rownames = FALSE,
+    height = "100%",
+    escape = FALSE,
+    options = list(
+      paging = FALSE,
+      dom = "iftr"  # display number of records at top
+    ),
+    selection = "none"
+  )
+
+# Available "dom" settings:
+# l - length changing input control
+# f - filtering input
+# t - The table!
+# i - Table information summary
+# p - pagination control
+# r - processing display element
+
+bs4_card(my_dt0, "ORCiD Table")
+
+```
+
 
 ## Stale organisational units
 

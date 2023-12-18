@@ -162,7 +162,14 @@ kth_diva_authors <- function(use_cache = TRUE, refresh_cache = FALSE) {
     orgid <- pos <- AuthorityPid <- NULL
 
   data <-
-    readr::read_csv(diva_tmp("aut.csv"), col_types = ct) %>%
+    readr::read_csv(diva_tmp("aut.csv"), col_types = ct)
+
+  if (nrow(problems(data) > 0)) {
+    out <- capture.output(problems(data)) |> paste0(collapse = "\n")
+    message("The following parsing issues are present in DiVA authors: ", out)
+  }
+
+  data <- data %>%
     mutate(name = paste0(LastName, ", ", FirstName)) %>%
     rename(
       kthid = LocalId,
@@ -177,6 +184,8 @@ kth_diva_authors <- function(use_cache = TRUE, refresh_cache = FALSE) {
     select(-c(FirstName, LastName)) %>% #, DOI, ISI, ISRN, NBN, PMID, ScopusId)) %>%
     select(PID, name, kthid, orcid, orgid, extorg, pos, everything()) %>%
     mutate(uses_etal = NA, is_extorg = !is.na(extorg))
+
+  if (nrow(problems(data)) > 0) print(problems(data))
 
   if (use_cache) readr::write_rds(data, tmp)
 
@@ -919,4 +928,27 @@ diva_orcid_kthid <- function() {
 
   return(res)
 
+}
+
+show_line <- function(fn, n) {
+
+  header <- fn |> readr::read_lines(skip = 0, n_max = 1)
+  line <- fn |> readr::read_lines(skip = n - 1, n_max = 1)
+  snippet <- paste0(collapse = "\n", c(header, line))
+
+  dat <- snippet |> paste0("\n") |>
+    read_csv(show_col_types = F) |>
+    suppressWarnings()
+
+  problem <- ""
+  if (nrow(problems(dat)) > 0) {
+    problem <-
+      capture.output(print(problems(dat))) |>
+      paste0(collapse = "\n")
+  }
+  dat |> glimpse()
+  on.exit({
+    message("Reading line: \n\n", line, "\n")
+    if (nchar(problem) > 0) message("\nProblem:\n", paste0(collapse = "\n", problem))
+  })
 }

@@ -444,3 +444,43 @@ researchers_all %>% inner_join(hrp) %>%
 #  View()
   filter(unit_abbr != slug_3) %>%
   View()
+
+
+
+
+--------------
+
+library(stringr)
+
+hrfile <-
+  hr_plus() |>
+  mutate(
+    lastname = trimws(str_remove(lastname, "D\u00D6DSBO")),
+    fullname = str_to_title(paste0(trimws(lastname),", ", trimws(firstname))),
+    username = gsub("@.*$", "", email)
+  ) |>
+  filter(emp_end >= "2019-01-01") |>
+  inner_join(by = "emp_desc",
+    kthcorpus::kth_employment_title |>
+    select(emp_desc, title_sv, title_en)
+  )
+
+hrfile <-
+  hrfile |>
+  tibble::add_column(.before = "kthid", rowid = 1:nrow(hrfile))
+
+wc(data = hrfile, filename = "hrfile.csv")
+
+meili_createindex("hrfile", idfield = "rowid")
+jobid <- meili_ingest_csv("hrfile", file.path(mytmp, "hrfile.csv"))$taskUid
+
+search_names_meili <- function(x) {
+
+  s <- function(x)
+    meili_search("hrplus", x)$hits %>% map_df(dplyr::as_tibble)
+
+  x %>% map_df(s)
+
+}
+
+search_names_meili("Mar")

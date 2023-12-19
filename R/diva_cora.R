@@ -253,11 +253,16 @@ parse_ts <- function(x)
 #' @export
 diva_organisations_cora <- function(domain = "kth", freetext) {
 
-  cora_organisation_search(verbose = FALSE,
-    domain = domain,
-    freetext = freetext) |>
-  flatten_cora_records() |>
-  cora_fixup_organisations()
+  cos <-
+    cora_organisation_search(
+      verbose = FALSE,
+      domain = domain,
+      freetext = freetext
+    )
+
+  cos |>
+    flatten_cora_records() |>
+    cora_fixup_organisations()
 }
 
 cora_fixup_persons <- function(data) {

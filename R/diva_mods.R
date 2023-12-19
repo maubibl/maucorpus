@@ -560,7 +560,7 @@ Book	Book Chapter	chapter
 Journal	Conference Paper	articleConferencePaper
 Book Series	Book Chapter	chapter
 Book Series\tEditorial\tchapter
-Conference Proceeding	Editorial	conferenceProceedings
+Conference Proceeding	Editorial	conferencePaperPublished
 Journal	Note	article
 Book	Book	book
 Book	Editorial	chapter

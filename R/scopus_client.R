@@ -948,6 +948,7 @@ format_date_mods <- function(d) {
 tidy_xml <- function(x, cdata = FALSE) {
 
   if (cdata) {
+    x <- gsub("]]>", "", x, fixed = TRUE)
     res <- glue::glue("<![CDATA[{x}]]>", .na = "")
     return (res)
   }

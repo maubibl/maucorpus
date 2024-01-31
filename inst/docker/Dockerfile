@@ -10,6 +10,9 @@ RUN apt-get update -y && apt-get install -y \
 
 WORKDIR /rocker_scripts
 
+# requirement for thematic
+RUN installGithub.r --deps TRUE nx10/httpgd
+
 #COPY rocker_scripts/install_extra_pkgs.sh rocker_scripts/pkgs-cran rocker_scripts/pkgs-github ./
 COPY inst/docker/rocker_scripts/* ./
 

@@ -1,11 +1,5 @@
-fastmap
-htmltools
-readr
 RODBC
 thematic
-sass
-rstudioapi
 fresh
 sortable
 bs4Dash
-arrow

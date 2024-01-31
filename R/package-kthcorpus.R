@@ -108,9 +108,21 @@ NULL
 
 
 #' @title Mappings for check data
-#' @description Field massings for the check data used for column names etc
+#' @description Field mappings for the check data used for column names etc
 #' \describe{
 #'   \item{\code{colname_en}}{character lowersnakecase column name}
 #'   \item{\code{desc_swe}}{character Swedish language explanation for field}
 #'}
 "check_mapping"
+
+#' @title Web of Science tags and field names
+#' @description A curated set of WoS tags and suggested field names, explanations.
+#' @format A data frame with 101 rows and 4 variables:
+#' \describe{
+#'   \item{\code{field}}{character suggested field name using snake case}
+#'   \item{\code{tag}}{character short tag or field abbreviation used in WoS}
+#'   \item{\code{tag_long}}{character a slightly longer explanation}
+#'   \item{\code{tag_set}}{character the kind of tag, a grouping}
+#'}
+#' @details DETAILS
+"wos_tag_fields"

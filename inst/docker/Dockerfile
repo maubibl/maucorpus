@@ -5,6 +5,9 @@ FROM ghcr.io/kth-library/kontarion
 RUN echo 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/jammy/latest"))' >> ${R_HOME}/etc/Rprofile.site
 RUN R -e 'source("https://docs.posit.co/rspm/admin/check-user-agent.R")'
 
+RUN apt-get update -y && apt-get install -y \
+  libfontconfig1-dev
+
 WORKDIR /rocker_scripts
 
 #COPY rocker_scripts/install_extra_pkgs.sh rocker_scripts/pkgs-cran rocker_scripts/pkgs-github ./

@@ -11,7 +11,7 @@ An object of class \code{spec_tbl_df} (inherits from \code{tbl_df}, \code{tbl}, 
 check_mapping
 }
 \description{
-Field massings for the check data used for column names etc
+Field mappings for the check data used for column names etc
 \describe{
 \item{\code{colname_en}}{character lowersnakecase column name}
 \item{\code{desc_swe}}{character Swedish language explanation for field}

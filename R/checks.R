@@ -1350,6 +1350,20 @@ checks_exclusions_url <- function(csvfile = "exceptions_check_multiplettes_title
   paste0("https://raw.githubusercontent.com/KTH-Library/kthcorpus/",
     sprintf("main/inst/extdata/%s", csvfile))
 
+#' @importFrom purrr map_lgl
+checks_exclusions_eids <- function(txtfile = checks_exclusions_url("exceptions_scopus_eids.txt")) {
+
+  res <- txtfile |> readr::read_lines(skip_empty_rows = TRUE)
+
+  is_valid <- res |> map_lgl(\(x) grepl("2-s2\\.0-", x)) |> all()
+
+  if (!is_valid)
+    stop("File ", txtfile, " is either not present or has invalid format")
+
+  return(res)
+
+}
+
 checks_exclusions <- function(csvfile = checks_exclusions_url()) {
 
   res <- csvfile |>

@@ -356,7 +356,11 @@ prefilter_pubs <- function(fn) {
 
   if ("pubs" %in% formalArgs(fn)) {
     formals(fn)$pubs <-
-      kth_diva_pubs() |> filter(grepl("QC ", Notes), CreatedDate < as.Date(Sys.Date() - 30))
+      kth_diva_pubs() |>
+      filter(
+        !grepl("Imported from Scopus\\. VERIFY", Notes),
+        CreatedDate < as.Date(Sys.Date() - 30)
+      )
   }
 
   fn()

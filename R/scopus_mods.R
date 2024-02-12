@@ -107,7 +107,7 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     map_chr(function(x) frag_identifier(type = "isbn", displayLabel = "Undefined", identifier = x))
 
   notes <- c(
-    frag_note(sprintf("QC %s \nImported from Scopus. VERIFY.\n", format(Sys.Date(), "%Y%m%d")))#,
+    frag_note(sprintf("Imported from Scopus. VERIFY.\n")) #, format(Sys.Date(), "%Y%m%d")))#,
     #frag_note("Another. @Funder@ [@project_number_from_funder@")
   )
 

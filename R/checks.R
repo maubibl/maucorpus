@@ -345,8 +345,10 @@ check_multiplettes_article_title <- function(pubs = kth_diva_pubs(), authors = k
 #' @param x the string to clean out HTML tags from
 #' @export
 #' @importFrom rvest read_html html_text
-tidy_html <- function(x)
+tidy_html <- function(x) {
+  if (!all(nzchar(x))) return(x)
   rvest::html_text(rvest::read_html(charToRaw(x)))
+}
 
 
 #' @importFrom methods formalArgs
@@ -962,7 +964,7 @@ check_published <- function(pubs = kth_diva_pubs()) {
 
   t2 <-
     t0 |>
-    mutate(Notes = map_chr(Notes, tidy_html)) |>
+#    mutate(Notes = map_chr(Notes, tidy_html)) |>
     mutate(is_QCorNQC = grepl("QC|NQC", Notes)) |>
     filter(Status == "submitted",
            is_QCorNQC | PublicationType == "Manuskript (preprint)")

@@ -122,3 +122,25 @@ pid_from_urn <- function(repository_url) {
 
 }
 
+
+swepub_req <- function(org, enrichment_flags = c("ORCID_enriched", "PersonID_enriched"), limit = 20, from = NULL, to = NULL) {
+
+  # /process/kth/export?from=&to=&enrichment_flags=ORCID_enriched,PersonID_enriched&limit=20
+
+  params <- list(
+    enrichment_flags = enrichment_flags,
+    limit = limit,
+    from = from,
+    to = to
+  )
+
+  req <- "https://bibliometri.swepub.kb.se/api/v1" |>
+    httr2::request() |>
+    httr2::req_url_path_append(sprintf("/%s/export", org)) |>
+    httr2::req_url_query(!!!params, .multi = "comma") |>
+    httr2::req_headers("Accept" = "text/tab-separated-values") |>
+    httr2::req_perform()
+
+
+}
+

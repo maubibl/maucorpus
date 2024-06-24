@@ -580,3 +580,242 @@ params <- scopus_mods_params(
   )
 
 params |> create_diva_mods()
+
+
+
+
+################
+
+
+# TODO: investigate "quirks" related to some eids
+
+library(tidyverse)
+
+eids <-
+"2-s2.0-85136240497
+2-s2.0-85136194952
+2-s2.0-85161212339
+2-s2.0-85171958264
+2-s2.0-85148330382
+2-s2.0-85148093031
+2-s2.0-85148107701
+2-s2.0-85148091482
+2-s2.0-85148079388
+2-s2.0-85148053986
+2-s2.0-85150666513
+2-s2.0-85162061434
+2-s2.0-85159755540
+2-s2.0-85160380925
+2-s2.0-85159729404
+2-s2.0-85157979216
+2-s2.0-85150774941
+2-s2.0-85150765588
+2-s2.0-85150785019
+2-s2.0-85150969579
+2-s2.0-85151304605
+2-s2.0-85151322199
+2-s2.0-85151345466
+2-s2.0-85152401150
+2-s2.0-85112485362
+2-s2.0-85152833867
+2-s2.0-85168411217
+2-s2.0-85140274775
+2-s2.0-85147902229
+2-s2.0-85152920047
+2-s2.0-85153036087
+2-s2.0-85135742464
+2-s2.0-85147226480
+2-s2.0-85167742690
+2-s2.0-85168418194
+2-s2.0-85168424346
+2-s2.0-85166469138
+2-s2.0-85166466634
+2-s2.0-85166474762
+2-s2.0-85152956226
+2-s2.0-85153347486
+2-s2.0-85154609178
+2-s2.0-85152047170
+2-s2.0-85151715855
+2-s2.0-85164719832
+2-s2.0-85173587733
+2-s2.0-85173587733
+" |> read_lines()
+
+# we use a helper function to generate params and create the MODs
+mods_from_eid <- function(eid) {
+  scopus_mods_params(
+    scopus = scopus_search_id(eid),
+    sid = gsub("2-s2.0-", "", eid)
+  ) |>
+  create_diva_mods()
+}
+
+aw_mods_from_eid <- possibly(mods_from_eid, otherwise = NA_character_)
+
+# TODO: can some records / eids actually be placeholders?
+# is it NLM?
+
+my_mods <-
+  eids |> map(aw_mods_from_eid, .progress = TRUE)
+
+my_mods <- my_mods[(my_mods |> map(is.character) |> unlist())]
+
+my_coll <- my_mods |> create_diva_modscollection()
+write_file(my_coll, file = "/tmp/quirks.xml")
+system("firefox /tmp/quirks.xml")
+
+# 2-s2.0-85148093031
+# 2-s2.0-85148107701
+# 2-s2.0-85148091482
+# 2-s2.0-85148079388
+# 2-s2.0-85148053986
+
+pubs <- kth_diva_pubs()
+
+pubs |> filter(ScopusId %in% eids[6:10]) |>
+  mutate(eid = eids[6:10]) |> select("PID", eid, DOI) |>
+  mutate(link_pid = linkify(PID, target = "PID")) |>
+  mutate(link_doi = linkify(DOI, target = "DOI")) |>
+  DT::datatable(escape = FALSE)
+
+# TODO: NLM publications might need special treatment...
+# TODO: Exclude any pubs in KuraTHor checks that match this criteria
+# TODO: I samband med MODS-genererandet ska inte "QC 20240117" med i MODS-filerna
+
+pubs |> filter(grepl("Imported from Scopus\\. VERIFY\\.", Notes)) |> select(PID, Notes)
+
+########## SCOPUS-listor-*.xlsx
+
+# The data in SCOPUS-listor needs to be stacked across time
+# A format similar to what swepub use (see below) could be used
+
+library(stringr)
+library(dplyr)
+
+kdp <- kth_diva_pubs()
+
+pids <-
+"1356052
+1356054
+1356057" |>
+  strsplit(split = "\n") |>
+  unlist() |>
+  as.double()
+
+
+kdp |> group_by(Title) |> summarise(n_pids = n_distinct(PID)) |> arrange(desc(n_pids))
+
+swepub_format <- function(
+  config = diva_config(),
+  year_beg = diva_config()$ybeg,
+  year_end = diva_config()$yend
+  ) {
+
+  output_type <- mods_url <- repository_url <- publication_year <-
+    value <- flag_type <- record_id <- NULL
+
+  org <- config$org
+
+
+  url <- paste0(
+      "https://bibliometri.swepub.kb.se/api/v1/process/",
+      sprintf("%s/export?from=%s&to=%s", org, year_beg, year_end),
+      "&enrichment_flags=DOI_enriched,ISSN_enriched,ORCID_enriched",
+      "&validation_flags=DOI_invalid,ISBN_invalid,ISSN_invalid,ORCID_invalid",
+      "&audit_flags=creator_count_check_invalid"
+#      "&audit_flags=UKA_comprehensive_check_invalid,creator_count_check_invalid"
+    )
+
+
+  tsv <-
+    url |>
+    httr::GET(config = httr::add_headers("Accept" = "text/tab-separated-values")) |>
+    content(type = "text", encoding = "UTF-8")
+
+  colz <-
+    readr::read_lines(
+      "record_id
+      source
+      publication_year
+      publication_type
+      output_type
+      flag_class
+      flag_type
+      flag_code
+      validation_rule
+      value
+      old_value
+      new_value
+      path
+      mods_url
+      repository_url\n") |>
+    sapply(trimws) |>
+    unname()
+
+  tsv <- readr::read_tsv(
+      tsv,
+      skip = 1,
+      show_col_types = FALSE,
+      col_names = colz,
+      locale = readr::locale(encoding = "UTF-8")
+    )
+
+  return(tsv)
+}
+
+fmt <- swepub_format()
+
+fmt |>
+  mutate(output_type = linkify(gsub("term/swepub", "term/swepub/output", output_type))) |>
+    mutate(swepub_url = linkify(swepub_url(record_id), text = record_id)) |>
+  head(5) |>
+  mutate(PID = pid_from_urn(repository_url))
+
+
+
+
+###############
+
+library(tidyverse)
+
+# these are examples of scopus identifiers associated with many authors (> 30)
+eids <-
+  "~/Downloads/ScopusId_missing_in_DiVA_2024-06-10.txt" |>
+  read_lines()
+
+ko <- kthid_orcid()
+
+# Now, we proceed to make a MODS collection for that set of scopus identifiers
+
+# we use a helper function to generate params and create the MODs
+mods_from_eid <- function(eid) {
+  scopus_mods_params(
+    scopus = scopus_search_id(eid),
+    sid = gsub("2-s2.0-", "", eid),
+    kthid_orcid_lookup = ko
+  ) |>
+  create_diva_mods()
+}
+
+possibly_mods <-
+  purrr::possibly(\(x) mods_from_eid(x), otherwise = NULL)
+
+my_mods <- eids |> map(possibly_mods, .progress = TRUE)
+my_fails <- map(my_mods, is.null) |> as_vector() |> which()
+my_problematic_eids <- eids[my_fails]
+
+my_problematic_eids |> paste0(collapse = "\n") |> cat()
+
+my_coll <-
+  my_mods[-c(my_problematic_eids)] |>
+  create_diva_modscollection()
+
+write_file(my_coll, file = "/tmp/aw_june_10.xml")
+
+dir.create("/tmp/aw")
+
+my_mods[-c(my_problematic_eids)] |>
+  write_mods_chunked(, outdir = "/tmp/aw")
+
+system("firefox /tmp/aw_june_10.xml")
+

@@ -468,7 +468,7 @@ diva_meta <- function() {
 diva_url <- function(
   orgid = diva_config()$id,
   year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
-  variant = c("pub", "aut"), portal = diva_config()$portal) {
+  variant = c("pub", "aut"), portal = diva_config()$portal, restrict_orgid = FALSE) {
 
   pubtypes <- function() {
     # excludes dissertations, theses and licentiate theses
@@ -511,7 +511,7 @@ diva_url <- function(
       addFilename = "true",
       aq = I("[[]]"),
       aqe = I("[]"),
-      aq2 = I(queryparam_aq2(use_orgid = FALSE)),  # since FALSE times out (> 5 min dl)
+      aq2 = I(queryparam_aq2(use_orgid = restrict_orgid)),  # since FALSE times out (> 5 min dl)
       onlyFullText = "false",
       noOfRows = as.character(5e6L),
       sortOrder = "title_sort_asc",
@@ -526,7 +526,7 @@ diva_url <- function(
       addFilename = "true",
       aq = I("[[]]"),
       aqe = I("[]"),
-      aq2 = I(queryparam_aq2(use_orgid = FALSE)),
+      aq2 = I(queryparam_aq2(use_orgid = restrict_orgid)),
       onlyFullText = "false",
       noOfRows = as.character(5e6L),
       sortOrder = "title_sort_asc",
@@ -541,7 +541,7 @@ diva_url <- function(
 diva_download_aut <- function(
   orgid = diva_config()$id,
   year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
-  sync = TRUE, diva_portal = diva_config()$portal) {
+  sync = TRUE, diva_portal = diva_config()$portal, use_orgid = FALSE) {
 
   fn <- dl <- NULL
 
@@ -553,7 +553,8 @@ diva_download_aut <- function(
     data.frame(
       orgid = orgid, variant = "aut",
       year_beg = beg:end, year_end = beg:end,
-      portal = diva_portal
+      portal = diva_portal,
+      restrict_orgid = use_orgid
     )
     #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
@@ -609,7 +610,7 @@ diva_download_aut <- function(
 diva_download_pub <- function(
   orgid = diva_config()$id,
   year_beg = diva_config()$ybeg, year_end = diva_config()$yend,
-  sync = TRUE, diva_portal = diva_config()$portal) {
+  sync = TRUE, diva_portal = diva_config()$portal, use_orgid = FALSE) {
 
   fn <- dl <- NULL
 
@@ -621,7 +622,8 @@ diva_download_pub <- function(
     data.frame(
       orgid = orgid, variant = "pub",
       year_beg = beg:end, year_end = beg:end,
-      portal = diva_portal
+      portal = diva_portal,
+      restrict_orgid = use_orgid
     ) #year_beg = beg:(end -1), year_end = (beg + 1):end)
   }
 
@@ -952,3 +954,94 @@ show_line <- function(fn, n) {
     if (nchar(problem) > 0) message("\nProblem:\n", paste0(collapse = "\n", problem))
   })
 }
+
+
+#' @import httr2
+diva_persons <- function(freetext, orgid = "177") {
+
+  queryparam_aq <- function(freetext) {
+    list(list(list(freeText = freetext))) |>
+      jsonlite::toJSON(auto_unbox = TRUE)
+  }
+
+  queryparam_aq2 <- function(use_orgid = TRUE, orgid = "177") {
+
+    pubtypes <- function() {
+      c(
+        "bookReview", "review", "article",
+        "artisticOutput", "book", "chapter",
+        "manuscript", "collection", #"other",
+        "conferencePaper", #"patent",
+        "conferenceProceedings", #"report",
+        "dataset"
+      )
+    }
+
+    params <- list(list(
+      list(organisationId = orgid, `organisationId-Xtra` = TRUE),
+      list(publicationTypeCode = pubtypes())
+    ))
+
+    # remove the organisationId slot if required
+    if (!use_orgid) {
+      params[[1]][[2]] <- NULL
+    }
+
+    params |> jsonlite::toJSON(auto_unbox = TRUE)
+  }
+
+  # pick up the dswid "extra url query parameter" and get a cookie to reuse
+
+  tf <- tempfile()
+  on.exit(unlink(tf))
+
+  hello <-
+    request("https://kth.diva-portal.org/smash") |>
+    req_cookie_preserve(path = tf) |>
+    req_perform()
+
+  url_hello <- hello$url |> url_parse()
+  url_hello$path <- "smash/export.jsf"
+
+  # the search query parameters
+  params <- list(
+    format = "csv",
+    addFilename = "true",
+    aq = I(queryparam_aq(freetext)),
+    aqe = I("[]"),
+    aq2 = I(queryparam_aq2()),
+    onlyFullText = "false",
+    noOfRows = as.character(5e4L),
+    sortOrder = "relevance_sort_desc",
+    sortOrder2 = "relevance_sort_desc",
+    csvType = "person",
+    fl = I(paste0(
+      "PID,AuthorityPid,DOI,FirstName,ISI,ISRN,LastName,",
+      "LocalId,NBN,ORCID,OrganisationId,UncontrolledOrganisation,",
+      "Position,PMID,ResearchGroup,Role,ScopusId"
+    ))
+  )
+
+  paramz <- c(params, url_hello$query)
+
+  persons <-
+    url_hello |> url_build() |> request() |>
+#    req_cookie_preserve(path = tf) |>
+    req_url_query(!!!paramz) |>
+    req_perform()
+
+  csv <- persons |> resp_body_string()
+
+  stopifnot(nchar(csv) > 0)
+
+  csv |>
+    readr::read_csv(show_col_types = FALSE) |>
+    readr::type_convert(guess_integer = TRUE)
+
+}
+
+diva_persons_from_doi <- function(doi, orgid = "177") {
+  diva_persons(freetext = doi, orgid = orgid) |>
+    dplyr::filter(tolower(DOI) == tolower(doi))
+}
+

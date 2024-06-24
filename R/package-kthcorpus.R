@@ -11,7 +11,6 @@
 #' @name kthcorpus
 #' @docType package
 #' @keywords package
-#' @aliases package-kthcorpus
 #'
 # needed for use of . in magrittr pipelines
 utils::globalVariables(

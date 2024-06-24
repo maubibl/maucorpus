@@ -686,7 +686,7 @@ check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {
     mutate(PID = linkify(PID, target = "PID")) |>
     mutate(Title = linkify(Title, target = "titlesearch")) |>
     mutate(DOI = linkify(DOI, target = "DOI")) |>
-    mutate(ScopusId = linkify(ScopusId, target = "ScopusId")) |>
+    mutate(ScopusId = linkify(ScopusId, target = "ScopusID")) |>
     mutate(ISI = linkify(ISI, target = "ISI")) |>
     collect() |>
     select(PID, Year, Title, n_pids, ScopusId, DOI, ISI, LastUpdated) |>

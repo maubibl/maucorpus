@@ -85,6 +85,7 @@ function(AuthorId) {
   return(res)
 }
 
+cat("Getting aliases...\n")
 aliases <- kth_diva_aliases()
 
 #* DiVA author aliases
@@ -96,6 +97,7 @@ function() {
   aliases
 }
 
+cat("Getting issues...\n")
 issues <- kth_diva_issues()
 
 #* Full set of potential issues due to multiple author identifiers etc
@@ -134,6 +136,7 @@ function() {
   issues$pubs
 }
 
+cat("Running checks...\n")
 checks <- kth_diva_checks()
 
 # #* Check for missing kthids for publications affiliated with KTH
@@ -216,6 +219,8 @@ function() {
 function() {
   checks$invalid_ISSN
 }
+
+cat("Running report rendering...\n")
 
 f <- rmarkdown::render(
   system.file(package = "kthcorpus",

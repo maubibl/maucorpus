@@ -121,6 +121,7 @@ classify_umu_ub <- function(record, type = c("mods", "wos"),
 #' @param abstract the abstract
 #' @param keywords keywords used
 #' @param level either 3 or 5, default: 3
+#' @param format either "table" or "object", determines the return type
 #' @examples
 #' \dontrun{
 #' classify_swepub(
@@ -134,7 +135,7 @@ classify_umu_ub <- function(record, type = c("mods", "wos"),
 #' @importFrom jsonlite toJSON fromJSON
 #' @importFrom dplyr tibble
 #' @export
-classify_swepub <- function(title, abstract, keywords, level = 3) {
+classify_swepub <- function(title, abstract, keywords, level = 3, format = c("table", "object")) {
   stopifnot(level == 3 || level == 5)
   stopifnot(any(!is.na(c(title, abstract, keywords))))
 #  stopifnot(any(nzchar(c(title, abstract, keywords))))
@@ -151,7 +152,7 @@ classify_swepub <- function(title, abstract, keywords, level = 3) {
     httr::with_config(
       httr::config(ssl_verifypeer = 0L),
       httr::POST(
-        url = "https://bibliometri.swepub.kb.se/api/v1/classify",
+        url = "https://bibliometri.swepub.kb.se/api/v2/classify/",
         body = jsonlite::toJSON(json, auto_unbox = TRUE),
         httr::accept_json(),
         httr::add_headers("Content-Type" = "application/json"),
@@ -167,18 +168,30 @@ classify_swepub <- function(title, abstract, keywords, level = 3) {
     sapply(x, function(y) paste0(y, collapse = " > "))
   }
 
-  if (out$status == "no match") {
-    return(dplyr::tibble())
-  }
+  fmt <- match.arg(format, choices = c("table", "object"))
 
-  dplyr::tibble(
-    eng_code = out$suggestions$`eng.code`,
-    eng_label = out$suggestions$`eng.prefLabel`,
-    eng_topics = tt(out$suggestions$eng._topic_tree),
-    swe_code = out$suggestions$swe.code,
-    swe_label = out$suggestions$swe.prefLabel,
-    swe_topics = tt(out$suggestions$swe._topic_tree)
+  switch(fmt,
+    table = {
+      if (out$status == "no match") {
+        return(dplyr::tibble())
+      } else {
+        res <- out$suggestions |> tibble::as_tibble()
+        dplyr::tibble(
+          score = res$`_score`,
+          code = readr::parse_integer(res$code),
+          eng_label = res$`prefLabelByLang.en`,
+          swe_label = res$`prefLabelByLang.sv`,
+#          swe_topics = out$suggestions$broader |> tt()
+        )
+      }
+    },
+    object = {
+      res <- out$suggestions |> tibble::as_tibble()
+      return (res)
+    },
+    out
   )
+
 }
 
 #' DiVA publication records from KTH with subject classification issues

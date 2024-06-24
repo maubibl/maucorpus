@@ -349,10 +349,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
   } else {
     hsv_categories <-
       hsv_call |>
-      select(-c("eng_topics", "swe_topics")) |>
       tidyr::pivot_longer(cols = ends_with(c("label")), names_to = "subject") |>
-      tidyr::separate("subject", into=c("lang", NA)) |>
-      mutate(source = "hsv", href = unique(eng_code, swe_code)) |>
+      tidyr::separate("subject", into = c("lang", NA)) |>
+      mutate(source = "hsv", href = code) |>
       rename(topic = value) |>
       pmap(function(lang, source, href, topic, ...)
         frag_subject(lang, source, href, topic)

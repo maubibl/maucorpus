@@ -267,6 +267,8 @@ diva_organisations_cora <- function(domain = "kth", freetext) {
 
 cora_fixup_persons <- function(data) {
 
+#  print(data)
+
   domain <- familyName <- givenName <- public <- tsCreated <- NULL
 
   data |>
@@ -279,7 +281,7 @@ cora_fixup_persons <- function(data) {
     rename_with(.fn = \(x) ifelse(x == "academicTitle", "title", x)) |>
     rename_with(.fn = \(x) ifelse(x == "URL", "url", x)) |>
     rename_with(.fn = \(x) ifelse(x == "id", "author_id", x)) |>
-    mutate(orcid = replace(orcid, orcid == "", NA_character_)) |>
+    mutate(orcid = ifelse("orcid" %in% colnames(data), replace(orcid, orcid == "", NA_character_), NA_character_)) |>
     mutate(public = ifelse(public == "yes", TRUE, FALSE))
 
 }

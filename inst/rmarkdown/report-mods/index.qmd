@@ -110,7 +110,8 @@ linkz <- paste0(
 
 t1 <- tibble(Report = linkz)
 
-kableExtra::kable_styling(knitr::kable(t1, escape = FALSE))
+knitr::kable(t1, escape = FALSE, format = "html") |> 
+  kableExtra::kable_styling()
 
 ```
 

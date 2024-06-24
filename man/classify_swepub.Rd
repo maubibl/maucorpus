@@ -4,7 +4,13 @@
 \alias{classify_swepub}
 \title{Classify into subject categories using SwePub Web API}
 \usage{
-classify_swepub(title, abstract, keywords, level = 3)
+classify_swepub(
+  title,
+  abstract,
+  keywords,
+  level = 3,
+  format = c("table", "object")
+)
 }
 \arguments{
 \item{title}{the title of the paper}
@@ -14,6 +20,8 @@ classify_swepub(title, abstract, keywords, level = 3)
 \item{keywords}{keywords used}
 
 \item{level}{either 3 or 5, default: 3}
+
+\item{format}{either "table" or "object", determines the return type}
 }
 \description{
 Use the title, abstract and keywords to get a suggestion for subject

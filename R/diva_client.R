@@ -956,7 +956,7 @@ show_line <- function(fn, n) {
 }
 
 
-#' @import httr
+#' @import httr2
 diva_persons <- function(freetext, orgid = "177") {
 
   queryparam_aq <- function(freetext) {

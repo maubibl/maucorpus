@@ -18,10 +18,11 @@ read_diva_mods <- function(pid) {
     as.character()
 }
 
-#' @importFrom xml2relational toRelational
-to_relational <- function(mods) {
-  mods %>% xml2relational::toRelational(keys.dim = 10)
-}
+##' @importFrom xml2relational toRelational
+#to_relational <- function(mods) {
+#  mods |>
+#    xml2relational::toRelational(keys.dim = 10)
+#}
 
 # functions to get DiVA MODS formatted records from the DiVA-portal
 # and flat "CSVALL2" format

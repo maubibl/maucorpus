@@ -21,32 +21,27 @@ hr_ls <- function(bucket = "hrplus") {
   #bucket_list_df(use_https = FALSE)
 
   # these are the files in the hrplus bucket
-  aws.s3::get_bucket_df(bucket, use_https = uses_https()) %>%
+  aws.s3::get_bucket_df(bucket, use_https = uses_https(), max = Inf) |>
     arrange(desc(LastModified))
 }
 
 read_minio <- function(bucket = "hrplus", file, offset) {
 
-  my_files <- hr_ls() %>% pull("Key")
-  my_file <- my_files %>% head(1)
+  my_files <- hr_ls() |> pull("Key")
+  my_file <- my_files |> head(1)
 
   if (!missing(file)) {
     stopifnot(file %in% my_files)
     my_file <- file
   }
 
-  my_offset <- 0
-
   if (!missing(offset)) {
-    stopifnot(as.integer(my_offset) == my_offset)
-    ts <- gsub("_abu.csv", "", my_file)
-    f2 <- format(
-      lubridate::parse_date_time(ts, "%Y%m%d") - lubridate::days(offset),
-      "%Y%m%d_abu.csv")
-    stopifnot(f2 %in% my_files)
-    my_file <- f2
+    stopifnot(as.integer(offset) == offset)
+    ts <- stringr::str_extract(my_file, "\\d{8}") # Get date of latest file
+    ts2 <- format(lubridate::parse_date_time(ts, "%Y%m%d") - lubridate::days(offset), "%Y%m%d")
+    my_file <- my_files[grepl(ts2, my_files)] |> head(1)
+    stopifnot(length(my_file) == 1)
   }
-
 
   f1 <- get_object(my_file, bucket, use_https = uses_https())
 

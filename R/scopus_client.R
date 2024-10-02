@@ -543,6 +543,12 @@ pluck_raw_org <- function(x) {
     x |> rget("ce:source-text", parents = "affiliation", new_name = "ce_source") |>
     pull(1) |> na.omit() |> paste(collapse = ", ")
 
+  ce_source <- ce_source |> 
+    gsub(
+      pattern="organization=(.*?)addressline=(.*?)city=(.*?)postcode=(.*?)country=(.*?)", 
+      replacement="\\1\\2\\3\\4\\5"
+    )
+
   ce_text <-
     x |> rget("ce:text", parents = "affiliation", new_name = "ce_text") |>
     pull(1) |> na.omit() |> paste(collapse = ", ")

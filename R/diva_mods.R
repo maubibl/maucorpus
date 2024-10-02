@@ -18,6 +18,137 @@ read_diva_mods <- function(pid) {
     as.character()
 }
 
+#' Download a MODS collection XML file from DiVA given parameters
+#' @param y_beg from year issued (inclusive)
+#' @param y_end to year issued (inclusive)
+#' @param orgid the organisation id in DiVA, by default 177 (for KTH)
+#' @param destfile the path to the xml file, by default a file in the tempdir
+#' @param publication_types a character vector of publication types
+#' @export
+#' @importFrom httr GET status_code content
+#' @importFrom jsonlite toJSON
+#' @importFrom curl curl_download
+download_diva_mods_collection <- function(
+  y_beg = 2023, 
+  y_end = 2023, 
+  orgid = 177,
+  destfile = file.path(tempdir(), "diva-mods-collection.xml"), 
+  publication_types = c("bookReview", "review", "article", "conferencePaper")
+  ) {
+  
+  pubtypes_json <- 
+    list(publicationTypeCode = publication_types) |> 
+    jsonlite::toJSON()
+
+  download_url <- paste0(
+    'https://kth.diva-portal.org/smash/export.jsf?', 
+    'format=mods',
+    '&fileName=export.xml',
+    '&noOfRows=500000',
+    '&aq=[[]]&aqe=[]&aq2=', 
+    '[[{"dateIssued":{"from":"', y_beg, '","to":"', y_end, '"}},',
+    '{"organisationId":"', orgid, '","organisationId-Xtra":true},',
+    pubtypes_json, 
+    ']]&onlyFullText=false'
+  )
+
+  tf <- destfile
+
+  message("Downloading into ", tf, " from mods_url\n", download_url)
+
+  httr::GET(download_url) |> 
+    getElement("url") |> 
+    curl::curl_download(destfile = tf, quiet = FALSE)
+
+  return(tf)
+}
+
+#' Convert a mods collection .xml file to a tibble and
+#' extract some external identifiers etc
+#' @param mods_file file path to downloaded diva mods collection xml file
+#' @export
+#' @importFrom xml2 read_xml xml_contents as_xml_document xml_ns_strip 
+#' @importFrom dplyr bind_cols
+#' @importFrom purrr map_df
+#' @importFrom tibble as_tibble
+mods_collection_file_to_tbl <- function(mods_file) {
+
+  mods_xml <- mods_file |> xml2::read_xml() |> xml2::xml_contents()
+
+  extract_mods_fields <- function(x) {
+  
+    y <- 
+      xml2::as_xml_document(x, root = "mods") |> 
+      xml2::xml_ns_strip() 
+    
+    fields <- y |> mods_find_fields(is_string = FALSE)
+    
+    fields |> dplyr::bind_cols(mods = as.character(y, options = "format"))
+  }
+  
+  mods_xml |> purrr::map_df(extract_mods_fields, .progress = TRUE) |> 
+    tibble::as_tibble()  
+}
+
+#' @importFrom httr2 request req_perform resp_body_json
+#' @importFrom purrr map_chr possibly
+openalex_id_from_doi <- function(doi) {
+
+  read_openalex_id <- function(url) {
+    json <- 
+      url |> httr2::request() |> 
+      httr2::req_perform() |> 
+      httr2::resp_body_json() 
+  
+    json |> getElement("ids") |> getElement("openalex")
+  }
+  
+  sprintf("https://api.openalex.org/works/https://doi.org/%s", doi) |> 
+    purrr::map_chr(purrr::possibly(read_openalex_id, NA_character_), .progress = TRUE)
+
+}
+
+#' @importFrom xml2 xml_text read_xml xml_ns_strip xml_find_all
+mods_find_fields <- function(xml, is_string = TRUE) {
+
+  if (is_string) {
+    x <- xml |> xml2::read_xml() |>  xml2::xml_ns_strip()
+  } else {
+    x <- xml
+  }
+
+  text_or_na <- function(y, xpath) {
+    nodes <- y |> xml2::xml_find_all(xpath)
+    if (length(nodes) != 1) return (NA_character_)
+    xml2::xml_text(nodes)
+  }
+
+  recordIdentifier <- 
+    x |> text_or_na("//recordInfo/recordIdentifier") |> 
+    gsub(pattern = "diva2:", replacement = "")
+
+  status <- 
+    x |> text_or_na("//record/header[@status]/@status")
+
+  dateIssued <- 
+    x |> text_or_na("//originInfo/dateIssued")
+  
+  doi <- 
+    x |> text_or_na("//identifier[@type='doi']")
+
+  scopus <- 
+    x |> text_or_na("//identifier[@type='scopus']")
+
+  wos <- 
+    x |> text_or_na("//identifier[@type='isi']")
+  
+  data.frame(
+    pid = recordIdentifier, status = status, 
+    issued = dateIssued, 
+    doi = doi, scopus = scopus, wos = wos
+  )
+}
+
 ##' @importFrom xml2relational toRelational
 #to_relational <- function(mods) {
 #  mods |>

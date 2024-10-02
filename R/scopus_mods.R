@@ -119,7 +119,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     # and articleConferencePaper
     # "partOf isbn"
     notes <- c(notes,
-      frag_note(sprintf("Part of ISBN %s", p$`prism:isbn`))
+      frag_note(sprintf("Part of ISBN %s", 
+        p$`prism:isbn` |> gsub(pattern = "[[]|[[]", replacement = ""))
+      )
     )
   }
 

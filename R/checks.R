@@ -655,11 +655,12 @@ check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
 
   pubs |>
     select(PID, DOI) |>
-    filter(!is.na(DOI)) |>
-    count(DOI) |>
+    mutate(doi = tolower(DOI)) |> 
+    filter(!is.na(doi)) |>
+    count(doi) |>
     filter(n > 1) |>
     arrange(desc(n)) |>
-    inner_join(pubs, by = "DOI") |>
+    inner_join(pubs |> mutate(doi = tolower(DOI)), by = "doi") |>
     select(PID, Year, Title, n_pids = n, DOI, ScopusId, LastUpdated, ISI) |>
     mutate(PID = linkify(PID, target = "PID")) |>
     mutate(Title = linkify(Title, target = "titlesearch")) |>
@@ -668,7 +669,7 @@ check_multiplettes_DOI <- function(pubs = kth_diva_pubs()) {
     mutate(ISI = linkify(ISI, target = "ISI")) |>
     collect() |>
     select(PID, Year, Title, n_pids, DOI, ISI, ScopusId, LastUpdated) |>
-    arrange(desc(n_pids), desc(DOI), desc(LastUpdated))
+    arrange(desc(n_pids), desc(DOI), desc(LastUpdated)) 
 }
 
 check_multiplettes_scopusid <- function(pubs = kth_diva_pubs()) {

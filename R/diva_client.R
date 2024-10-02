@@ -956,7 +956,7 @@ show_line <- function(fn, n) {
 }
 
 
-#' @import httr2
+#' @importFrom httr2 url_parse req_url_query req_cookie_preserve req_perform url_build req_url_query
 diva_persons <- function(freetext, orgid = "177") {
 
   queryparam_aq <- function(freetext) {
@@ -996,11 +996,11 @@ diva_persons <- function(freetext, orgid = "177") {
   on.exit(unlink(tf))
 
   hello <-
-    request("https://kth.diva-portal.org/smash") |>
-    req_cookie_preserve(path = tf) |>
-    req_perform()
+    httr2::request("https://kth.diva-portal.org/smash") |>
+    httr2::req_cookie_preserve(path = tf) |>
+    httr2::req_perform()
 
-  url_hello <- hello$url |> url_parse()
+  url_hello <- hello$url |> httr2::url_parse()
   url_hello$path <- "smash/export.jsf"
 
   # the search query parameters
@@ -1025,12 +1025,12 @@ diva_persons <- function(freetext, orgid = "177") {
   paramz <- c(params, url_hello$query)
 
   persons <-
-    url_hello |> url_build() |> request() |>
+    url_hello |> httr2::url_build() |> httr2::request() |>
 #    req_cookie_preserve(path = tf) |>
-    req_url_query(!!!paramz) |>
-    req_perform()
+    httr2::req_url_query(!!!paramz) |>
+    httr2::req_perform()
 
-  csv <- persons |> resp_body_string()
+  csv <- persons |> httr2::resp_body_string()
 
   stopifnot(nchar(csv) > 0)
 

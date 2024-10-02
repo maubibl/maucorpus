@@ -62,7 +62,8 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     preferred_name_ce_given_name <- preferred_name_ce_surname <-
     raw_org <- afid <-
     eng_code <- swe_code <- value <-
-    term <- sn <- rowid <- score <- enrich <- enrich_orcid <- NULL
+    term <- sn <- rowid <- score <- enrich <- enrich_orcid <- 
+    code <- NULL
 
   #sid <- "SCOPUS_ID:85136096142"
 
@@ -118,7 +119,9 @@ scopus_mods_params <- function(scopus, sid, kthid_orcid_lookup = kthid_orcid()) 
     # and articleConferencePaper
     # "partOf isbn"
     notes <- c(notes,
-      frag_note(sprintf("Part of ISBN %s", p$`prism:isbn`))
+      frag_note(sprintf("Part of ISBN %s", 
+        p$`prism:isbn` |> gsub(pattern = "[[]|[[]", replacement = ""))
+      )
     )
   }
 

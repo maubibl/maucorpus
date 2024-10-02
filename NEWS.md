@@ -1,5 +1,11 @@
 # kthcorpus
 
+## kthcorpus 0.4.0
+
+* add fcns for OAI-PMH harvesting from DiVA
+* add fcns for xml to json conversion for MODS
+* add fcn to use "aurora" SDG classifier via API request
+
 ## kthcorpus 0.3.2
 
 * add fcns for guessing author identifiers when importing MODS to DiVA

@@ -23,5 +23,23 @@ test_that("scopus abstract extended info works", {
   expect_true(!is_invalid)
 })
 
+test_that("scopus abstract extended info works for specific eid", {
+  skip_on_ci()
+  my_eid <- "2-s2.0-85187216462"
+
+  mods_from_eid <- function(eid) {
+    scopus_mods_params(
+      scopus = scopus_search_id(eid),
+      sid = gsub("2-s2.0-", "", eid)
+    ) |>
+    create_diva_mods()
+  }
+
+  my_string <- mods_from_eid(my_eid)
+
+  is_invalid <- my_string |> grepl(pattern = "country=")
+
+  expect_true(!is_invalid)
+})
 
 

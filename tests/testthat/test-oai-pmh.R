@@ -1,3 +1,5 @@
+library(dbplyr)
+
 test_that("connection through OAI-PMH can be made", {
   skip_on_ci()
   hello <- oai_hello()
@@ -24,3 +26,7 @@ test_that("changes since latest timestamp from database can be retrieved", {
   expect_true(is_ok)
 
 })
+
+# from (from mods_extra where length(json) > 10 limit 10) 
+#select json_extract_path(json::JSON, '$.mods.recordInfo.recordIdentifier."#"')::VARCHAR as mods;
+

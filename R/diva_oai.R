@@ -91,8 +91,11 @@ oai_db_lastmod <- function() {
   
 }
 
-#' @importFrom dbplyr ident sql
+#' @importFrom dbplyr dbplyr_edition
 oai_db_refresh <- function(append = FALSE) {
+
+  edition <- dbplyr::dbplyr_edition()
+  message("Using dbplyr edition ", edition)
 
   lastmod <- oai_db_lastmod()
   message("Fetching changes since last db datestamp: ", lastmod)

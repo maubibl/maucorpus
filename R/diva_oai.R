@@ -240,6 +240,26 @@ oai_db_enrich <- function(records) {
   t4 <- t1 |> left_join(t2) |> left_join(t3)
 
   records |> left_join(t4) |> 
-    select(any_of(c("PID", "PID_many", "status")), everything())
+    select(any_of(c("PID", "PID_many", "status")), everything()) |> 
+    select(!any_of(c("mods")))
 
+}
+
+oai_db_s3_upload <- function() {
+  options("minioclient.dir" = dirname(Sys.which("mc")))
+  db <- oai_db_path()
+  minioclient::mc_cp(db, "kthb/kthcorpus/oai.db")
+}
+
+oai_db_s3_download <- function() {
+  options("minioclient.dir" = dirname(Sys.which("mc")))
+  db <- oai_db_path()
+  minioclient::mc_cp("kthb/kthcorpus/oai.db", db)
+}
+
+oai_db_init <- function() {
+  if (!file.exists(oai_db_path())) {
+    message("No database exists locally, downloading...")
+    oai_db_s3_download()
+  }
 }

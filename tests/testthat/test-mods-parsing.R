@@ -22,6 +22,16 @@ test_that("mods parsing works", {
 
 })
 
+test_that("single mods xslt to jsonl parsing works", {
+
+  x <- "1096938" |> read_diva_mods()
+
+  is_valid <- (mods_to_xjsonld(x) |> length()) == 2
+
+  expect_true(is_valid)
+
+}
+
 test_that("single mods xslt to json parsing works", {
 
   x <- "1096938" |> read_diva_mods()

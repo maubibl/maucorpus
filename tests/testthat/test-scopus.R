@@ -23,6 +23,22 @@ test_that("scopus abstract extended info works", {
   expect_true(!is_invalid)
 })
 
+test_that("scopus abstract extended removes ror strings from org aff", {
+
+  skip_on_ci()
+
+  mysid <- "SCOPUS_ID:85204443832"
+
+  ae <- scopus_abstract_extended(mysid)
+
+  is_invalid <- 
+    any(ae$scopus_authorgroup$raw_org |> 
+      grepl(pattern = "\\s*https://ror\\.org/[0-9a-z]{9}"))
+  
+  expect_true(!is_invalid)
+})
+
+
 test_that("scopus abstract extended info works for specific eid", {
   skip_on_ci()
   my_eid <- "2-s2.0-85187216462"

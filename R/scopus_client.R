@@ -565,8 +565,12 @@ pluck_raw_org <- function(x) {
     mutate(across(where(is.character), .fns = function(x) na_if(x, ""))) |>
     mutate(raw = ifelse(nzchar(ce_source) && nchar(ce_source) > nchar(raw), NA_character_, raw)) |>
 #    mutate(ce_source = ifelse(nzchar(raw) && nchar(raw) < nchar(ce_source), NA, ce_source)) |>
-    mutate(raw_org = paste0(collapse = ", ", na.omit(c(org, ce_source, raw, ap, ce_text)))) |>
+    mutate(raw_org = clean_raw_org(paste0(collapse = ", ", na.omit(c(org, ce_source, raw, ap, ce_text))))) |>
     mutate(across(where(is.character), .fns = function(x) na_if(x, "")))
+}
+
+clean_raw_org <- function(x) {
+  x |> gsub(pattern = "\\s*https://ror\\.org/[0-9a-z]{9}", replacement = "") 
 }
 
 #' Request extended information from Scopus Abstract API

@@ -12,6 +12,17 @@ mods_to_json <- function(xml_string) {
   
 }
 
+mods_to_xjsonld <- function(xml_string) {
+
+  xml <- 
+    xml_string |> xml2::read_xml() 
+
+  xsl <- system.file(package = "kthcorpus", "extdata", "mods_to_xjsonld.xsl") |> xml2::read_xml()  
+  xslt::xml_xslt(xml, xsl) 
+  
+}
+
+
 mods_json_to_object <- function(json) {
   obj <- json |> fromJSON(simplifyDataFrame = TRUE, flatten = TRUE)
   x <- obj$mods

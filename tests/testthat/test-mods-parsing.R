@@ -30,7 +30,7 @@ test_that("single mods xslt to jsonl parsing works", {
 
   expect_true(is_valid)
 
-}
+})
 
 test_that("single mods xslt to json parsing works", {
 

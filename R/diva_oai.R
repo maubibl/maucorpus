@@ -74,12 +74,16 @@ oai_crawl_records <- function(ids, batch_size = 100L) {
 
 }
 
-oai_db_lastmod <- function() {
+oai_db_lastmod <- function(con) {
 
   datestamp <- ts <- NULL
 
-  con <- oai_con()
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  if (missing(con)) {
+    con <- oai_con()
+    on.exit({
+      DBI::dbDisconnect(con, shutdown = TRUE)
+    })
+  }
 
   stopifnot(DBI::dbExistsTable(con, "ids"))
 
@@ -87,12 +91,20 @@ oai_db_lastmod <- function() {
     con |> dplyr::tbl("ids") |> collect() |> 
     readr::type_convert() |> suppressMessages()
 
-  ids |> dplyr::summarise(ts = max(datestamp)) |> pull(ts) |> as.Date()
+  ids |> dplyr::summarise(ts = max(datestamp)) |> 
+    pull(ts) |> strftime("%Y-%d-%mT%H:%M:%SZ")
   
 }
 
 #' @importFrom dbplyr dbplyr_edition
-oai_db_refresh <- function(append = FALSE) {
+oai_changes <- function(con, append = FALSE) {
+
+  if (missing(con)) {
+    con <- oai_con()
+    on.exit({
+      DBI::dbDisconnect(con, shutdown = TRUE)
+    })
+  }
 
   edition <- dbplyr::dbplyr_edition()
   message("Using dbplyr edition ", edition)
@@ -101,10 +113,6 @@ oai_db_refresh <- function(append = FALSE) {
   message("Fetching changes since last db datestamp: ", lastmod)
   ids <- oai_identifiers_kth(since = lastmod) |> 
     readr::type_convert() |> suppressMessages()
-
-  con <- oai_con()
-  stopifnot(DBI::dbExistsTable(con, "ids"))
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
 
   ids_old <- 
     con |> dplyr::tbl("ids") |> dplyr::collect() |> 
@@ -127,8 +135,6 @@ oai_db_refresh <- function(append = FALSE) {
   new_mods <- new_ids$identifier |> oai_crawl_records()
   tictoc::toc()
 
-  stopifnot(DBI::dbExistsTable(con, "mods"))
-
   if (isTRUE(append)) {
     message("Appending records to mods table")
     res <- con |> DBI::dbWriteTable("mods", new_mods, append = TRUE)
@@ -136,10 +142,8 @@ oai_db_refresh <- function(append = FALSE) {
     message("No changes made to the database (mods table)")
   }
 
-  stopifnot(DBI::dbExistsTable(con, "mods_extra"))
-
   tictoc::tic()
-  new_extra <- oai_db_enrich(new_mods)
+  new_extra <- oai_db_enrich(con, new_mods)
   tictoc::toc()
 
   if (isTRUE(append)) {
@@ -179,13 +183,18 @@ xfind <- function(xml, xpath) {
   return(res)
 }
 
-oai_mods_statuses <- function(records) {
+oai_mods_statuses <- function(con, records) {
 
   mods <- identifier <- status <- NULL
 
-  if (missing(records)) {
+  if (missing(con)) {
     con <- oai_con()
-    on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+    on.exit({
+      DBI::dbDisconnect(con, shutdown = TRUE)
+    })
+  }
+
+  if (missing(records)) {
     records <- con |> tbl("mods") |> collect()  
   }
   
@@ -194,13 +203,18 @@ oai_mods_statuses <- function(records) {
     select(identifier, mods, status)
 }
 
-oai_mods_pids <- function(records) {
+oai_mods_pids <- function(con, records) {
 
   mods <- NULL
 
-  if (missing(records)) {
+  if (missing(con)) {
     con <- oai_con()
-    on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+    on.exit({
+      DBI::dbDisconnect(con, shutdown = TRUE)
+    })
+  }
+
+  if (missing(records)) {
     records <- con |> tbl("mods") |> collect()  
   }
 
@@ -211,13 +225,18 @@ oai_mods_pids <- function(records) {
     mutate(PID_many = grepl(" ", PID))   
 }
 
-oai_mods_jsons <- function(records) {
+oai_mods_jsons <- function(con, records) {
+
+  if (missing(con)) {
+    con <- oai_con()
+    on.exit({
+      DBI::dbDisconnect(con, shutdown = TRUE)
+    })
+  }
 
   mods <- NULL
 
   if (missing(records)) {
-    con <- oai_con()
-    on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
     records <- con |> tbl("mods") |> collect()  
   }
 
@@ -226,17 +245,22 @@ oai_mods_jsons <- function(records) {
   
 }
 
-oai_db_enrich <- function(records) {
+oai_db_enrich <- function(con, records) {
+
+  if (missing(con)) {
+    con <- oai_con()
+    on.exit({
+      DBI::dbDisconnect(con, shutdown = TRUE)
+    })
+  }
 
   if (missing(records)) {
-    con <- oai_con()
-    on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
     records <- con |> tbl("mods") |> collect()  
   }
 
-  t1 <- records |> oai_mods_jsons()
-  t2 <- records |> oai_mods_statuses()
-  t3 <- records |> oai_mods_pids()  
+  t1 <- records |> oai_mods_jsons(con = con)
+  t2 <- records |> oai_mods_statuses(con = con)
+  t3 <- records |> oai_mods_pids(con = con)  
   t4 <- t1 |> left_join(t2) |> left_join(t3)
 
   records |> left_join(t4) |> 
@@ -262,4 +286,100 @@ oai_db_init <- function() {
     message("No database exists locally, downloading...")
     oai_db_s3_download()
   }
+}
+
+oai_db_upsert <- function(con, table_name, data) {
+
+  if (missing(con)) {
+    con <- oai_con()
+    #con |> DBI::dbExecute(statement = "BEGIN TRANSACTION;")
+    on.exit({
+      #DBI::dbExecute(con, statement = "COMMIT;CHECKPOINT;")
+      DBI::dbDisconnect(con, shutdown = TRUE)
+    })
+  }
+
+  is_staged <- 
+    sprintf("create or replace temp table staging as 
+      select * from %s where 1 = 2;", table_name) |> 
+      DBI::dbExecute(conn = con) == 0
+  
+  has_index <- 
+    sprintf("create unique index if not exists idx_%s on %s(identifier);",
+      table_name, table_name) |> 
+    DBI::dbExecute(conn = con) == 0
+
+  # is_deduplicated <-     
+  # "create table mods_extra2 as from mods_extra qualify row_number() over 
+  # (partition by identifier) = 1" |> 
+  #   DBI::dbExecute(conn = con)
+  # "drop table mods_extra" |> DBI::dbExecute(conn = con)
+  # "create table mods_extra as from mods_extra2" |> DBI::dbExecute(conn = con)
+  # "from mods_extra limit 5" |> DBI::dbGetQuery(conn = con) |> as_tibble()
+
+  is_appended <- 
+    DBI::dbWriteTable(conn = con, 
+      name = "staging", value = data, append = TRUE) == TRUE
+
+  # "delete from staging" |> DBI::dbExecute(conn = con)
+  #"from staging" |> DBI::dbGetQuery(conn = con) |> as_tibble()
+
+  #"from ids select * where identifier = 'oai:DiVA.org:kth-354364'" |> DBI::dbGetQuery(conn = con)
+  
+  n_merged <- 
+    sprintf("insert or replace into %s by name 
+      select distinct(*) from staging order by identifier;", table_name) |> 
+    DBI::dbExecute(conn = con)
+
+  is_dropped <- 
+    "drop table staging;" |> 
+    DBI::dbExecute(conn = con) == 0
+  
+  return(n_merged)
+}
+
+duckdb_s3_query <- function(query) {
+
+  s3_x <- 
+    system("mc alias --json ls kthb", intern = TRUE) |> 
+    jsonlite::fromJSON()
+  
+  s3_setup_auth <- 
+    "create secret minio_secret (
+      TYPE S3, USE_SSL true, URL_STYLE path,
+      KEY_ID '%s', SECRET '%s', ENDPOINT '%s');" |> 
+      sprintf(s3_x$accessKey, s3_x$secretKey, s3_x$URL |> 
+        gsub(pattern="https://", replacement=""))
+  
+  con <- duckdb::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+
+  con |> DBI::dbExecute(
+    'SET autoinstall_known_extensions=1;
+    SET autoload_known_extensions=1;')
+  
+  con |> DBI::dbExecute(s3_setup_auth)  
+  con |> DBI::dbGetQuery(query) |> tibble::as_tibble()
+
+}
+
+oai_db_refresh <- function(con) {
+
+  if (missing(con)) {
+    con <- oai_con()
+    con |> DBI::dbExecute(statement = "BEGIN TRANSACTION;")
+    on.exit({
+      DBI::dbExecute(con, statement = "COMMIT;CHECKPOINT;")
+      DBI::dbDisconnect(con, shutdown = TRUE)
+    })
+  }
+
+  news <- con |> oai_changes(append = FALSE)
+
+  n_ids <- con |> oai_db_upsert(table_name = "ids", data = news$ids)
+  n_mods <- con |> oai_db_upsert(table_name = "mods", data = news$mods)
+  n_extra <- con |> oai_db_upsert(table_name = "mods_extra", data = news$extra)
+
+  list(n_ids = n_ids, n_mods = n_mods, n_extra = n_extra)
+
 }

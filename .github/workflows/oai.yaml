@@ -3,8 +3,6 @@ on:
   push:
     paths:
       - '.github/workflows/oai.yml'
-  schedule:
-    - cron: '30 * * * *' # see https://crontab.guru/#30_*_*_*_*
 
 name: Harvest DiVA records using OAI-PMH and upload oai.db to S3/minio
 

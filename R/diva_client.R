@@ -436,7 +436,7 @@ diva_download_s3 <- function(files, destination, source = "kthb/kthcorpus", opti
 
   # options can be "--newer-than 7d10h"
   cmd <- sprintf("%s cp %s %s %s", util, options, paths, destination)
-  res <- system(cmd, timeout = 300)
+  res <- system(cmd, timeout = 600)
   #res <- cmd
 
   if (res == 124)

@@ -8,7 +8,15 @@ oai_db_path <- function() {
 }
 
 oai_con <- function() {
-  con <- duckdb::dbConnect(duckdb::duckdb(), dbdir = oai_db_path())
+  d <- oai_db_path() |> suppressWarnings()
+  if (!file.exists(d)) {
+    message("Cannot find ", d, " ... attempting download")
+    if (!dir.exists(dirname(d))) 
+      dir.create(dirname(d))
+    diva_download_s3(files = "oai.db", destination = d)
+    stopifnot(file.exists(d))
+  }
+  con <- duckdb::dbConnect(duckdb::duckdb(), dbdir = d)
   DBI::dbExecute(con, "SET autoinstall_known_extensions=1;")
   DBI::dbExecute(con, "SET autoload_known_extensions=1;")
   return (con)

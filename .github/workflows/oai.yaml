@@ -1,0 +1,22 @@
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/oai.yml'
+  schedule:
+    - cron: '30 * * * *' # see https://crontab.guru/#30_*_*_*_*
+
+name: Harvest DiVA records using OAI-PMH and upload oai.db to S3/minio
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    container: ghcr.io/kth-library/kthcorpus
+    timeout-minutes: 20
+    env:
+      MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
+    steps:
+      - run: |
+          R -e 'kthcorpus:::oai_db_refresh()'
+          R -e 'kthcorpus:::diva_upload_s3(kthcorpus:::oai_db_path())'
+    

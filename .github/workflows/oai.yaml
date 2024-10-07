@@ -16,7 +16,17 @@ jobs:
     env:
       MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
     steps:
-      - run: |
+    - name: Free Disk Space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: false
+        swap-storage: true
+    - name: Download db, refresh and upload (OAI-PMH Harvest)
+      run: |
           R -e 'kthcorpus:::oai_db_refresh()'
           R -e 'kthcorpus:::diva_upload_s3(kthcorpus:::oai_db_path())'
     

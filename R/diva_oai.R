@@ -100,12 +100,12 @@ oai_db_lastmod <- function(con) {
     readr::type_convert() |> suppressMessages()
 
   ids |> dplyr::summarise(ts = max(datestamp)) |> 
-    pull(ts) |> strftime("%Y-%d-%mT%H:%M:%SZ")
+    pull(ts) |> strftime("%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   
 }
 
 #' @importFrom dbplyr dbplyr_edition
-oai_changes <- function(con, append = FALSE) {
+oai_changes <- function(con, append = FALSE, since = oai_db_lastmod()) {
 
   if (missing(con)) {
     con <- oai_con()
@@ -117,7 +117,7 @@ oai_changes <- function(con, append = FALSE) {
   edition <- dbplyr::dbplyr_edition()
   message("Using dbplyr edition ", edition)
 
-  lastmod <- oai_db_lastmod()
+  lastmod <- since
   message("Fetching changes since last db datestamp: ", lastmod)
   ids <- oai_identifiers_kth(since = lastmod) |> 
     readr::type_convert() |> suppressMessages()
@@ -133,8 +133,6 @@ oai_changes <- function(con, append = FALSE) {
   if (isTRUE(append)) {
     message("Appending new identifiers to ids table")
     res <- con |> DBI::dbWriteTable("ids", new_ids, append = TRUE)
-  } else {
-    message("No changes made to the database (ids table)")
   }
   
   message("Fetching MODS for new identifiers")
@@ -146,8 +144,6 @@ oai_changes <- function(con, append = FALSE) {
   if (isTRUE(append)) {
     message("Appending records to mods table")
     res <- con |> DBI::dbWriteTable("mods", new_mods, append = TRUE)
-  } else {
-    message("No changes made to the database (mods table)")
   }
 
   tictoc::tic()
@@ -157,8 +153,6 @@ oai_changes <- function(con, append = FALSE) {
   if (isTRUE(append)) {
     message("Appending mods in xml and json to mods_extra table")
     res <- con |> DBI::dbWriteTable("mods_extra", new_extra, append = TRUE)
-  } else {
-    message("No changes made to the database (mods_extra table)")
   }
 
   out <- list(
@@ -371,7 +365,7 @@ duckdb_s3_query <- function(query) {
 
 }
 
-oai_db_refresh <- function(con) {
+oai_db_refresh <- function(con, since_ts) {
 
   if (missing(con)) {
     con <- oai_con()
@@ -382,7 +376,11 @@ oai_db_refresh <- function(con) {
     })
   }
 
-  news <- con |> oai_changes(append = FALSE)
+  if (missing(since_ts)) {
+    news <- con |> oai_changes(append = FALSE)
+  } else {
+    news <- con |> oai_changes(append = FALSE, since = since_ts)
+  }
 
   n_ids <- con |> oai_db_upsert(table_name = "ids", data = news$ids)
   n_mods <- con |> oai_db_upsert(table_name = "mods", data = news$mods)

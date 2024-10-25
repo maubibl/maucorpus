@@ -731,12 +731,15 @@ has_sysreqs <- function(utils)
 #' @export
 diva_config <- function() {
   list(
-    portal = "https://kth.diva-portal.org",
-    id = "177",
-    org = "kth",
+    #portal = "https://kth.diva-portal.org",
+    #id = "177",
+    #org = "kth",
     #portal = "https://his.diva-portal.org",
     #id = "81",
     #org = "his",
+    portal = "https://mau.diva-portal.org",
+    id = "882600",
+    org = "mau", 
     ybeg = 2010,
     yend = lubridate::year(Sys.Date())
   )

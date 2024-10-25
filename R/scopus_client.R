@@ -194,12 +194,20 @@ scopus_search_pubs_kth <- function(beg_loaddate, end_loaddate,
     beg_loaddate <- (Sys.Date() - 7) %>% format_date()
 
   #beg_pubyear <- 2019L
-  id_affiliation <- 60007905 # OR AF-ID (60010975 ) OR AF-ID (60063782 ) )
+   # id_affiliation <- 60002014L
+id_affiliation <- 60007905 # OR AF-ID (60010975 ) OR AF-ID (60063782 ) )
 
   criteria <- glue::glue(
     'AF-ID("Malm&#246; Universitet" {id_affiliation}) AND ',
     'orig-load-date aft {beg_loaddate} AND orig-load-date bef {end_loaddate}'
   )
+    #'AFFIL(((kth*) OR (roy* AND inst* AND tech*) OR ("Roy. Inst. T") OR ',
+    #'(alfven) OR (kung* AND tek* AND hog*) OR (kung* AND tek* AND h\\u00f6g*) OR ',
+    #'(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
+    #'(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
+    #'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
+    #'orig-load-date aft {beg_loaddate} AND pubyear aft {beg_pubyear}'
+  #)
   if (!missing(beg_pubyear))
     criteria <- paste(criteria, glue::glue("AND pubyear aft {beg_pubyear}"))
 
@@ -484,16 +492,20 @@ scopus_ratelimit_quota <- function() {
   # make request
   beg_loaddate <- (Sys.Date() - 14) %>% format_date()
   beg_pubyear <- 2019L
-  id_affiliation <- 60002014L
+    # id_affiliation <- 60002014L
+id_affiliation <- 60007905 # OR AF-ID (60010975 ) OR AF-ID (60063782 ) )
 
   criteria <- glue::glue(
-    'AFFIL(((kth*) OR (roy* AND inst* AND tech*) OR ("Roy. Inst. T") OR ',
-    '(alfven) OR (kung* AND tek* AND hog*) OR (kung* AND tek* AND h\\u00f6g*) OR ',
-    '(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
-    '(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
-    'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
-    'orig-load-date aft {beg_loaddate} AND pubyear aft {beg_pubyear}'
+    'AF-ID("Malm&#246; Universitet" {id_affiliation}) AND ',
+    'orig-load-date aft {beg_loaddate} AND orig-load-date bef {end_loaddate}'
   )
+    #'AFFIL(((kth*) OR (roy* AND inst* AND tech*) OR ("Roy. Inst. T") OR ',
+    #'(alfven) OR (kung* AND tek* AND hog*) OR (kung* AND tek* AND h\\u00f6g*) OR ',
+    #'(kgl AND tek* AND hog*) OR (kung* AND tek* AND hg*) OR ',
+    #'(roy* AND tech* AND univ*)) AND (Sweden)) OR ',
+    #'AF-ID("The Royal Institute of Technology KTH" {id_affiliation}) AND ',
+    #'orig-load-date aft {beg_loaddate} AND pubyear aft {beg_pubyear}'
+  #)
 
   resp <- scopus_req(criteria, 1, 1)
 
